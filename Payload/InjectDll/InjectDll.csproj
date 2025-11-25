@@ -1,0 +1,166 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{C314BC6C-50BA-4F70-8C38-BC0D1061B1D5}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Inject</RootNamespace>
+    <AssemblyName>Inject</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <OutputPath>bin\x64\ReleaseX64\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <OutputPath>bin\x86\ReleaseX64\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'ReleaseButDebug|x64'">
+    <OutputPath>bin\x64\ReleaseButDebug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'ReleaseButDebug|x86'">
+    <OutputPath>bin\x86\ReleaseButDebug\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WinAPI">
+      <HintPath>..\..\Dependencies\WinAPI.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Agentv2\WinAPI\APIWrapper.cs">
+      <Link>WinAPI\APIWrapper.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\Data\AdvApi.cs">
+      <Link>WinAPI\Data\AdvApi.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\Data\Kernel32.cs">
+      <Link>WinAPI\Data\Kernel32.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\Data\PE.cs">
+      <Link>WinAPI\Data\PE.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Advapi.cs">
+      <Link>WinAPI\DInvoke\DInvoke.Advapi.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Data.Native.cs">
+      <Link>WinAPI\DInvoke\DInvoke.Data.Native.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Data.PE.cs">
+      <Link>WinAPI\DInvoke\DInvoke.Data.PE.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Data.Win32.cs">
+      <Link>WinAPI\DInvoke\DInvoke.Data.Win32.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Generic.cs">
+      <Link>WinAPI\DInvoke\DInvoke.Generic.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Kernel32.cs">
+      <Link>WinAPI\DInvoke\DInvoke.Kernel32.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Native.cs">
+      <Link>WinAPI\DInvoke\DInvoke.Native.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Utilities.cs">
+      <Link>WinAPI\DInvoke\DInvoke.Utilities.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Wrapper.cs">
+      <Link>WinAPI\DInvoke\DInvoke.Wrapper.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\Helper\ReflectiveLoaderHelper.cs">
+      <Link>WinAPI\Helper\ReflectiveLoaderHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\PInvoke\Advapi.cs">
+      <Link>WinAPI\PInvoke\Advapi.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\PInvoke\Kernel32.cs">
+      <Link>WinAPI\PInvoke\Kernel32.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\PInvoke\Native.cs">
+      <Link>WinAPI\PInvoke\Native.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agentv2\WinAPI\PInvoke\PInvoke.Wrapper.cs">
+      <Link>WinAPI\PInvoke\PInvoke.Wrapper.cs</Link>
+    </Compile>
+    <Compile Include="Entry.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="WinAPI\Wrapper\Data.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Payload" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

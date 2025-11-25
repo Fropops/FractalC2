@@ -1,0 +1,68 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO.Pipes;
+using System.Linq;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Agent.Models
+{
+    
+
+    public abstract class PipeServer
+    {
+        protected readonly CancellationToken _cancel;
+
+        private readonly CancellationTokenSource _cancelSource;
+
+        public string PipeName { get; private set; }
+
+        public PipeCommModule PipeCommModule { get; private set; }
+
+        public PipeServer(string pipeName, PipeCommModule commModule)
+        {
+            PipeName = pipeName;
+            PipeCommModule = commModule;
+
+            _cancelSource = new CancellationTokenSource();
+
+            _cancel = _cancelSource.Token;
+        }
+
+        public void Start()
+        {
+            //Console.WriteLine("[thread: {0}] -> Starting server listener.", Thread.CurrentThread.ManagedThreadId);
+
+            var serverThread = new Thread(() => RunServer());
+            serverThread.Start();
+        }
+
+        public void Stop()
+        {
+            _cancelSource.Cancel();
+        }
+
+        protected abstract void RunServer();
+
+        protected PipeSecurity CreatePipeSecurityForEveryone()
+        {
+            //PipeSecurity pipeSecurity = new PipeSecurity();
+
+            //var id = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+
+            //// Allow Everyone read and write access to the pipe. 
+            //pipeSecurity.SetAccessRule(new PipeAccessRule(id, PipeAccessRights.ReadWrite, AccessControlType.Allow));
+
+            //return pipeSecurity;
+
+            PipeSecurity pipeSecurity = new PipeSecurity();
+            pipeSecurity.AddAccessRule(new PipeAccessRule("Everyone", PipeAccessRights.FullControl, AccessControlType.Allow));
+            return pipeSecurity;
+        }
+
+
+    }
+}

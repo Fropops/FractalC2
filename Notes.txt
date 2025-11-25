@@ -1,0 +1,5 @@
+Ssl certificates don't work on Kali
+Process.Start don't work on AWS
+
+View assembly Arch : 
+[reflection.assemblyname]::GetAssemblyName("E:\Share\Projects\C2Sharp\Payloads\x86\Starter.exe") | fl

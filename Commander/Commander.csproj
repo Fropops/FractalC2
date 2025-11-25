@@ -1,0 +1,73 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <Configurations>Debug;Release;ReleaseButDebug</Configurations>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Version>2.0.10.0</Version>
+    <AssemblyVersion>2.0.10.0</AssemblyVersion>
+    <FileVersion>2.0.10.0</FileVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Commands\Agent\Token\**" />
+    <Compile Remove="Commands\Laucher\**" />
+    <Compile Remove="Internal\**" />
+    <EmbeddedResource Remove="Commands\Agent\Token\**" />
+    <EmbeddedResource Remove="Commands\Laucher\**" />
+    <EmbeddedResource Remove="Internal\**" />
+    <None Remove="Commands\Agent\Token\**" />
+    <None Remove="Commands\Laucher\**" />
+    <None Remove="Internal\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Commands\Agent\AgentWebHostCommand.cs" />
+    <Compile Remove="Commands\Agent\CaptureCommand.cs" />
+    <Compile Remove="Commands\Agent\EndPoint\EndPointCommand-Simple.cs" />
+    <Compile Remove="Commands\Agent\KillAgentCommand.cs" />
+    <Compile Remove="Commands\Agent\PathCommand.cs" />
+    <Compile Remove="Commands\Base64Command.cs" />
+    <Compile Remove="Commands\Scripted\AgentTask.cs" />
+    <Compile Remove="Commands\FilesCommand.cs" />
+    <Compile Remove="Commands\GetCommand.cs" />
+    <Compile Remove="Commands\Payload\JumpWinRMCommand.cs" />
+    <Compile Remove="Commands\PushCommand.cs" />
+    <Compile Remove="Commands\WebHostCommand.cs" />
+    <Compile Remove="Models\AgentMetadata.cs" />
+    <Compile Remove="Models\AgentTaskResult.cs" />
+    <Compile Remove="Models\Listener.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Commands\Agent\BuildDropperCommand.cs.save" />
+    <None Remove="Commands\Agent\BuildPSDropperCommand.cs.old" />
+    <None Remove="Commands\Agent\Execute\ExecuteAssemblyCommand.cs.save" />
+    <None Remove="Commands\Agent\Execute\ExecuteAssemblyModuleCommand.cs.save" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="7.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Spectre.Console" Version="0.46.1-preview.0.20" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta3.22114.1" />
+    <PackageReference Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta3.22114.1" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.28.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="BinarySerializer">
+      <HintPath>..\Dependencies\BinarySerializer.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.release.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

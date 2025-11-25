@@ -1,0 +1,6 @@
+* Gérer les payloads côté serveur
+* Utils repos
+* Défault action on start (commander?, teamserver?)
+* Pivot ?!
+* RunAsLoggedOn https://github.com/antonioCoco/RunasCs/blob/master/RunasCs.cs
+* BOF Loader .Net

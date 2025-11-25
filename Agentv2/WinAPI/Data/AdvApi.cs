@@ -1,0 +1,144 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace WinAPI.Data.AdvApi
+{
+    #region ServiceManager
+    [Flags]
+    public enum SCM_ACCESS_RIGHTS : uint
+    {
+        SC_MANAGER_ALL_ACCESS = 0xF003F,
+        SC_MANAGER_CREATE_SERVICE = 0x0002,
+        SC_MANAGER_CONNECT = 0x0001,
+        SC_MANAGER_ENUMERATE_SERVICE = 0x0004,
+        SC_MANAGER_LOCK = 0x0008,
+        SC_MANAGER_MODIFY_BOOT_CONFIG = 0x0020,
+        SC_MANAGER_QUERY_LOCK_STATUS = 0x0010
+    }
+
+    [Flags]
+    public enum SERVICE_ACCESS_RIGHTS : uint
+    {
+        SERVICE_ALL_ACCESS = 0xF01FF,
+        SERVICE_CHANGE_CONFIG = 0x0002,
+        SERVICE_ENUMERATE_DEPENDENTS = 0x0008,
+        SERVICE_INTERROGATE = 0x0080,
+        SERVICE_PAUSE_CONTINUE = 0x0040,
+        SERVICE_QUERY_CONFIG = 0x0001,
+        SERVICE_QUERY_STATUS = 0x0004,
+        SERVICE_START = 0x0010,
+        SERVICE_STOP = 0x0020,
+        SERVICE_USER_DEFINED_CONTROL = 0x010
+    }
+
+    public enum SERVICE_TYPE : uint
+    {
+        SERVICE_ADAPTER = 0x00000004,
+        SERVICE_FILE_SYSTEM_DRIVER = 0x00000002,
+        SERVICE_KERNEL_DRIVER = 0x00000001,
+        SERVICE_RECOGNIZER_DRIVER = 0x00000008,
+        SERVICE_WIN32_OWN_PROCESS = 0x00000010,
+        SERVICE_WIN32_SHARE_PROCESS = 0x00000020,
+        SERVICE_INTERACTIVE_PROCESS = 0x00000100
+    }
+
+    public enum START_TYPE : uint
+    {
+        SERVICE_AUTO_START = 0x00000002,
+        SERVICE_BOOT_START = 0x00000000,
+        SERVICE_DEMAND_START = 0x00000003,
+        SERVICE_DISABLED = 0x00000004,
+        SERVICE_SYSTEM_START = 0x00000001
+    }
+
+    public enum ERROR_CONTROL : uint
+    {
+        SERVICE_ERROR_CRITICAL = 0x00000003,
+        SERVICE_ERROR_IGNORE = 0x00000000,
+        SERVICE_ERROR_NORMAL = 0x00000001,
+        SERVICE_ERROR_SEVERE = 0x00000002
+    }
+    #endregion
+    public enum LogonProvider
+    {
+        LOGON32_LOGON_INTERACTIVE = 2,
+        LOGON32_LOGON_NETWORK = 3,
+        LOGON32_LOGON_BATCH = 4,
+        LOGON32_LOGON_SERVICE = 5,
+        LOGON32_LOGON_UNLOCK = 7,
+        LOGON32_LOGON_NETWORK_CLEARTEXT = 8,
+        LOGON32_LOGON_NEW_CREDENTIALS = 9
+    }
+
+    public enum LogonUserProvider
+    {
+        LOGON32_PROVIDER_DEFAULT = 0,
+        LOGON32_PROVIDER_WINNT35 = 1,
+        LOGON32_PROVIDER_WINNT40 = 2,
+        LOGON32_PROVIDER_WINNT50 = 3,
+        LOGON32_PROVIDER_VIRTUAL = 4
+    }
+
+    public enum DesiredAccess : uint
+    {
+        STANDARD_RIGHTS_REQUIRED = 0x000F0000,
+        STANDARD_RIGHTS_READ = 0x00020000,
+        TOKEN_ASSIGN_PRIMARY = 0x0001,
+        TOKEN_DUPLICATE = 0x0002,
+        TOKEN_IMPERSONATE = 0x0004,
+        TOKEN_QUERY = 0x0008,
+        TOKEN_QUERY_SOURCE = 0x0010,
+        TOKEN_ADJUST_PRIVILEGES = 0x0020,
+        TOKEN_ADJUST_GROUPS = 0x0040,
+        TOKEN_ADJUST_DEFAULT = 0x0080,
+        TOKEN_ADJUST_SESSIONID = 0x0100,
+        TOKEN_READ = (STANDARD_RIGHTS_READ | TOKEN_QUERY),
+
+        TOKEN_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED | TOKEN_ASSIGN_PRIMARY |
+        TOKEN_DUPLICATE | TOKEN_IMPERSONATE | TOKEN_QUERY | TOKEN_QUERY_SOURCE |
+        TOKEN_ADJUST_PRIVILEGES | TOKEN_ADJUST_GROUPS | TOKEN_ADJUST_DEFAULT |
+        TOKEN_ADJUST_SESSIONID)
+    }
+
+    public enum TokenAccess : uint
+    {
+        TOKEN_ASSIGN_PRIMARY = 0x0001,
+        TOKEN_DUPLICATE = 0x0002,
+        TOKEN_IMPERSONATE = 0x0004,
+        TOKEN_QUERY = 0x0008,
+        TOKEN_QUERY_SOURCE = 0x0010,
+        TOKEN_ADJUST_PRIVILEGES = 0x0020,
+        TOKEN_ADJUST_GROUPS = 0x0040,
+        TOKEN_ADJUST_DEFAULT = 0x0080,
+        TOKEN_ADJUST_SESSIONID = 0x0100,
+        TOKEN_ALL_ACCESS_P = 0x000F00FF,
+        TOKEN_ALL_ACCESS = 0x000F01FF,
+        TOKEN_READ = 0x00020008,
+        TOKEN_WRITE = 0x000200E0,
+        TOKEN_EXECUTE = 0x00020000
+    }
+
+    public enum TokenType
+    {
+        TOKEN_PRIMARY = 1,
+        TOKEN_IMPERSONATION
+    }
+
+    public enum SecurityImpersonationLevel
+    {
+        SECURITY_ANONYMOUS,
+        SECURITY_IDENTIFICATION,
+        SECURITY_IMPERSONATION,
+        SECURITY_DELEGATION
+    }
+
+    [Flags]
+    public enum LogonFlags : uint
+    {
+        LogonWithProfile = 0x00000001,
+        LogonNetCredentialsOnly = 0x00000002,
+    }
+}

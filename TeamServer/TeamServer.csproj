@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <Configurations>Debug;Release;ReleaseButDebug</Configurations>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Version>2.0.7.0</Version>
+    <AssemblyVersion>2.0.7.0</AssemblyVersion>
+    <FileVersion>2.0.7.0</FileVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Audit\**" />
+    <Content Remove="Audit\**" />
+    <EmbeddedResource Remove="Audit\**" />
+    <None Remove="Audit\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Extensions.cs" />
+    <Compile Remove="Models\Agent\AgentMetadata.cs" />
+    <Compile Remove="Models\Agent\AgentTask.cs" />
+    <Compile Remove="Models\Agent\AgentTaskResult.cs" />
+    <Compile Remove="Models\Agent\Message.cs" />
+    <Compile Remove="Models\Agent\ResultData.cs" />
+    <Compile Remove="Models\Agent\SocksMessage.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="data.db" />
+    <None Remove="log.log" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="sqlite-net-pcl" Version="1.9.141-beta" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.28.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="BinarySerializer">
+      <HintPath>..\Dependencies\BinarySerializer.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="certs\ts.pfx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="sslcert.pfx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>
