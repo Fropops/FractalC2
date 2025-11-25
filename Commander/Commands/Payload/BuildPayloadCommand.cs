@@ -70,7 +70,7 @@ namespace Commander.Commands
                     {
                         new Option<string>(new[] { "--bindTo", "-b" }, () => null, "endpoint to connect to"),
                         new Option<string>(new[] { "--listener", "-l" }, () => null, "listener to connect to"),
-                        new Option<string>(new[] { "--type", "-t" }, () => "exe", "exe | dll | svc | ps | bin | all").FromAmong("exe", "dll", "svc", "ps", "bin", "all"),
+                        new Option<string>(new[] { "--type", "-t" }, () => "exe", "exe | dll | rfl | svc | ps | bin").FromAmong("exe", "dll", "rfl" ,"svc", "ps", "bin"),
                         new Option<string>(new[] { "--fileName", "-f" }, () => null, "Name of the file to be crafted"),
                         new Option(new[] { "--debug", "-d" }, "Keep debugging info when building"),
                         new Option<string>(new[] { "--path", "-p" }, () => null, "Folder to save the generated file"),
@@ -148,41 +148,11 @@ namespace Commander.Commands
             if (!string.IsNullOrEmpty(context.Options.serverKey))
                 serverKey = context.Options.serverKey;
 
-            if (context.Options.type == "all")
-            {
-                foreach (var arch in Enum.GetValues(typeof(PayloadArchitecture)))
-                {
-                    var archType = (PayloadArchitecture)arch;
-                    foreach (var typ in Enum.GetValues(typeof(PayloadType)))
-                    {
-                        var payType = (PayloadType)typ;
-
-                        var opt = new PayloadGenerationOptions()
-                        {
-                            Architecture = archType,
-                            Endpoint = endpoint,
-                            IsDebug = context.Options.debug,
-                            IsVerbose = context.Options.verbose,
-                            ServerKey = serverKey,
-                            Type = payType,
-                            IsInjected = context.Options.inject
-                        };
-                        if (context.Options.injectDelay.HasValue)
-                            opt.InjectionDelay = context.Options.injectDelay.Value;
-                        if (!string.IsNullOrEmpty(context.Options.injectProcess))
-                            opt.InjectionProcess = context.Options.injectProcess;
-
-                        this.GeneratePayload(context, opt);
-                    }
-                }
-
-                return true;
-            }
-
             var t = PayloadType.Executable;
             switch (context.Options.type)
             {
                 case "dll": t = PayloadType.Library; break;
+                case "rfl": t = PayloadType.ReflectiveLibrary; break;
                 case "svc": t = PayloadType.Service; break;
                 case "ps": t = PayloadType.PowerShell; break;
                 case "bin": t = PayloadType.Binary; break;
@@ -206,6 +176,7 @@ namespace Commander.Commands
 
 
             var implant = this.GeneratePayload(context, options);
+           
             if (implant == null)
             {
                 return false;
@@ -213,8 +184,9 @@ namespace Commander.Commands
 
             if (!context.Options.nowebhost)
             {
+                var implantFileName = this.GetOutputFileName(context, options, options.ImplantName);
                 byte[] fileContent = implant.Data;
-                var path = string.IsNullOrEmpty(context.Options.webhostFile) ? implant.Name : context.Options.webhostFile;
+                var path = string.IsNullOrEmpty(context.Options.webhostFile) ? implantFileName : context.Options.webhostFile;
                 while (path.StartsWith('/'))
                     path = path.Substring(1);
 
@@ -283,7 +255,7 @@ namespace Commander.Commands
                 Data = pay
             };
 
-            if(!string.IsNullOrEmpty(options.ImplantName))
+            if (!string.IsNullOrEmpty(options.ImplantName))
                 payload.Name = options.ImplantName;
 
             payload.LocalPath = GetOutputFilePath(context, options, string.IsNullOrEmpty(context.Options.fileName) ? payload.Name : context.Options.fileName);
@@ -292,6 +264,11 @@ namespace Commander.Commands
             context.Terminal.WriteSuccess($"[*] Generation succeed.");
             context.Terminal.WriteInfo($"Implant {payload.Name} can be found at {payload.LocalPath}");
             return payload;
+        }
+
+        private string GetOutputFileName(CommandContext<BuildPayloadCommandOptions> context, PayloadGenerationOptions options, string fileName)
+        {
+            return Path.GetFileName(GetOutputFilePath(context, options, fileName));
         }
 
 

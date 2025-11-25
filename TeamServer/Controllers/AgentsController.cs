@@ -49,10 +49,10 @@ namespace TeamServer.Controllers
             return Ok(agents);
         }
 
-        [HttpGet("{id}")]
-        public IActionResult GetAgent(string id)
+        [HttpGet("{agentId}")]
+        public IActionResult GetAgent(string agentId)
         {
-            var agent = _agentService.GetAgent(id);
+            var agent = _agentService.GetAgent(agentId);
             if (agent == null)
                 return NotFound();
 
@@ -66,10 +66,10 @@ namespace TeamServer.Controllers
             });
         }
 
-        [HttpGet("{id}/metadata")]
-        public IActionResult GetAgentMetadata(string id)
+        [HttpGet("{agentId}/metadata")]
+        public IActionResult GetAgentMetadata(string agentId)
         {
-            var agent = _agentService.GetAgent(id);
+            var agent = _agentService.GetAgent(agentId);
             if (agent == null)
                 return NotFound();
 
@@ -138,7 +138,7 @@ namespace TeamServer.Controllers
         //    return Ok();
         //}
 
-        [HttpGet("{agentId}/stop")]
+        [HttpDelete("{agentId}")]
         public ActionResult StopAgent(string agentId)
         {
             var agent = this._agentService.GetAgent(agentId);

@@ -23,8 +23,6 @@ public partial class PayloadGenerator
     public const string PatcherSrcFile = "Patcher.dll";
     public const string InjectSrcFile = "Inject.dll";
 
-    public const string NimExecScript = "Payload";
-
     public event EventHandler<string> MessageSent;
 
     public PayloadConfig Config = null;
@@ -67,6 +65,7 @@ public partial class PayloadGenerator
             case PayloadType.Executable: return this.ExecutableEncapsulation(options, agentbytes);
             case PayloadType.PowerShell: return this.PowershellEncapsulation(options, agentbytes);
             case PayloadType.Library: return this.LibraryEncapsulation(options,agentbytes);
+            case PayloadType.ReflectiveLibrary: return this.ReflectiveLibraryEncapsulation(options, agentbytes);
             case PayloadType.Service: return agentbytes;
             case PayloadType.Binary: return this.BinaryEncapsulation(options, agentbytes);
             default:
@@ -77,46 +76,15 @@ public partial class PayloadGenerator
 
     public byte[] ExecutableEncapsulation(PayloadGenerationOptions options, byte[] agent)
     {
-        var tmpFile = "tmp" + ShortGuid.NewGuid() + ".exe";
-        var tmpPath = this.Working(tmpFile);
-        File.WriteAllBytes(tmpPath, agent);
+        var agentPath = this.Working("tmp" + ShortGuid.NewGuid() + ".exe");
+        File.WriteAllBytes(agentPath, agent);
 
-        var binFile = "tmp" + ShortGuid.NewGuid() + ".bin";
-        var binPath = this.Working(binFile);
 
-        this.MessageSent?.Invoke(this, $"[>] Generating Binary...");
-        var executionResult = this.GenerateBin(tmpPath, binPath, options.Architecture == PayloadArchitecture.x86);
+        var scriptPath = Source("replace-resource.py", options.Architecture, options.IsDebug);
+        var sourceExePath = Source("ResourceAssemblyLoader.exe", options.Architecture, options.IsDebug);
+        string outPath = this.Working("tmp" + ShortGuid.NewGuid() + ".exe");
 
-        if (options.IsVerbose)
-        {
-            this.MessageSent?.Invoke(this, executionResult.Command);
-            this.MessageSent?.Invoke(this, executionResult.Out);
-        }
-
-        File.Delete(tmpPath);
-
-        if(executionResult.Result != 0)
-            return null;
-
-        string agentb64 = Convert.ToBase64String(File.ReadAllBytes(binPath));
-
-        var b64File = "tmp" + ShortGuid.NewGuid() + ".b64";
-        var b64Path = this.Working(b64File);
-
-        using (var writer = new StreamWriter(b64Path))
-        {
-            writer.Write(agentb64);
-        }
-
-        File.Delete(binPath);
-
-        var parms = this.ComputeIncRustBuildParameters(options, b64Path);
-
-        this.MessageSent?.Invoke(this, $"[>] Generating executable...");
-
-        if (options.IsVerbose)
-            this.MessageSent?.Invoke(this, $"[>] Parameters : {string.Join(" ", parms)}");
-        executionResult = this.IncRustBuild(parms);
+        var executionResult = this.ReplaceRessource(scriptPath, sourceExePath, agentPath, outPath);
 
         if (options.IsVerbose)
         {
@@ -130,13 +98,13 @@ public partial class PayloadGenerator
             else
                 this.MessageSent?.Invoke(this, "Build failed.");
 
+
+        File.Delete(agentPath);
         if (executionResult.Result != 0)
             return null;
 
-        File.Delete(b64Path);
-
-        string outPath = Path.Combine(this.Config.IncRustFolder, "target", options.Architecture == PayloadArchitecture.x64 ? "x86_64-pc-windows-gnu" : "i686-pc-windows-gnu", options.IsDebug ? "debug" : "release", "incrust.exe");
         byte[] bytes = File.ReadAllBytes(outPath);
+        
         File.Delete(outPath);
 
         return bytes;
@@ -144,15 +112,14 @@ public partial class PayloadGenerator
 
     public byte[] BinaryEncapsulation(PayloadGenerationOptions options, byte[] agent)
     {
-        var tmpFile = "tmp" + ShortGuid.NewGuid() + ".exe";
-        var tmpPath = this.Working(tmpFile);
-        File.WriteAllBytes(tmpPath, agent);
+        var agentPath = this.Working("tmp" + ShortGuid.NewGuid() + ".exe");
+        File.WriteAllBytes(agentPath, agent);
 
         var outFile = "tmp" + ShortGuid.NewGuid() + ".bin";
         var outPath = this.Working(outFile);
 
         this.MessageSent?.Invoke(this, $"[>] Generating Binary...");
-        var executionResult = this.GenerateBin(tmpPath, outPath, options.Architecture == PayloadArchitecture.x86);
+        var executionResult = this.GenerateBin(agentPath, outPath, options.Architecture == PayloadArchitecture.x86);
 
         if (options.IsVerbose)
         {
@@ -167,7 +134,7 @@ public partial class PayloadGenerator
                 this.MessageSent?.Invoke(this, "Build failed.");
 
         
-        File.Delete(tmpPath);
+        File.Delete(agentPath);
         if (executionResult.Result != 0)
             return null;
 
@@ -179,46 +146,15 @@ public partial class PayloadGenerator
 
     public byte[] LibraryEncapsulation(PayloadGenerationOptions options, byte[] agent)
     {
-        var tmpFile = "tmp" + ShortGuid.NewGuid() + ".exe";
-        var tmpPath = this.Working(tmpFile);
-        File.WriteAllBytes(tmpPath, agent);
+        var agentPath = this.Working("tmp" + ShortGuid.NewGuid() + ".exe");
+        File.WriteAllBytes(agentPath, agent);
 
-        var binFile = "tmp" + ShortGuid.NewGuid() + ".bin";
-        var binPath = this.Working(binFile);
 
-        this.MessageSent?.Invoke(this, $"[>] Generating Binary...");
-        var executionResult = this.GenerateBin(tmpPath, binPath, options.Architecture == PayloadArchitecture.x86);
+        var scriptPath = Source("replace-resource.py", options.Architecture, options.IsDebug);
+        var sourceExePath = Source("DllAssemblyLoader.dll", options.Architecture, options.IsDebug);
+        string outPath = this.Working("tmp" + ShortGuid.NewGuid() + ".dll");
 
-        if (options.IsVerbose)
-        {
-            this.MessageSent?.Invoke(this, executionResult.Command);
-            this.MessageSent?.Invoke(this, executionResult.Out);
-        }
-
-        File.Delete(tmpPath);
-
-        if (executionResult.Result != 0)
-            return null;
-
-        string agentb64 = Convert.ToBase64String(File.ReadAllBytes(binPath));
-
-        var b64File = "tmp" + ShortGuid.NewGuid() + ".b64";
-        var b64Path = this.Working(b64File);
-
-        using (var writer = new StreamWriter(b64Path))
-        {
-            writer.Write(agentb64);
-        }
-
-        File.Delete(binPath);
-
-        var parms = this.ComputeIncRustBuildParameters(options, b64Path);
-
-        this.MessageSent?.Invoke(this, $"[>] Generating executable...");
-
-        if (options.IsVerbose)
-            this.MessageSent?.Invoke(this, $"[>] Parameters : {string.Join(" ", parms)}");
-        executionResult = this.IncRustBuild(parms);
+        var executionResult = this.ReplaceRessource(scriptPath, sourceExePath, agentPath, outPath);
 
         if (options.IsVerbose)
         {
@@ -232,11 +168,49 @@ public partial class PayloadGenerator
             else
                 this.MessageSent?.Invoke(this, "Build failed.");
 
+
+        File.Delete(agentPath);
         if (executionResult.Result != 0)
             return null;
 
-        string outPath = Path.Combine(this.Config.IncRustFolder, "target", options.Architecture == PayloadArchitecture.x64 ? "x86_64-pc-windows-gnu" : "i686-pc-windows-gnu", options.IsDebug ? "debug" : "release", options.Type == PayloadType.Library ? "incrustlib.dll" : "incrust.exe");
         byte[] bytes = File.ReadAllBytes(outPath);
+
+        File.Delete(outPath);
+
+        return bytes;
+    }
+
+    public byte[] ReflectiveLibraryEncapsulation(PayloadGenerationOptions options, byte[] agent)
+    {
+        var agentPath = this.Working("tmp" + ShortGuid.NewGuid() + ".exe");
+        File.WriteAllBytes(agentPath, agent);
+
+
+        var scriptPath = Source("replace-resource.py", options.Architecture, options.IsDebug);
+        var sourceExePath = Source("RflDllAssemblyLoader.dll", options.Architecture, options.IsDebug);
+        string outPath = this.Working("tmp" + ShortGuid.NewGuid() + ".dll");
+
+        var executionResult = this.ReplaceRessource(scriptPath, sourceExePath, agentPath, outPath);
+
+        if (options.IsVerbose)
+        {
+            this.MessageSent?.Invoke(this, executionResult.Command);
+            this.MessageSent?.Invoke(this, executionResult.Out);
+        }
+
+        if (options.IsVerbose)
+            if (executionResult.Result == 0)
+                this.MessageSent?.Invoke(this, "Build succeed.");
+            else
+                this.MessageSent?.Invoke(this, "Build failed.");
+
+
+        File.Delete(agentPath);
+        if (executionResult.Result != 0)
+            return null;
+
+        byte[] bytes = File.ReadAllBytes(outPath);
+
         File.Delete(outPath);
 
         return bytes;
@@ -249,16 +223,6 @@ public partial class PayloadGenerator
         {
             psSourceCode = psReader.ReadToEnd();
         }
-
-        //var payload = new StringBuilder();
-        //foreach (var chunk in this.SplitIntoChunks(agentb64, 1000))
-        //{
-        //    payload.Append("b64 = b64 & \"");
-        //    payload.Append(chunk);
-        //    payload.Append("\"");
-        //    payload.Append(Environment.NewLine);
-        //}
-        //File.WriteAllBytes("/mnt/Share/tmp/full.exe", agent);
 
         var payload = this.Encode(agent);
 

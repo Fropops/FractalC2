@@ -10,6 +10,7 @@ namespace Common.Payload
     {
         Executable,
         Library,
+        ReflectiveLibrary,
         Service,
         PowerShell,
         Binary

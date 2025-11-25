@@ -470,7 +470,7 @@ namespace Commander.Communication
         public async Task<HttpResponseMessage> StopAgent(string id)
         {
             this.DeleteAgent(id);
-            return await _client.GetAsync($"/Agents/{id}/stop");
+            return await _client.DeleteAsync($"/Agents/{id}");
         }
 
         public TeamServerAgentTask GetTask(string taskId)

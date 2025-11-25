@@ -13,19 +13,17 @@ namespace Common.Config
         public string PayloadTemplatesFolder { get; set; }
         public string ImplantsFolder { get; set; }
         public string WorkingFolder { get; set; }
-        public string NimPath { get; set; }
         public string IncRustFolder { get; set; }
         public string DonutFolder { get; set; }
-        public string ReanimatorPath { get; set; }
+        public string PythonFolder { get; set; }
 
         public void FromSection(IConfigurationSection section, bool verbose = false)
         {
             this.PayloadTemplatesFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("PayloadTemplatesFolder"));
             this.ImplantsFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("ImplantsFolder", "/tmp"));
             this.WorkingFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("WorkingFolder", "/tmp"));
-            this.NimPath = PathHelper.GetAbsolutePath(section.GetValue<string>("NimPath", "/usr/bin/nim"));
             this.DonutFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("DonutFolder", "/opt/donut"));
-            this.ReanimatorPath = PathHelper.GetAbsolutePath(section.GetValue<string>("ReanimatorPath", "/mnt/Share/Projects/reaNimator-modif/reaNimator"));
+            this.PythonFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("PythonFolder", "/opt/pyenv"));
             this.IncRustFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("IncRustFolder", "/mnt/Share/Projects/Rust/incrust"));
 
             if (verbose)
@@ -34,7 +32,7 @@ namespace Common.Config
                 Console.WriteLine("[CONFIG][PAYLOAD][ImplantsFolder] : " + this.ImplantsFolder);
                 Console.WriteLine("[CONFIG][PAYLOAD][WorkingFolder] : " + this.WorkingFolder);
                 Console.WriteLine("[CONFIG][PAYLOAD][DonutPath] : " + this.DonutFolder);
-                Console.WriteLine("[CONFIG][PAYLOAD][IncRustPath] : " + this.IncRustFolder);
+                Console.WriteLine("[CONFIG][PAYLOAD][PythonFolder] : " + this.PythonFolder);
             }
 
             if(!Directory.Exists(this.ImplantsFolder)) { Directory.CreateDirectory(this.ImplantsFolder); }
