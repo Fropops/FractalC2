@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using BinarySerializer;
 using MiscUtil.IO;
 
-namespace TeamServer.UI.Models
+namespace WebCommander.Models
 {
     public class ParameterDictionary : Dictionary<ParameterId, byte[]>, IBinarySerializable
     {

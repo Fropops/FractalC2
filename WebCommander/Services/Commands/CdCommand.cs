@@ -1,9 +1,9 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Threading.Tasks;
-using TeamServer.UI.Models;
+using WebCommander.Models;
 
-namespace TeamServer.UI.Services.Commands
+namespace WebCommander.Services.Commands
 {
     public class CdCommand : EndPointCommand
     {

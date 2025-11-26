@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 
-namespace TeamServer.UI.Services
+namespace WebCommander.Services
 {
     public class AuthService
     {

@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
-using TeamServer.UI.Models;
+using WebCommander.Models;
 using BinarySerializer;
 
-namespace TeamServer.UI.Services
+namespace WebCommander.Services
 {
     public class TeamServerClient
     {

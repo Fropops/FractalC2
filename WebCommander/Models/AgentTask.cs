@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using BinarySerializer;
 
-namespace TeamServer.UI.Models
+namespace WebCommander.Models
 {
     public class AgentTask
     {

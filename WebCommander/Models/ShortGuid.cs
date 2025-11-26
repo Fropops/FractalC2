@@ -1,7 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
 
-namespace TeamServer.UI.Models
+namespace WebCommander.Models
 {
     public static class ShortGuid
     {

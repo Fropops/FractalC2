@@ -1,4 +1,4 @@
-namespace TeamServer.UI.Models
+namespace WebCommander.Models
 {
     public enum CommandId : byte
     {

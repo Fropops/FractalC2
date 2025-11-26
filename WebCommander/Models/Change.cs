@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace TeamServer.UI.Models
+namespace WebCommander.Models
 {
     public enum ChangingElement
     {

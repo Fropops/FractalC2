@@ -1,7 +1,7 @@
 using System.CommandLine;
-using TeamServer.UI.Models;
+using WebCommander.Models;
 
-namespace TeamServer.UI.Services.Commands
+namespace WebCommander.Services.Commands
 {
     public abstract class CommandBase
     {

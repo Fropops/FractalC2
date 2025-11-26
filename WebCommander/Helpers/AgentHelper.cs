@@ -1,6 +1,6 @@
-using TeamServer.UI.Models;
+using WebCommander.Models;
 
-namespace TeamServer.UI.Helpers
+namespace WebCommander.Helpers
 {
     public static class AgentHelper
     {

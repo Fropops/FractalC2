@@ -1,6 +1,6 @@
 using System;
 
-namespace TeamServer.UI.Models
+namespace WebCommander.Models
 {
     public class TeamServerAgentTask
     {

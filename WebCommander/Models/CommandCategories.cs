@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace TeamServer.UI.Models
+namespace WebCommander.Models
 {
     public static class CommandCategories
     {

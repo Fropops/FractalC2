@@ -5,10 +5,10 @@ using System.CommandLine.Parsing;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using TeamServer.UI.Models;
-using TeamServer.UI.Services.Commands;
+using WebCommander.Models;
+using WebCommander.Services.Commands;
 
-namespace TeamServer.UI.Services
+namespace WebCommander.Services
 {
     public class CommandService
     {

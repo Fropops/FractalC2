@@ -1,6 +1,6 @@
-using TeamServer.UI.Models;
+using WebCommander.Models;
 
-namespace TeamServer.UI.Services
+namespace WebCommander.Services
 {
     public class AgentService : IDisposable
     {

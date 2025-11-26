@@ -1,6 +1,6 @@
 using System.CommandLine;
 
-namespace TeamServer.UI.Services.Commands
+namespace WebCommander.Services.Commands
 {
     public abstract class ExecuteCommand : CommandBase
     {
