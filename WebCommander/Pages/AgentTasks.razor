@@ -1,0 +1,148 @@
+@page "/agent-tasks/{AgentId}"
+@using TeamServer.UI.Models
+@using TeamServer.UI.Services
+@using TeamServer.UI.Helpers
+@using TeamServer.UI.Components
+@inject AgentService AgentService
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<PageTitle>Tasks - @(agent?.Metadata?.ImplantId ?? "Unknown")</PageTitle>
+
+@if (agent == null)
+{
+    <p>Agent not found</p>
+}
+else
+{
+    <div class="container-fluid mt-3">
+        <AgentHeader Agent="@agent" 
+                     AllAgents="@AgentService.GetAgents()"
+                     ShowInteractButton="true"
+                     ShowBackButton="true"
+                     BackButtonText="Back to Agents"
+                     OnInteract="InteractWithAgent"
+                     OnBack="Close" />
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">📋 Task History</h5>
+            </div>
+            <div class="card-body">
+                @if (tasks.Count == 0)
+                {
+                    <p><em>No tasks found for this agent.</em></p>
+                }
+                else
+                {
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Command</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var task in tasks)
+                            {
+                                var result = AgentService.GetTaskResult(task.Id);
+                                var status = result?.Status ?? AgentResultStatus.Queued;
+                                <tr>
+                                    <td>@task.Id</td>
+                                    <td>@task.RequestDate.ToLocalTime()</td>
+                                    <td>@task.Command</td>
+                                    <td>
+                                        @switch (status)
+                                        {
+                                            case AgentResultStatus.Queued:
+                                                <span title="Queued">⏳</span>
+                                                break;
+                                            case AgentResultStatus.Running:
+                                                <span title="Running">▶️</span>
+                                                break;
+                                            case AgentResultStatus.Completed:
+                                                <span title="Completed">✅</span>
+                                                break;
+                                            case AgentResultStatus.Error:
+                                                <span title="Error">❌</span>
+                                                break;
+                                        }
+                                        @status.ToString()
+                                    </td>
+                                    <td>
+                                        @if (status == AgentResultStatus.Completed || status == AgentResultStatus.Error)
+                                        {
+                                            <button class="btn btn-sm btn-secondary" @onclick="() => ViewTaskResult(task.Id)">View Result</button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string AgentId { get; set; } = string.Empty;
+
+    private Agent? agent;
+    private List<TeamServerAgentTask> tasks = new();
+
+    protected override void OnInitialized()
+    {
+        agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
+        LoadTasks();
+        
+        AgentService.OnTasksUpdated += OnTasksUpdated;
+        AgentService.OnAgentsUpdated += RefreshAgent;
+    }
+
+    private void RefreshAgent()
+    {
+        var updatedAgent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
+        if (updatedAgent != null)
+        {
+            agent = updatedAgent;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void LoadTasks()
+    {
+        tasks = AgentService.GetTasksForAgent(AgentId);
+    }
+
+    private void OnTasksUpdated()
+    {
+        LoadTasks();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ViewTaskResult(string taskId)
+    {
+        NavigationManager.NavigateTo($"/task-result/{AgentId}/{taskId}");
+    }
+
+    private void Close()
+    {
+        NavigationManager.NavigateTo("/agents");
+    }
+
+    private void InteractWithAgent()
+    {
+        NavigationManager.NavigateTo($"/terminal/{AgentId}");
+    }
+
+    public void Dispose()
+    {
+        AgentService.OnTasksUpdated -= OnTasksUpdated;
+        AgentService.OnAgentsUpdated -= RefreshAgent;
+    }
+}

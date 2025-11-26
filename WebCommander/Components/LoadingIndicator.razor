@@ -1,0 +1,80 @@
+@using TeamServer.UI.Services
+@inject AgentService AgentService
+@implements IDisposable
+
+@if (isLoading)
+{
+    <div class="loading-overlay">
+        <div class="loading-content">
+            <h3>Loading initial data...</h3>
+            <p>Processing @progress% of changes...</p>
+            <div class="progress" style="width: 400px; height: 30px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" 
+                     style="width: @(progress)%"
+                     aria-valuenow="@progress" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                    @progress%
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
+    .loading-content {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .progress-bar {
+        transition: none !important;
+    }
+</style>
+
+@code {
+    private bool isLoading = true;
+    private int progress = 0;
+
+    protected override void OnInitialized()
+    {
+        isLoading = AgentService.IsInitialLoading;
+        progress = AgentService.LoadingProgress;
+        AgentService.OnLoadingStateChanged += OnLoadingStateChanged;
+        AgentService.OnProgressUpdated += OnProgressUpdated;
+    }
+
+    private void OnLoadingStateChanged()
+    {
+        isLoading = AgentService.IsInitialLoading;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnProgressUpdated()
+    {
+        progress = AgentService.LoadingProgress;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AgentService.OnLoadingStateChanged -= OnLoadingStateChanged;
+        AgentService.OnProgressUpdated -= OnProgressUpdated;
+    }
+}

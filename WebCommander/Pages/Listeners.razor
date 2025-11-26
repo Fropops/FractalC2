@@ -1,0 +1,187 @@
+@page "/listeners"
+@using TeamServer.UI.Models
+@using TeamServer.UI.Services
+@inject TeamServerClient Api
+@inject AgentService AgentService
+@implements IDisposable
+
+<PageTitle>Listeners</PageTitle>
+
+<h1>Listeners</h1>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowCreateModal">
+        <i class="bi bi-plus-circle"></i> Create Listener
+    </button>
+</div>
+
+@if (listeners == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Port</th>
+                <th>Secured</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var listener in listeners)
+            {
+                <tr>
+                    <td>@listener.Name</td>
+                    <td>@listener.Ip</td>
+                    <td>@listener.BindPort</td>
+                    <td>
+                        @if (listener.Secured)
+                        {
+                            <span class="badge bg-success">Yes</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">No</span>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" @onclick="() => StopListener(listener.Id)">
+                            <i class="bi bi-stop-circle"></i> Stop
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Create Listener Modal -->
+@if (showCreateModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Listener</h5>
+                    <button type="button" class="btn-close" @onclick="HideCreateModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="newListener" OnValidSubmit="CreateListener">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <InputText id="name" class="form-control" @bind-Value="newListener.Name" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="ip" class="form-label">IP Address</label>
+                            <InputText id="ip" class="form-control" @bind-Value="newListener.Ip" placeholder="0.0.0.0" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="port" class="form-label">Port</label>
+                            <InputNumber id="port" class="form-control" @bind-Value="newListener.BindPort" />
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <InputCheckbox id="secured" class="form-check-input" @bind-Value="newListener.Secured" />
+                            <label for="secured" class="form-check-label">Secured (HTTPS)</label>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="HideCreateModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Listener> listeners = new();
+    private bool showCreateModal = false;
+    private StartHttpListenerRequest newListener = new();
+
+    protected override void OnInitialized()
+    {
+        // Subscribe to listener updates
+        AgentService.OnListenersUpdated += OnListenersUpdated;
+        
+        // Get initial listeners
+        listeners = AgentService.GetListeners();
+        
+        // Initialize new listener with defaults
+        ResetNewListener();
+    }
+
+    private void OnListenersUpdated()
+    {
+        listeners = AgentService.GetListeners();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ShowCreateModal()
+    {
+        ResetNewListener();
+        showCreateModal = true;
+    }
+
+    private void HideCreateModal()
+    {
+        showCreateModal = false;
+    }
+
+    private void ResetNewListener()
+    {
+        newListener = new StartHttpListenerRequest
+        {
+            Name = "",
+            Ip = "0.0.0.0",
+            BindPort = 80,
+            Secured = true  // Secured by default
+        };
+    }
+
+    private async Task CreateListener()
+    {
+        try
+        {
+            await Api.StartListenerAsync(newListener);
+            HideCreateModal();
+        }
+        catch (Exception ex)
+        {
+            // TODO: Show error message to user
+            Console.WriteLine($"Error creating listener: {ex.Message}");
+        }
+    }
+
+    private async Task StopListener(string id)
+    {
+        try
+        {
+            var success = await AgentService.StopListenerAsync(id);
+            if (!success)
+            {
+                Console.WriteLine($"Failed to stop listener {id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error stopping listener: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        AgentService.OnListenersUpdated -= OnListenersUpdated;
+    }
+}

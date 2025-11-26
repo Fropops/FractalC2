@@ -1,0 +1,46 @@
+@using TeamServer.UI.Models
+@using TeamServer.UI.Services
+@inject TeamServerClient Api
+
+<div class="card">
+    <div class="card-header">
+        Nouveau Listener
+    </div>
+    <div class="card-body">
+        <EditForm Model="@request" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="name" class="form-label">Nom</label>
+                <InputText id="name" class="form-control" @bind-Value="request.Name" />
+            </div>
+
+            <div class="mb-3">
+                <label for="port" class="form-label">Port</label>
+                <InputNumber id="port" class="form-control" @bind-Value="request.BindPort" />
+            </div>
+
+            <div class="mb-3 form-check">
+                <InputCheckbox id="secured" class="form-check-input" @bind-Value="request.Secured" />
+                <label class="form-check-label" for="secured">Sécurisé (HTTPS)</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Créer</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private StartHttpListenerRequest request = new StartHttpListenerRequest { BindPort = 8080 };
+
+    [Parameter]
+    public EventCallback OnCreated { get; set; }
+
+    private async Task HandleValidSubmit()
+    {
+        await Api.StartListenerAsync(request);
+        request = new StartHttpListenerRequest { BindPort = 8080 }; // Reset
+        await OnCreated.InvokeAsync();
+    }
+}

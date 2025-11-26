@@ -1,0 +1,150 @@
+@using TeamServer.UI.Models
+@using TeamServer.UI.Services
+@inject AgentService AgentService
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+@foreach (var notification in notifications)
+{
+    <div class="toast-notification @(notification.IsVisible ? "show" : "")" 
+         style="animation-delay: @(notification.Index * 0.1)s">
+        <div class="toast-header">
+            <strong class="me-auto">🎉 New Agent</strong>
+            <button type="button" class="btn-close" @onclick="() => RemoveNotification(notification)">×</button>
+        </div>
+        <div class="toast-body">
+            <strong>Agent @(notification.Agent.Metadata?.ImplantId ?? "Unknown")</strong> just connected<br/>
+            <small>@notification.Agent.Metadata?.Desc</small>
+            <div class="mt-2 text-center">
+                <button class="btn btn-sm btn-primary" @onclick="() => InteractWithAgent(notification.Agent)">Interact</button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .toast-notification {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        min-width: 300px;
+        background-color: white;
+        border: 1px solid rgba(0,0,0,.1);
+        border-radius: 0.375rem;
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);
+        z-index: 1050;
+        opacity: 0;
+        transform: translateX(400px);
+        transition: all 0.3s ease-in-out;
+        margin-bottom: 10px;
+    }
+
+    .toast-notification.show {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    .toast-header {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        background-color: #d1ecf1;
+        border-bottom: 1px solid rgba(0,0,0,.05);
+        border-top-left-radius: calc(0.375rem - 1px);
+        border-top-right-radius: calc(0.375rem - 1px);
+    }
+
+    .toast-body {
+        padding: 0.75rem;
+    }
+
+    .btn-close {
+        background: transparent;
+        border: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+        color: #000;
+        opacity: .5;
+        cursor: pointer;
+        padding: 0;
+        width: 1em;
+        height: 1em;
+    }
+
+    .btn-close:hover {
+        opacity: .75;
+    }
+</style>
+
+@code {
+    private class NotificationItem
+    {
+        public Agent Agent { get; set; }
+        public bool IsVisible { get; set; }
+        public int Index { get; set; }
+        public System.Threading.Timer? Timer { get; set; }
+    }
+
+    private List<NotificationItem> notifications = new();
+    private int notificationCounter = 0;
+
+    protected override void OnInitialized()
+    {
+        AgentService.OnNewAgent += OnNewAgent;
+    }
+
+    private void OnNewAgent(Agent agent)
+    {
+        var notification = new NotificationItem
+        {
+            Agent = agent,
+            IsVisible = false,
+            Index = notificationCounter++
+        };
+
+        notifications.Add(notification);
+        InvokeAsync(StateHasChanged);
+
+        // Show notification after a brief delay
+        Task.Delay(100).ContinueWith(_ =>
+        {
+            notification.IsVisible = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+        // Auto-remove after 15 seconds
+        notification.Timer = new System.Threading.Timer(_ =>
+        {
+            RemoveNotification(notification);
+        }, null, TimeSpan.FromSeconds(15), Timeout.InfiniteTimeSpan);
+    }
+
+    private void RemoveNotification(NotificationItem notification)
+    {
+        notification.IsVisible = false;
+        InvokeAsync(StateHasChanged);
+
+        // Remove from list after animation
+        Task.Delay(300).ContinueWith(_ =>
+        {
+            notifications.Remove(notification);
+            notification.Timer?.Dispose();
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void InteractWithAgent(Agent agent)
+    {
+        NavigationManager.NavigateTo($"/terminal/{agent.Id}");
+    }
+
+    public void Dispose()
+    {
+        AgentService.OnNewAgent -= OnNewAgent;
+        foreach (var notification in notifications)
+        {
+            notification.Timer?.Dispose();
+        }
+    }
+}

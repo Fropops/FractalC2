@@ -1,0 +1,125 @@
+@page "/agents"
+@using TeamServer.UI.Models
+@using TeamServer.UI.Services
+@using TeamServer.UI.Helpers
+@inject AgentService AgentService
+@implements IDisposable
+
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<PageTitle>Agents</PageTitle>
+
+<h1>Agents</h1>
+
+@if (agents == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Implant</th>
+                <th>Active</th>
+                <th>User</th>
+                <th>Host</th>
+                <th>Address</th>
+                <th>Integrity</th>
+                <th>Process</th>
+                <th>Arch.</th>
+                <th>End Point</th>
+                <th>Last Seen</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var agent in agents)
+            {
+                var isActive = AgentHelper.IsAgentAlive(agent, agents) ?? false;
+                <tr class="@(isActive ? "" : "table-secondary")">
+                    <td>@agent.Id</td>
+                    <td>@agent.Metadata?.ImplantId</td>
+                    <td>@(isActive ? "Yes" : "No")</td>
+                    <td>@agent.Metadata?.UserName</td>
+                    <td>@agent.Metadata?.Hostname</td>
+                    <td>@AgentHelper.IpAsString(agent.Metadata?.Address)</td>
+                    <td>@agent.Metadata?.Integrity</td>
+                    <td>@agent.Metadata?.ProcessName (@agent.Metadata?.ProcessId)</td>
+                    <td>@agent.Metadata?.Architecture</td>
+                    <td>@agent.Metadata?.EndPoint</td>
+                    <td>@AgentHelper.FormatElapsedTime((DateTime.UtcNow - agent.LastSeen).TotalSeconds)</td>
+                    <td>
+                        <button class="btn btn-sm btn-info me-1" @onclick="() => ShowInfo(agent)">
+                            <i class="bi bi-info-circle"></i> Infos
+                        </button>
+                        <button class="btn btn-sm btn-success me-1" @onclick="() => ShowTasks(agent)">
+                            <i class="bi bi-list-task"></i> Tasks
+                        </button>
+                        @if (isActive)
+                        {
+                            <button class="btn btn-sm btn-primary" @onclick="() => InteractWithAgent(agent)">
+                                <i class="bi bi-chat-dots"></i> Interact
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteAgent(agent)">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Agent> agents = new();
+
+    protected override void OnInitialized()
+    {
+        // Subscribe to agent updates
+        AgentService.OnAgentsUpdated += OnAgentsUpdated;
+        
+        // Get initial agents
+        agents = AgentService.GetAgents();
+    }
+
+    private void OnAgentsUpdated()
+    {
+        agents = AgentService.GetAgents();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ShowInfo(Agent agent)
+    {
+        NavigationManager.NavigateTo($"/agent-info/{agent.Id}");
+    }
+
+    private void ShowTasks(Agent agent)
+    {
+        NavigationManager.NavigateTo($"/agent-tasks/{agent.Id}");
+    }
+
+    private void InteractWithAgent(Agent agent)
+    {
+        NavigationManager.NavigateTo($"/terminal/{agent.Id}");
+    }
+
+    private async Task DeleteAgent(Agent agent)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete agent {agent.Metadata?.ImplantId ?? "Unknown"}?"))
+        {
+            await AgentService.StopAgentAsync(agent.Id);
+        }
+    }
+
+    public void Dispose()
+    {
+        AgentService.OnAgentsUpdated -= OnAgentsUpdated;
+    }
+}

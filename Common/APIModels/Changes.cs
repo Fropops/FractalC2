@@ -24,5 +24,6 @@ namespace Common.APIModels
         Task,
         Result,
         Metadata,
+        Implant
     }
 }
