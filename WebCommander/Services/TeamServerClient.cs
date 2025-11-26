@@ -115,5 +115,44 @@ namespace WebCommander.Services
             
             return agentTask.Id;
         }
+
+        public async Task<List<Implant>> GetImplantsAsync()
+        {
+            var result = await _client.GetFromJsonAsync<List<Implant>>("/Implants");
+            return result ?? new List<Implant>();
+        }
+
+        public async Task<Implant?> GetImplantAsync(string id)
+        {
+            var response = await _client.GetAsync($"/Implants/{id}");
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<Implant>();
+        }
+
+        public async Task<string> CreateImplantAsync(ImplantConfig config)
+        {
+            var response = await _client.PostAsJsonAsync("/Implants", config);
+            // We don't ensure success status code here because we want to return the logs even if it failed (if the API returns logs on failure)
+            // But if the user wants to treat non-200 as failure in the UI, we might need to handle it.
+            // The user said: "si le retour est succès (200), il faut afficher un toaster pour dire que la création est un succès. Sinon, il faut afficher un toaster pour montre que la création est un échec."
+            
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadAsStringAsync();
+            }
+            else
+            {
+                var logs = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException(logs, null, response.StatusCode);
+            }
+        }
+
+        public async Task<bool> DeleteImplantAsync(string id)
+        {
+            var response = await _client.DeleteAsync($"/Implants/{id}");
+            return response.IsSuccessStatusCode;
+        }
     }
 }

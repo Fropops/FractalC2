@@ -21,8 +21,9 @@ namespace TeamServer.Controllers
         private readonly IAuditService _auditService;
         private readonly ITaskResultService _resultService;
         private readonly ITaskService _taskService;
+        private readonly IImplantService _implantService;
 
-        public SessionController(IChangeTrackingService trackService, IListenerService listenerService, IAgentService agentService, IAuditService auditService, ITaskResultService resultService, ITaskService taskService)
+        public SessionController(IChangeTrackingService trackService, IListenerService listenerService, IAgentService agentService, IAuditService auditService, ITaskResultService resultService, ITaskService taskService, IImplantService implantService)
         {
             _changeTrackingService = trackService;
             _listenerService = listenerService;
@@ -30,6 +31,7 @@ namespace TeamServer.Controllers
             _auditService = auditService;
             _resultService = resultService;
             _taskService = taskService;
+            _implantService=implantService;
         }
 
         [HttpGet("changes")]
@@ -60,6 +62,9 @@ namespace TeamServer.Controllers
                             changes.Add(new Change(ChangingElement.Result, res.Id));
                     }
                 }
+
+                foreach (var implant in this._implantService.GetImplants())
+                    changes.Add(new Change(ChangingElement.Implant, implant.Id));
 
                 return Ok(changes);
             }

@@ -72,6 +72,7 @@ namespace TeamServer
             services.AddSingleton<IServerService, ServerService>();
             services.AddSingleton<IReversePortForwardService, ReversePortForwardService>();
             services.AddSingleton<IDownloadFileService, DownloadFileService>();
+            services.AddSingleton<IImplantService, ImplantService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -124,7 +125,7 @@ namespace TeamServer
             app.ApplicationServices.GetService<ITaskResultService>().LoadFromDB();
             app.ApplicationServices.GetService<IWebHostService>().LoadFromDB();
             app.ApplicationServices.GetService<IDownloadFileService>().LoadFromDB();
-            
+            app.ApplicationServices.GetService<IImplantService>().LoadFromDB();
         }
 
 

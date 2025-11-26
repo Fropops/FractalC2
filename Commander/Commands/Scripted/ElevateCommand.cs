@@ -56,14 +56,14 @@ namespace Commander.Commands.Composite
         protected override void Run(ScriptingAgent<ElevateCommandOptions> agent, ScriptingCommander<ElevateCommandOptions> commander, ScriptingTeamServer<ElevateCommandOptions> teamServer, ElevateCommandOptions options, CommanderConfig config)
         {
             var endpoint = ConnexionUrl.FromString($"pipe://127.0.0.1:{options.pipe}");
-            var payloadOptions = new PayloadGenerationOptions()
+            var payloadOptions = new ImplantConfig()
             {
-                Architecture =  options.x86 ? PayloadArchitecture.x86 : PayloadArchitecture.x64,
+                Architecture =  options.x86 ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Endpoint = endpoint,
                 IsDebug = false,
                 IsVerbose = options.verbose,
                 ServerKey = config.ServerConfig.Key,
-                Type = PayloadType.Executable,
+                Type = ImplantType.Executable,
                 InjectionDelay =  options.injectDelay,
                 IsInjected = options.inject,
                 InjectionProcess = options.injectProcess

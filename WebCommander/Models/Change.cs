@@ -9,6 +9,7 @@ namespace WebCommander.Models
         Task,
         Result,
         Metadata,
+        Implant,
     }
 
     public class Change

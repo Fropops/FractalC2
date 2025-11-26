@@ -63,14 +63,14 @@ namespace Commander.Commands.Laucher
 
             context.Terminal.WriteLine($"[>] Generating binary...");
 
-            var options = new PayloadGenerationOptions()
+            var options = new ImplantConfig()
             {
-                Architecture = context.Options.x86 ? PayloadArchitecture.x86 : PayloadArchitecture.x64,
+                Architecture = context.Options.x86 ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Endpoint = endpoint,
                 IsDebug = context.Options.debug,
                 IsVerbose = context.Options.verbose,
                 ServerKey = string.IsNullOrEmpty(context.Options.serverKey) ? context.Config.ServerConfig.Key : context.Options.serverKey,
-                Type = PayloadType.Binary
+                Type = ImplantType.Shellcode
             };
 
             var pay = context.GeneratePayloadAndDisplay(options, context.Options.verbose);

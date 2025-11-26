@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Shared
+namespace WebCommander.Models
 {
     public class ConnexionUrl
     {
@@ -160,14 +154,5 @@ namespace Shared
                 return this.Address == "127.0.0.1" || this.Address.Equals("localhost", StringComparison.OrdinalIgnoreCase);
             }
         }
-    }
-
-    public enum ConnexionType
-    {
-        Http = 0,
-        ReverseTcp,
-        Tcp,
-        NamedPipe,
-        ReverseNamedPipe,
     }
 }

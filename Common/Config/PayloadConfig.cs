@@ -10,7 +10,7 @@ namespace Common.Config
 {
     public class PayloadConfig
     {
-        public string PayloadTemplatesFolder { get; set; }
+        public string ImplantTemplatesFolder { get; set; }
         public string ImplantsFolder { get; set; }
         public string WorkingFolder { get; set; }
         public string IncRustFolder { get; set; }
@@ -19,7 +19,7 @@ namespace Common.Config
 
         public void FromSection(IConfigurationSection section, bool verbose = false)
         {
-            this.PayloadTemplatesFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("PayloadTemplatesFolder"));
+            this.ImplantTemplatesFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("ImplantTemplatesFolder", "/ImplantTemplatesFolder"));
             this.ImplantsFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("ImplantsFolder", "/tmp"));
             this.WorkingFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("WorkingFolder", "/tmp"));
             this.DonutFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("DonutFolder", "/opt/donut"));
@@ -28,7 +28,7 @@ namespace Common.Config
 
             if (verbose)
             {
-                Console.WriteLine("[CONFIG][PAYLOAD][SourceFolder] : " + this.PayloadTemplatesFolder);
+                Console.WriteLine("[CONFIG][PAYLOAD][SourceFolder] : " + this.ImplantTemplatesFolder);
                 Console.WriteLine("[CONFIG][PAYLOAD][ImplantsFolder] : " + this.ImplantsFolder);
                 Console.WriteLine("[CONFIG][PAYLOAD][WorkingFolder] : " + this.WorkingFolder);
                 Console.WriteLine("[CONFIG][PAYLOAD][DonutPath] : " + this.DonutFolder);

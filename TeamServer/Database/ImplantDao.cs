@@ -1,6 +1,7 @@
 using System;
 using Common.Models;
 using Common.Payload;
+using Newtonsoft.Json;
 using Shared;
 using SQLite;
 using TeamServer.Models.Implant;
@@ -16,14 +17,10 @@ public sealed class ImplantDao : TeamServerDao
     public string Name { get; set; }
     [Column("data")]
     public byte[] Data { get; set; }
-    [Column("Type")]
-    public int Type { get; set; }
-    [Column("extension")]
-    public string Extension { get; set; }
+    [Column("config")]
+    public string Config { get; set; }
     [Column("listener")]
     public string Listener { get; set; }
-    [Column("endpoint")]
-    public string Endpoint { get; set; }
     [Column("isDeleted")]
     public bool IsDeleted { get; set; }
 
@@ -33,11 +30,9 @@ public sealed class ImplantDao : TeamServerDao
         {
             Id = implant.Id,
             Name = implant.Name,
-            Data = Convert.FromBase64String(implant.Data),
-            Type = (int)implant.Type,
-            Extension = implant.Extension,
+            Data = string.IsNullOrEmpty(implant.Data) ? new byte[0] : Convert.FromBase64String(implant.Data),
+            Config = JsonConvert.SerializeObject(implant.Config),
             Listener = implant.Listener,
-            Endpoint = implant.Endpoint,
             IsDeleted = implant.IsDeleted
         };
 
@@ -51,10 +46,8 @@ public sealed class ImplantDao : TeamServerDao
         {
             Name = dao.Name,
             Data = Convert.ToBase64String(dao.Data),
-            Type = (PayloadType)dao.Type,
-            Extension = dao.Extension,
+            Config = JsonConvert.DeserializeObject<ImplantConfig>(dao.Config),
             Listener = dao.Listener,
-            Endpoint = dao.Endpoint,
             IsDeleted = dao.IsDeleted
         };
     }

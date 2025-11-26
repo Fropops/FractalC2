@@ -100,7 +100,7 @@ namespace Commander.Commands
         //    return fileId;
         //}
 
-        internal static byte[] GeneratePayloadAndDisplay(this CommandContext context, PayloadGenerationOptions options, bool verbose = false)
+        internal static byte[] GeneratePayloadAndDisplay(this CommandContext context, ImplantConfig options, bool verbose = false)
         {
             if (options.IsDebug)
             {
@@ -114,7 +114,7 @@ namespace Commander.Commands
                         var generator = new PayloadGenerator(context.Config.PayloadConfig, context.Config.SpawnConfig);
                         generator.MessageSent += (object sender, string msg) => { if (verbose) context.Terminal.WriteLine(msg); };
                         options.ImplantName = Payload.GenerateName();
-                        pay = generator.GeneratePayload(options);
+                        pay = generator.GenerateImplant(options);
                     });
 
             return pay;

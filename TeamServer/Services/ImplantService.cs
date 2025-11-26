@@ -18,7 +18,6 @@ namespace TeamServer.Services
         IEnumerable<Implant> GetImplants();
         Implant GetImplant(string id);
         void RemoveImplant(Implant implant);
-        Implant GetOrCreateImplant(string implantId);
     }
     public class ImplantService : IImplantService
     {
@@ -66,17 +65,6 @@ namespace TeamServer.Services
             this._dbService.Update(implantDao).Wait();
         }
 
-        public Implant GetOrCreateImplant(string implantId)
-        {
-            var implant = this.GetImplant(implantId);
-            if (implant == null)
-            {
-                implant = new Implant(implantId);
-                this.AddImplant(implant);
-                this._changeTrackingService.TrackChange(ChangingElement.Implant, implantId);
-            }
-            return implant;
-        }
 
         public async Task LoadFromDB()
         {

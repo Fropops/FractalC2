@@ -1,0 +1,255 @@
+@using WebCommander.Models
+@using WebCommander.Services
+@inject TeamServerClient Api
+@inject AgentService AgentService
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Create New Implant</h5>
+    </div>
+    <div class="card-body">
+        <EditForm Model="@config" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <!-- Listener Selection -->
+            <div class="mb-3">
+                <label for="listener" class="form-label">Listener</label>
+                <select id="listener" class="form-select" @onchange="OnListenerChanged">
+                    <option value="custom">Custom Endpoint</option>
+                    @foreach (var listener in listeners)
+                    {
+                        <option value="@listener.Id">@listener.Name (@listener.Ip:@listener.BindPort)</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Endpoint Section -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Endpoint Configuration</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="protocol" class="form-label">Protocol</label>
+                            <select id="protocol" class="form-select" @bind="selectedProtocol" disabled="@(!isCustomEndpoint)">
+                                @foreach (var type in Enum.GetValues<ConnexionType>())
+                                {
+                                    <option value="@type">@type</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="address" class="form-label">Address</label>
+                            <input type="text" id="address" class="form-control" @bind="endpointAddress" disabled="@(!isCustomEndpoint)" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="port" class="form-label">@(IsNamedPipe ? "Pipe Name" : "Port")</label>
+                            <input type="text" id="port" class="form-control" @bind="endpointPort" disabled="@(!isCustomEndpoint)" />
+                        </div>
+                    </div>
+                    @if (selectedProtocol == ConnexionType.Http)
+                    {
+                        <div class="form-check mb-3">
+                            <input type="checkbox" id="secure" class="form-check-input" @bind="isSecure" disabled="@(!isCustomEndpoint)" />
+                            <label for="secure" class="form-check-label">Use HTTPS</label>
+                        </div>
+                    }
+                    <div class="alert alert-info">
+                        <strong>Endpoint URL:</strong> @GetEndpointUrl()
+                    </div>
+                </div>
+            </div>
+
+            <!-- Implant Configuration -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="implantType" class="form-label">Implant Type</label>
+                    <select id="implantType" class="form-select" @bind="config.Type">
+                        @foreach (var type in Enum.GetValues<ImplantType>())
+                        {
+                            <option value="@type">@type</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="architecture" class="form-label">Architecture</label>
+                    <select id="architecture" class="form-select" @bind="config.Architecture">
+                        @foreach (var arch in Enum.GetValues<ImplantArchitecture>())
+                        {
+                            <option value="@arch">@arch</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                        <input type="checkbox" id="debug" class="form-check-input" @bind="config.IsDebug" />
+                        <label for="debug" class="form-check-label">Enable Debug Mode</label>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                        <input type="checkbox" id="verbose" class="form-check-input" @bind="config.IsVerbose" />
+                        <label for="verbose" class="form-check-label">Verbose Generation Output</label>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">
+                    @errorMessage
+                </div>
+            }
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Implant</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<(bool success, string message, string details)> OnCreationResult { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelled { get; set; }
+
+    private ImplantConfig config = new ImplantConfig
+    {
+        Type = ImplantType.PowerShell,
+        Architecture = ImplantArchitecture.x64,
+        IsDebug = false,
+        IsVerbose = false
+    };
+
+    private List<Listener> listeners = new();
+    private string selectedListenerId = "custom";
+    private bool isCustomEndpoint = true;
+    private ConnexionType selectedProtocol = ConnexionType.Http;
+    private string endpointAddress = "127.0.0.1";
+    private string endpointPort = "80";
+    private bool isSecure = false;
+    private string errorMessage = string.Empty;
+
+    private bool IsNamedPipe => selectedProtocol == ConnexionType.NamedPipe || selectedProtocol == ConnexionType.ReverseNamedPipe;
+
+    protected override void OnInitialized()
+    {
+        listeners = AgentService.GetListeners();
+    }
+
+    private void OnListenerChanged(ChangeEventArgs e)
+    {
+        selectedListenerId = e.Value?.ToString() ?? "custom";
+        isCustomEndpoint = selectedListenerId == "custom";
+
+        if (!isCustomEndpoint)
+        {
+            var listener = listeners.FirstOrDefault(l => l.Id == selectedListenerId);
+            if (listener != null)
+            {
+                // Inject listener values into endpoint fields
+                selectedProtocol = ConnexionType.Http;
+                endpointAddress = listener.Ip;
+                endpointPort = listener.BindPort.ToString();
+                isSecure = listener.Secured;
+            }
+        }
+    }
+
+    private string GetEndpointUrl()
+    {
+        try
+        {
+            if (IsNamedPipe)
+            {
+                var protocol = selectedProtocol == ConnexionType.NamedPipe ? "pipe" : "rpipe";
+                return $"{protocol}://{endpointAddress}:{endpointPort}";
+            }
+            else
+            {
+                var protocol = selectedProtocol.ToString().ToLower();
+                if (selectedProtocol == ConnexionType.Http && isSecure)
+                    protocol = "https";
+                else if (selectedProtocol == ConnexionType.Http)
+                    protocol = "http";
+                else if (selectedProtocol == ConnexionType.ReverseTcp)
+                    protocol = "rtcp";
+
+                return $"{protocol}://{endpointAddress}:{endpointPort}";
+            }
+        }
+        catch
+        {
+            return "Invalid configuration";
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            errorMessage = string.Empty;
+
+            // Build endpoint URL
+            var endpointUrl = GetEndpointUrl();
+
+            // Validate using ConnexionUrl.FromString
+            var connexion = ConnexionUrl.FromString(endpointUrl);
+            if (!connexion.IsValid)
+            {
+                errorMessage = "Invalid endpoint configuration. Please check your inputs.";
+                return;
+            }
+
+            // Set the endpoint in config
+            config.Endpoint = connexion;
+
+            // Generate implant ID
+            var implantId = ShortGuid.NewGuid();
+            config.ImplantName = $"Implant_{implantId}";
+
+            // Set the listener name in config
+            if (!isCustomEndpoint)
+            {
+                var listener = listeners.FirstOrDefault(l => l.Id == selectedListenerId);
+                if (listener != null)
+                {
+                    config.Listener = listener.Name;
+                }
+            }
+            else
+            {
+                config.Listener = null; // Custom endpoint = no listener
+            }
+
+            // Create the implant - only pass the config
+            var logs = await Api.CreateImplantAsync(config);
+
+            // Notify parent of success
+            await OnCreationResult.InvokeAsync((true, $"Implant {config.ImplantName} created successfully.", logs));
+        }
+        catch (HttpRequestException ex)
+        {
+            // The API returns logs even on failure (passed in exception message)
+            await OnCreationResult.InvokeAsync((false, "Failed to create implant.", ex.Message));
+        }
+        catch (Exception ex)
+        {
+            // Notify parent of generic failure
+            await OnCreationResult.InvokeAsync((false, "An error occurred while creating implant.", ex.ToString()));
+        }
+    }
+
+    private async Task OnCancel()
+    {
+        await OnCancelled.InvokeAsync();
+    }
+}

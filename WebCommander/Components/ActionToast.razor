@@ -1,0 +1,86 @@
+@if (isVisible)
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <div class="toast show @toastClass" role="alert">
+            <div class="toast-header @headerClass">
+                <i class="bi @iconClass me-2"></i>
+                <strong class="me-auto">@title</strong>
+                <button type="button" class="btn-close btn-close-white" @onclick="Hide"></button>
+            </div>
+            <div class="toast-body">
+                @message
+                @if (!string.IsNullOrEmpty(details))
+                {
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="ToggleDetails">
+                            <i class="bi bi-info-circle"></i> @(showDetails ? "Hide" : "Show") Details
+                        </button>
+                    </div>
+                    @if (showDetails)
+                    {
+                        <div class="mt-2 p-2 bg-light border rounded">
+                            <small><pre class="mb-0">@details</pre></small>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isVisible = false;
+    private bool showDetails = false;
+    private string title = "";
+    private string message = "";
+    private string details = "";
+    private string toastClass = "";
+    private string headerClass = "";
+    private string iconClass = "";
+
+    public void ShowSuccess(string msg, string detailsText = "")
+    {
+        title = "Success";
+        message = msg;
+        details = detailsText;
+        toastClass = "border-success";
+        headerClass = "bg-success text-white";
+        iconClass = "bi-check-circle-fill";
+        showDetails = false;
+        isVisible = true;
+        StateHasChanged();
+
+        // Auto-hide after 10 seconds
+        Task.Delay(10000).ContinueWith(_ => InvokeAsync(Hide));
+    }
+
+    public void ShowError(string msg, string detailsText = "")
+    {
+        title = "Error";
+        message = msg;
+        details = detailsText;
+        toastClass = "border-danger";
+        headerClass = "bg-danger text-white";
+        iconClass = "bi-exclamation-triangle-fill";
+        showDetails = false;
+        isVisible = true;
+        StateHasChanged();
+    }
+
+    private void ToggleDetails()
+    {
+        showDetails = !showDetails;
+    }
+
+    private void Hide()
+    {
+        isVisible = false;
+        StateHasChanged();
+    }
+}
+
+<style>
+    .toast {
+        min-width: 350px;
+    }
+</style>

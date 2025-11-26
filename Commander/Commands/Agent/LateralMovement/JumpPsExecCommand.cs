@@ -72,14 +72,14 @@ namespace Commander.Commands.Agent.LateralMovement
                 return;
             }
 
-            var payloadOptions = new PayloadGenerationOptions()
+            var payloadOptions = new ImplantConfig()
             {
-                Architecture = agent.Metadata.Architecture == "x86" ? PayloadArchitecture.x86 : PayloadArchitecture.x64,
+                Architecture = agent.Metadata.Architecture == "x86" ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Endpoint = endpoint,
                 IsDebug = false,
                 IsVerbose = options.verbose,
                 ServerKey = config.ServerConfig.Key,
-                Type = PayloadType.Service,
+                Type = ImplantType.Service,
                 InjectionDelay = options.injectDelay,
                 IsInjected = options.inject,
                 InjectionProcess = options.injectProcess
@@ -150,14 +150,14 @@ namespace Commander.Commands.Agent.LateralMovement
         //    //var endpoint = ConnexionUrl.FromString(agent.Metadata.EndPoint);
         //    var endpoint = ConnexionUrl.FromString($"pipe://127.0.0.1:{context.Options.pipe}");
 
-        //    var options = new PayloadGenerationOptions()
+        //    var options = new ImplantConfig()
         //    {
-        //        Architecture =  agent.Metadata.Architecture == "x86" ? PayloadArchitecture.x86 : PayloadArchitecture.x64,
+        //        Architecture =  agent.Metadata.Architecture == "x86" ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
         //        Endpoint = endpoint,
         //        IsDebug = false,
         //        IsVerbose = context.Options.verbose,
         //        ServerKey = context.Config.ServerConfig.Key,
-        //        Type = PayloadType.Service,
+        //        Type = ImplantType.Service,
         //        IsInjected = context.Options.inject
         //    };
         //    if (context.Options.injectDelay.HasValue)

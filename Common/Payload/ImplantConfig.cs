@@ -7,11 +7,13 @@ using Shared;
 
 namespace Common.Payload
 {
-    public class PayloadGenerationOptions
+    public class ImplantConfig
     {
         public ConnexionUrl Endpoint { get; set; }
-        public PayloadType Type { get; set; } = PayloadType.Executable;
-        public PayloadArchitecture Architecture { get; set; } = PayloadArchitecture.x64;
+
+        public string Listener { get; set; }
+        public ImplantType Type { get; set; } = ImplantType.Executable;
+        public ImplantArchitecture Architecture { get; set; } = ImplantArchitecture.x64;
         public string ServerKey { get; set; }
         public bool IsDebug { get; set; }
         public string DebugPath { get; set; }

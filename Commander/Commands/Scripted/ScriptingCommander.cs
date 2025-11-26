@@ -34,7 +34,7 @@ namespace Commander.Commands.Scripted
             this.context.Terminal.WriteInfo(message);
         }
 
-        public byte[] GeneratePayload(PayloadGenerationOptions options, bool isVerbose)
+        public byte[] GeneratePayload(ImplantConfig options, bool isVerbose)
         {
             return context.GeneratePayloadAndDisplay(options, isVerbose);
         }

@@ -74,14 +74,14 @@ namespace Commander.Commands.Composite
                 return;
             }
 
-            var payloadOptions = new PayloadGenerationOptions()
+            var payloadOptions = new ImplantConfig()
             {
-                Architecture =  agent.Metadata.Architecture == "x86" ? PayloadArchitecture.x86 : PayloadArchitecture.x64,
+                Architecture =  agent.Metadata.Architecture == "x86" ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Endpoint = endpoint,
                 IsDebug = false,
                 IsVerbose = options.verbose,
                 ServerKey = config.ServerConfig.Key,
-                Type = PayloadType.Service,
+                Type = ImplantType.Service,
                 InjectionDelay = options.injectDelay,
                 IsInjected = options.inject,
                 InjectionProcess = options.injectProcess

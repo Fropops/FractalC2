@@ -7,6 +7,7 @@ namespace WebCommander.Services
         private readonly TeamServerClient _client;
         private readonly Dictionary<string, Agent> _agents = new();
         private readonly Dictionary<string, Listener> _listeners = new();
+        private readonly Dictionary<string, Implant> _implants = new();
         private readonly Dictionary<string, AgentTaskResult> _taskResults = new();
         private readonly Dictionary<string, TeamServerAgentTask> _tasks = new();
         private readonly System.Threading.Timer _timer;
@@ -18,6 +19,7 @@ namespace WebCommander.Services
 
         public event Action? OnAgentsUpdated;
         public event Action? OnListenersUpdated;
+        public event Action? OnImplantsUpdated;
         public event Action? OnLoadingStateChanged;
         public event Action<Agent>? OnNewAgent;
         public event Action<AgentTaskResult>? OnAgentResult;
@@ -66,6 +68,7 @@ namespace WebCommander.Services
 
             bool agentsUpdated = false;
             bool listenersUpdated = false;
+            bool implantsUpdated = false;
             bool tasksUpdated = false;
 
             foreach (var change in changes)
@@ -187,6 +190,28 @@ namespace WebCommander.Services
                         }
                     }
                 }
+                else if (change.Type == ChangingElement.Implant)
+                {
+                    try
+                    {
+                        var implant = await _client.GetImplantAsync(change.Id);
+                        if (implant != null)
+                        {
+                            Console.WriteLine($"Updated implant {implant.Name} ({implant.Id})");
+                            _implants[implant.Id] = implant;
+                            implantsUpdated = true;
+                        }
+                    }
+                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        // Resource was deleted, remove from cache
+                        if (_implants.Remove(change.Id))
+                        {
+                            Console.WriteLine($"Implant {change.Id} was deleted, removed from cache");
+                            implantsUpdated = true;
+                        }
+                    }
+                }
 
                 // Update progress during initial loading
                 if (_isInitialLoading)
@@ -204,6 +229,10 @@ namespace WebCommander.Services
             if (listenersUpdated)
             {
                 OnListenersUpdated?.Invoke();
+            }
+            if (implantsUpdated)
+            {
+                OnImplantsUpdated?.Invoke();
             }
             if (tasksUpdated)
             {
@@ -240,6 +269,11 @@ namespace WebCommander.Services
             return _listeners.Values.ToList();
         }
 
+        public List<Implant> GetImplants()
+        {
+            return _implants.Values.ToList();
+        }
+
         public List<TeamServerAgentTask> GetTasks()
         {
             return _tasks.Values.ToList();
@@ -258,25 +292,12 @@ namespace WebCommander.Services
         public async Task<bool> StopListenerAsync(string listenerId)
         {
             var success = await _client.StopListenerAsync(listenerId);
-            
-            // Remove from cache if API call succeeded
-            if (success && _listeners.Remove(listenerId))
-            {
-                OnListenersUpdated?.Invoke();
-            }
-            
             return success;
         }
 
         public async Task StopAgentAsync(string agentId)
         {
             await _client.StopAgentAsync(agentId);
-            
-            // Remove from cache if API call succeeded
-            if (_agents.Remove(agentId))
-            {
-                OnAgentsUpdated?.Invoke();
-            }
         }
 
         public void Dispose()

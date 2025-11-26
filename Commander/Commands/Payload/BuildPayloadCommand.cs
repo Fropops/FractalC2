@@ -148,20 +148,20 @@ namespace Commander.Commands
             if (!string.IsNullOrEmpty(context.Options.serverKey))
                 serverKey = context.Options.serverKey;
 
-            var t = PayloadType.Executable;
+            var t = ImplantType.Executable;
             switch (context.Options.type)
             {
-                case "dll": t = PayloadType.Library; break;
-                case "rfl": t = PayloadType.ReflectiveLibrary; break;
-                case "svc": t = PayloadType.Service; break;
-                case "ps": t = PayloadType.PowerShell; break;
-                case "bin": t = PayloadType.Binary; break;
+                case "dll": t = ImplantType.Library; break;
+                case "rfl": t = ImplantType.ReflectiveLibrary; break;
+                case "svc": t = ImplantType.Service; break;
+                case "ps": t = ImplantType.PowerShell; break;
+                case "bin": t = ImplantType.Shellcode; break;
                 default: break;
             }
 
-            var options = new PayloadGenerationOptions()
+            var options = new ImplantConfig()
             {
-                Architecture = context.Options.x86 ? PayloadArchitecture.x86 : PayloadArchitecture.x64,
+                Architecture = context.Options.x86 ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Endpoint = endpoint,
                 IsDebug = context.Options.debug,
                 IsVerbose = context.Options.verbose,
@@ -191,7 +191,7 @@ namespace Commander.Commands
                     path = path.Substring(1);
 
 
-                await context.CommModule.WebHost(path, fileContent, options.Type == PayloadType.PowerShell, $"Implant {implant.Name} " + options.ToString());
+                await context.CommModule.WebHost(path, fileContent, options.Type == ImplantType.PowerShell, $"Implant {implant.Name} " + options.ToString());
                 //context.Terminal.WriteSuccess($"[*] payload hosted at {path}.");
 
 
@@ -209,7 +209,7 @@ namespace Commander.Commands
                     string urlwh = $"{listener.EndPoint}/{path}";
                     context.Terminal.WriteLine($"[*] payload hosted on : {urlwh}");
 
-                    if (options.Type == PayloadType.PowerShell)
+                    if (options.Type == ImplantType.PowerShell)
                     {
                         var script = ScriptHelper.GeneratePowershellScript(urlwh, listener.Secured);
                         var scriptb64 = ScriptHelper.GeneratePowershellScriptB64(urlwh, listener.Secured);
@@ -228,7 +228,7 @@ namespace Commander.Commands
             return true;
         }
 
-        private Payload GeneratePayload(CommandContext<BuildPayloadCommandOptions> context, PayloadGenerationOptions options)
+        private Payload GeneratePayload(CommandContext<BuildPayloadCommandOptions> context, ImplantConfig options)
         {
             context.Terminal.WriteInfo($"[>] Generating Payload {options.Type} for Endpoint {options.Endpoint} (arch = {options.Architecture}).");
             byte[] pay = null;
@@ -266,32 +266,32 @@ namespace Commander.Commands
             return payload;
         }
 
-        private string GetOutputFileName(CommandContext<BuildPayloadCommandOptions> context, PayloadGenerationOptions options, string fileName)
+        private string GetOutputFileName(CommandContext<BuildPayloadCommandOptions> context, ImplantConfig options, string fileName)
         {
             return Path.GetFileName(GetOutputFilePath(context, options, fileName));
         }
 
 
-        private string GetOutputFilePath(CommandContext<BuildPayloadCommandOptions> context, PayloadGenerationOptions options, string fileName)
+        private string GetOutputFilePath(CommandContext<BuildPayloadCommandOptions> context, ImplantConfig options, string fileName)
         {
             var outFile = Path.GetFileNameWithoutExtension(fileName);
 
             switch (options.Type)
             {
-                case PayloadType.Executable:
-                case PayloadType.Service:
+                case ImplantType.Executable:
+                case ImplantType.Service:
                     if (!Path.GetExtension(outFile).Equals(".exe", StringComparison.OrdinalIgnoreCase))
                         outFile += ".exe";
                     break;
-                case PayloadType.Library:
+                case ImplantType.Library:
                     if (!Path.GetExtension(outFile).Equals(".dll", StringComparison.OrdinalIgnoreCase))
                         outFile += ".dll";
                     break;
-                case PayloadType.PowerShell:
+                case ImplantType.PowerShell:
                     if (!Path.GetExtension(outFile).Equals(".ps1", StringComparison.OrdinalIgnoreCase))
                         outFile += ".ps1";
                     break;
-                case PayloadType.Binary:
+                case ImplantType.Shellcode:
                     if (!Path.GetExtension(outFile).Equals(".bin", StringComparison.OrdinalIgnoreCase))
                         outFile += ".bin";
                     break;
@@ -306,7 +306,7 @@ namespace Commander.Commands
 
 
 
-        /*private string GetOutputFilePath(CommandContext<BuildPayloadCommandOptions> context, PayloadGenerationOptions options)
+        /*private string GetOutputFilePath(CommandContext<BuildPayloadCommandOptions> context, ImplantConfig options)
         {
 
             var customFileName = !string.IsNullOrEmpty(context.Options.fileName);
@@ -316,30 +316,30 @@ namespace Commander.Commands
             else
                 outFile = Path.GetFileNameWithoutExtension(context.Options.fileName);
 
-            if (options.Type == PayloadType.Service && (context.Options.type == "all" || !customFileName))
+            if (options.Type == ImplantType.Service && (context.Options.type == "all" || !customFileName))
                 outFile += "_svc";
 
             if (options.IsInjected && (context.Options.type == "all" || !customFileName))
                 outFile += "_inj";
 
-            outFile += options.Architecture == PayloadArchitecture.x86 ? "_x86" : "_x64";
+            outFile += options.Architecture == ImplantArchitecture.x86 ? "_x86" : "_x64";
 
             switch (options.Type)
             {
-                case PayloadType.Executable:
-                case PayloadType.Service:
+                case ImplantType.Executable:
+                case ImplantType.Service:
                     if (!Path.GetExtension(outFile).Equals(".exe", StringComparison.OrdinalIgnoreCase))
                         outFile += ".exe";
                     break;
-                case PayloadType.Library:
+                case ImplantType.Library:
                     if (!Path.GetExtension(outFile).Equals(".dll", StringComparison.OrdinalIgnoreCase))
                         outFile += ".dll";
                     break;
-                case PayloadType.PowerShell:
+                case ImplantType.PowerShell:
                     if (!Path.GetExtension(outFile).Equals(".ps1", StringComparison.OrdinalIgnoreCase))
                         outFile += ".ps1";
                     break;
-                case PayloadType.Binary:
+                case ImplantType.Binary:
                     if (!Path.GetExtension(outFile).Equals(".bin", StringComparison.OrdinalIgnoreCase))
                         outFile += ".bin";
                     break;

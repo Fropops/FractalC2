@@ -70,14 +70,14 @@ namespace Commander.Commands
 
             context.Terminal.WriteLine($"[>] Generating powershell payload...");
 
-            var options = new PayloadGenerationOptions()
+            var options = new ImplantConfig()
             {
-                Architecture = context.Options.x86 ? PayloadArchitecture.x86 : PayloadArchitecture.x64,
+                Architecture = context.Options.x86 ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Endpoint = endpoint,
                 IsDebug = context.Options.debug,
                 IsVerbose = context.Options.verbose,
                 ServerKey = string.IsNullOrEmpty(context.Options.serverKey) ? context.Config.ServerConfig.Key : context.Options.serverKey,
-                Type = PayloadType.PowerShell,
+                Type = ImplantType.PowerShell,
                 InjectionDelay = context.Options.injectDelay,
                 IsInjected = context.Options.inject,
                 InjectionProcess = context.Options.injectProcess,

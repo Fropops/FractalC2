@@ -66,6 +66,30 @@
                 </div>
             </div>
         </div>
+
+        <!-- Implants Tile -->
+        <div class="col-md-6">
+            <div class="dashboard-card implants-card" @onclick="NavigateToImplants">
+                <div class="card-icon">
+                    <i class="bi bi-file-earmark-binary"></i>
+                </div>
+                <div class="card-content">
+                    <h3>Implants</h3>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-value available">@totalImplants</span>
+                            <span class="stat-label">Available</span>
+                        </div>
+                    </div>
+                    <div class="total-count">
+                        Total: <strong>@totalImplants</strong>
+                    </div>
+                </div>
+                <div class="card-arrow">
+                    <i class="bi bi-arrow-right-circle"></i>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -116,6 +140,10 @@
 
     .listeners-card {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .implants-card {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     }
 
     .card-icon {
@@ -219,12 +247,14 @@
     private int inactiveAgents = 0;
     private int totalListeners = 0;
     private int runningListeners = 0;
+    private int totalImplants = 0;
 
     protected override void OnInitialized()
     {
         // Subscribe to updates
         AgentService.OnAgentsUpdated += UpdateStats;
         AgentService.OnListenersUpdated += UpdateStats;
+        AgentService.OnImplantsUpdated += UpdateStats;
 
         // Initial stats
         UpdateStats();
@@ -241,6 +271,9 @@
         totalListeners = listeners.Count;
         runningListeners = listeners.Count; // All listeners in the list are running
 
+        var implants = AgentService.GetImplants();
+        totalImplants = implants.Count;
+
         InvokeAsync(StateHasChanged);
     }
 
@@ -252,6 +285,11 @@
     private void NavigateToListeners()
     {
         Navigation.NavigateTo("/listeners");
+    }
+
+    private void NavigateToImplants()
+    {
+        Navigation.NavigateTo("/implants");
     }
 
     public void Dispose()

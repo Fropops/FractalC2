@@ -1,0 +1,158 @@
+@page "/implants"
+@using WebCommander.Models
+@using WebCommander.Services
+@using WebCommander.Components
+@inject AgentService AgentService
+@inject TeamServerClient Api
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<PageTitle>Implants</PageTitle>
+
+<h1>Implants</h1>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowCreateModal">
+        <i class="bi bi-plus-circle"></i> Create Implant
+    </button>
+</div>
+
+@if (implants == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Architecture</th>
+                <th>Endpoint</th>
+                <th>Listener</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var implant in implants)
+            {
+                <tr>
+                    <td>@implant.Config?.ImplantName</td>
+                    <td>@implant.Config?.Type</td>
+                    <td>@implant.Config?.Architecture</td>
+                    <td>@implant.Config?.Endpoint?.ToString()</td>
+                    <td>@(implant.Config?.Listener ?? "Custom")</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-1" @onclick="() => DownloadImplant(implant)">
+                            <i class="bi bi-download"></i> Download
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteImplant(implant)">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Create Implant Modal -->
+@if (showCreateModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Implant</h5>
+                    <button type="button" class="btn-close" @onclick="HideCreateModal"></button>
+                </div>
+                <div class="modal-body">
+                    <ImplantCreator OnCreationResult="OnCreationResult" OnCancelled="HideCreateModal" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<ActionToast @ref="toast" />
+
+@code {
+    private List<Implant> implants = new();
+    private bool showCreateModal = false;
+    private ActionToast toast;
+
+    protected override void OnInitialized()
+    {
+        // Subscribe to implant updates
+        AgentService.OnImplantsUpdated += OnImplantsUpdated;
+        
+        // Get initial implants
+        implants = AgentService.GetImplants();
+    }
+
+    private void OnImplantsUpdated()
+    {
+        implants = AgentService.GetImplants();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void DownloadImplant(Implant implant)
+    {
+        // TODO: Implement download functionality
+        // This would typically decode the Data property and trigger a download
+        Console.WriteLine($"Download implant: {implant.Name}");
+    }
+
+    private async Task DeleteImplant(Implant implant)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete implant {implant.Config?.ImplantName}?"))
+        {
+            try
+            {
+                var success = await Api.DeleteImplantAsync(implant.Id);
+                if (success)
+                {
+                    toast.ShowSuccess($"Implant {implant.Config?.ImplantName} deleted successfully.");
+                }
+                else
+                {
+                    toast.ShowError($"Failed to delete implant {implant.Config?.ImplantName}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                toast.ShowError($"Error deleting implant {implant.Config?.ImplantName}.", ex.Message);
+            }
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        showCreateModal = true;
+    }
+
+    private void HideCreateModal()
+    {
+        showCreateModal = false;
+    }
+
+    private void OnCreationResult((bool success, string message, string details) result)
+    {
+        showCreateModal = false;
+        
+        if (result.success)
+        {
+            toast.ShowSuccess(result.message, result.details);
+        }
+        else
+        {
+            toast.ShowError(result.message, result.details);
+        }
+    }
+
+    public void Dispose()
+    {
+        AgentService.OnImplantsUpdated -= OnImplantsUpdated;
+    }
+}

@@ -6,19 +6,19 @@ using System.Threading.Tasks;
 
 namespace Common.Payload
 {
-    public enum PayloadType
+    public enum ImplantType
     {
+        PowerShell = 0,
         Executable,
         Library,
         ReflectiveLibrary,
         Service,
-        PowerShell,
-        Binary
+        Shellcode
     }
 
-    public enum PayloadArchitecture
+    public enum ImplantArchitecture
     {
-        x64,
+        x64 = 0,
         x86
     }
 }
