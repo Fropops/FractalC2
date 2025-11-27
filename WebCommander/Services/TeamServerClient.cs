@@ -147,5 +147,14 @@ namespace WebCommander.Services
             var response = await _client.DeleteAsync($"/Implants/{id}");
             return response.IsSuccessStatusCode;
         }
+
+        public async Task<Implant?> GetImplantWithDataAsync(string id)
+        {
+            var response = await _client.GetAsync($"/Implants/{id}?withData=true");
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<Implant>();
+        }
     }
 }

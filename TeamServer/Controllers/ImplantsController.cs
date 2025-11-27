@@ -18,6 +18,7 @@ using Common;
 using System.Text;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Configuration;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TeamServer.Controllers
 {
@@ -61,7 +62,7 @@ namespace TeamServer.Controllers
         }
 
         [HttpGet("{implantId}")]
-        public IActionResult GetImplant(string implantId)
+        public IActionResult GetImplant(string implantId, [FromQuery]bool  withData = true)
         {
             var implant = _implantService.GetImplant(implantId);
             if (implant == null)
@@ -70,8 +71,8 @@ namespace TeamServer.Controllers
             return Ok(new TeamServerImplant()
             {
                 Id = implant.Id,
-                //Data = agent.FirstSeen,
-               Config = implant.Config,
+                Data = withData ? implant.Data : null,
+                Config = implant.Config,
             });
         }
 
@@ -95,6 +96,7 @@ namespace TeamServer.Controllers
             var body = this.Request.Body;
             string val = Encoding.UTF8.GetString(body.ReadStream().Result);
             var config = JsonConvert.DeserializeObject<ImplantConfig>(val);
+            config.ImplantName = Payload.GenerateName();
             string logs = string.Empty;
             try
             {
@@ -129,7 +131,8 @@ namespace TeamServer.Controllers
             var data = generator.GenerateImplant(config);
             return (logs, new Implant(ShortGuid.NewGuid())
             {
-                Config = config
+                Config = config,
+                Data = Convert.ToBase64String(data),
             });
             
         }

@@ -97,11 +97,49 @@ else
         InvokeAsync(StateHasChanged);
     }
 
-    private void DownloadImplant(Implant implant)
+    private async Task DownloadImplant(Implant implant)
     {
-        // TODO: Implement download functionality
-        // This would typically decode the Data property and trigger a download
-        Console.WriteLine($"Download implant: {implant.Name}");
+        try
+        {
+            // Get implant with binary data
+            var implantWithData = await Api.GetImplantWithDataAsync(implant.Id);
+            
+            if (implantWithData == null || string.IsNullOrEmpty(implantWithData.Data))
+            {
+                toast.ShowError("Failed to download implant", "No data available");
+                return;
+            }
+
+            // Decode base64 data
+            var binaryData = Convert.FromBase64String(implantWithData.Data);
+            
+            // Determine file extension based on implant type
+            var extension = GetFileExtension(implantWithData.Config?.Type ?? ImplantType.Executable);
+            var fileName = $"{implantWithData.Config?.ImplantName ?? "implant"}{extension}";
+            
+            // Trigger download using JavaScript
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, Convert.ToBase64String(binaryData));
+            
+            toast.ShowSuccess($"Implant {fileName} downloaded successfully.");
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError("Failed to download implant", ex.Message);
+        }
+    }
+
+    private string GetFileExtension(ImplantType type)
+    {
+        return type switch
+        {
+            ImplantType.PowerShell => ".ps1",
+            ImplantType.Executable => ".exe",
+            ImplantType.Library => ".dll",
+            ImplantType.ReflectiveLibrary => ".dll",
+            ImplantType.Service => ".exe",
+            ImplantType.Shellcode => ".bin",
+            _ => ".bin"
+        };
     }
 
     private async Task DeleteImplant(Implant implant)

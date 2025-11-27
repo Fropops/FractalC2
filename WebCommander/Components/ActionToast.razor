@@ -5,7 +5,9 @@
             <div class="toast-header @headerClass">
                 <i class="bi @iconClass me-2"></i>
                 <strong class="me-auto">@title</strong>
-                <button type="button" class="btn-close btn-close-white" @onclick="Hide"></button>
+                <button type="button" class="btn-close-custom" @onclick="Hide" aria-label="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
             </div>
             <div class="toast-body">
                 @message
@@ -84,12 +86,19 @@
         min-width: 350px;
     }
     
-    .toast-header .btn-close {
-        opacity: 1;
-        filter: brightness(0) invert(1);
+    .btn-close-custom {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.2rem;
+        line-height: 1;
+        padding: 0;
+        margin-left: 0.5rem;
+        cursor: pointer;
+        opacity: 0.8;
     }
     
-    .toast-header .btn-close:hover {
-        opacity: 0.8;
+    .btn-close-custom:hover {
+        opacity: 1;
     }
 </style>
