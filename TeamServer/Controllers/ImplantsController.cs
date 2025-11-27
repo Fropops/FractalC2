@@ -17,6 +17,7 @@ using Common.Config;
 using Common;
 using System.Text;
 using Newtonsoft.Json;
+using Microsoft.Extensions.Configuration;
 
 namespace TeamServer.Controllers
 {
@@ -36,8 +37,9 @@ namespace TeamServer.Controllers
         private readonly ITaskService _taskService;
         private readonly IImplantService _implantService;
         private readonly IChangeTrackingService _changeTrackingService;
+        private readonly IConfiguration _config;
 
-        public ImplantsController(IAgentService agentService, IFileService fileService, ISocksService socksService, IChangeTrackingService changeService, IAuditService auditService, ITaskResultService agentTaskResultService, IFrameService frameService, ITaskService taskService, IImplantService implantService, IChangeTrackingService changeTrackingService)
+        public ImplantsController(IAgentService agentService, IFileService fileService, ISocksService socksService, IChangeTrackingService changeService, IAuditService auditService, ITaskResultService agentTaskResultService, IFrameService frameService, ITaskService taskService, IImplantService implantService, IChangeTrackingService changeTrackingService, IConfiguration config)
         {
             this._fileService = fileService;
             this._socksService = socksService;
@@ -48,6 +50,7 @@ namespace TeamServer.Controllers
             this._taskService= taskService;
             this._implantService = implantService;
             this._changeTrackingService = changeTrackingService;
+            this._config = config;
         }
 
         [HttpGet]
@@ -92,30 +95,45 @@ namespace TeamServer.Controllers
             var body = this.Request.Body;
             string val = Encoding.UTF8.GetString(body.ReadStream().Result);
             var config = JsonConvert.DeserializeObject<ImplantConfig>(val);
-            var implant = GenerateImplant(config);
-
-            if(implant == null)
+            string logs = string.Empty;
+            try
             {
-                return this.Problem("Error Logs");
+                (logs, var implant) = GenerateImplant(config);
+                if (implant == null)
+                {
+                    return this.Problem(logs);
+                }
+                _implantService.AddImplant(implant);
+                this._changeTrackingService.TrackChange(ChangingElement.Implant, implant.Id);
             }
-            _implantService.AddImplant(implant);
-            this._changeTrackingService.TrackChange(ChangingElement.Implant, implant.Id);
+            catch (Exception ex)
+            {
+                return this.Problem(ex.ToString());
+            }
 
-            return Ok("logs");
+            return Ok(logs);
         }
 
-        private Implant GenerateImplant(ImplantConfig config)
+        private (string, Implant) GenerateImplant(ImplantConfig config)
         {
             SpawnConfig spawnConfig = new SpawnConfig();
+            spawnConfig.FromSection(this._config.GetSection("Spawn"));
             PayloadConfig payloadConfig = new PayloadConfig();
+            payloadConfig.FromSection(this._config.GetSection("Payload"));
+            string logs = string.Empty;
             var generator = new PayloadGenerator(payloadConfig, spawnConfig);
-            //var data = generator.GenerateImplant(config);
-            return new Implant(ShortGuid.NewGuid())
+            generator.MessageSent += (sender, message) =>
+            {
+                logs += message.ToString() + Environment.NewLine;
+            };
+            var data = generator.GenerateImplant(config);
+            return (logs, new Implant(ShortGuid.NewGuid())
             {
                 Config = config
-            };
+            });
             
         }
 
+       
     }
 }

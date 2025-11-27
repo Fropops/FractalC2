@@ -143,11 +143,11 @@ else
         
         if (result.success)
         {
-            toast.ShowSuccess(result.message, result.details);
+            toast.ShowSuccess(result.message, result.details.Replace("\\r\\n", "\n").Replace("\\n", "\n"));
         }
         else
         {
-            toast.ShowError(result.message, result.details);
+            toast.ShowError(result.message, result.details.Replace("\\r\\n", "\n").Replace("\\n", "\n"));
         }
     }
 
