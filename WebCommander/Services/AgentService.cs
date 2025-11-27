@@ -153,7 +153,7 @@ namespace WebCommander.Services
                             _taskResults[result.Id] = result;
                             
                             // Only notify if completed and not in initial loading
-                            if (result.Status == AgentResultStatus.Completed && !_isInitialLoading)
+                            if ((result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error) && !_isInitialLoading)
                             {
                                 OnAgentResult?.Invoke(result);
                             }

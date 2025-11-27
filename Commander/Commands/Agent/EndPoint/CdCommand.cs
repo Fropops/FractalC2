@@ -11,11 +11,11 @@ using System.CommandLine;
 
 namespace Commander.Commands.Agent.EndPoint
 {
-    public class LsCommandOptions
+    public class AgentCdCommandOptions
     {
         public string path { get; set; }
     }
-    public class LsCommand : EndPointCommand<LsCommandOptions>
+    public class CdCommand : EndPointCommand<AgentCdCommandOptions>
     {
         public override string Description => "List the content of the directory directopy.";
         public override string Name => "cd";
@@ -27,7 +27,7 @@ namespace Commander.Commands.Agent.EndPoint
                 new Argument<string>("path", () => string.Empty, "Path of the directory to list"),
             };
 
-        protected override void SpecifyParameters(CommandContext<LsCommandOptions> context)
+        protected override void SpecifyParameters(CommandContext<AgentCdCommandOptions> context)
         {
             if (!string.IsNullOrEmpty(context.Options.path))
                 context.AddParameter(ParameterId.Path, context.Options.path);

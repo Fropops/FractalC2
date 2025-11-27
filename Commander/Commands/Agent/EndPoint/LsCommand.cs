@@ -11,11 +11,11 @@ using System.CommandLine;
 
 namespace Commander.Commands.Agent.EndPoint
 {
-    public class AgentCdCommandOptions
+    public class AgentLsCommandOptions
     {
         public string path { get; set; }
     }
-    public class CdCommandOptions : EndPointCommand<AgentCdCommandOptions>
+    public class LsCommandOptions : EndPointCommand<AgentLsCommandOptions>
     {
         public override string Description => "Change the current working directopy.";
         public override string Name => "ls";
@@ -27,7 +27,7 @@ namespace Commander.Commands.Agent.EndPoint
                 new Argument<string>("path", () => string.Empty, "Path of the new directory"),
             };
 
-        protected override void SpecifyParameters(CommandContext<AgentCdCommandOptions> context)
+        protected override void SpecifyParameters(CommandContext<AgentLsCommandOptions> context)
         {
             if (!string.IsNullOrEmpty(context.Options.path))
                 context.AddParameter(ParameterId.Path, context.Options.path);

@@ -79,6 +79,7 @@ else
 
 @code {
     private List<Agent> agents = new();
+    private System.Threading.Timer? _timer;
 
     protected override void OnInitialized()
     {
@@ -87,6 +88,12 @@ else
         
         // Get initial agents
         agents = AgentService.GetAgents();
+        
+        // Start timer to update LastSeen every second
+        _timer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
     private void OnAgentsUpdated()
@@ -121,5 +128,6 @@ else
     public void Dispose()
     {
         AgentService.OnAgentsUpdated -= OnAgentsUpdated;
+        _timer?.Dispose();
     }
 }

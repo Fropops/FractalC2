@@ -12,8 +12,6 @@ namespace WebCommander.Services.Commands
         public override CommandId Id => CommandId.Ls;
         public override string[] Aliases => new[] { "dir" };
 
-        private Argument<string> _pathArg;
-
         protected override void AddCommandParameters(RootCommand command)
         {
             command.Arguments.Add(new Argument<string>(ParameterId.Path.ToString()) { Arity = ArgumentArity.ZeroOrOne });

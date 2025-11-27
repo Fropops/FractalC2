@@ -6,6 +6,7 @@
 @inject AgentService AgentService
 @inject NavigationManager NavigationManager
 @inject CommandService CommandService
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Terminal - @(agent?.Metadata?.ImplantId ?? "Unknown")</PageTitle>
 
@@ -16,7 +17,7 @@
     }
     else
     {
-        <div class="container-fluid mt-3">
+        <div class="container-fluid">
             <AgentHeader Agent="@agent" 
                          AllAgents="@AgentService.GetAgents()"
                          ShowInteractButton="false"
@@ -52,6 +53,7 @@
         height: calc(100vh - 60px);
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
 
     .terminal-container {
@@ -64,6 +66,8 @@
         margin: 0 1rem 1rem 1rem;
         border-radius: 4px;
         overflow: hidden;
+        min-height: 0;
+        max-height: calc(100vh - 275px);
     }
 
     .terminal-output {
@@ -72,6 +76,7 @@
         padding: 20px;
         font-size: 14px;
         line-height: 1.5;
+        min-height: 0;
     }
 
     .terminal-line {
@@ -167,6 +172,10 @@
     private Dictionary<string, string> taskCommands = new();
     private ElementReference terminalOutput;
     private ElementReference inputElement;
+    
+    // Command history
+    private List<string> commandHistory = new();
+    private int historyIndex = -1;
 
     protected override void OnInitialized()
     {
@@ -204,21 +213,25 @@
     private void AddNormal(string text)
     {
         outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Normal });
+        _ = ScrollToBottom();
     }
 
     private void AddError(string text)
     {
         outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Error });
+        _ = ScrollToBottom();
     }
 
     private void AddWarning(string text)
     {
         outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Warning });
+        _ = ScrollToBottom();
     }
 
     private void AddInfo(string text)
     {
         outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Info });
+        _ = ScrollToBottom();
     }
 
     private string GetLineClass(TerminalLineType type)
@@ -234,18 +247,35 @@
 
     private void HandleAgentResult(AgentTaskResult result)
     {
+        Console.WriteLine($"[Terminal] Received result for task {result.Id}, Status: {result.Status}");
+        
         // Only display results for tasks sent by this terminal
         if (!sentTaskIds.Contains(result.Id))
+        {
+            Console.WriteLine($"[Terminal] Task {result.Id} not sent by this terminal, ignoring");
             return;
+        }
 
-        if (result.Status == AgentResultStatus.Completed)
+        Console.WriteLine($"[Terminal] Processing result for task {result.Id}");
+        
+        if (result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error)
         {
             // Get command name if available
             var commandName = taskCommands.TryGetValue(result.Id, out var cmd) ? cmd : "unknown";
             
-            // Display header
-            AddInfo($"Task {commandName} is {result.Status}");
-            AddInfo("-------------------------------------------");
+            Console.WriteLine($"[Terminal] Command: {commandName}, Status: {result.Status}, Error: {result.Error}, Output length: {result.Output?.Length ?? 0}");
+            
+            // Display header with appropriate color
+            if (result.Status == AgentResultStatus.Error)
+            {
+                AddError($"Task {commandName} failed with status: {result.Status}");
+                AddError("-------------------------------------------");
+            }
+            else
+            {
+                AddInfo($"Task {commandName} is {result.Status}");
+                AddInfo("-------------------------------------------");
+            }
             
             if (!string.IsNullOrEmpty(result.Output))
             {
@@ -259,6 +289,10 @@
             StateHasChanged();
             _ = ScrollToBottom();
         }
+        else
+        {
+            Console.WriteLine($"[Terminal] Unhandled status: {result.Status}");
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -271,17 +305,52 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
+        // Handle history navigation
+        if (e.Key == "ArrowUp")
+        {
+            if (commandHistory.Count > 0 && historyIndex < commandHistory.Count - 1)
+            {
+                historyIndex++;
+                currentCommand = commandHistory[historyIndex];
+                StateHasChanged();
+            }
+            return;
+        }
+        else if (e.Key == "ArrowDown")
+        {
+            if (historyIndex > 0)
+            {
+                historyIndex--;
+                currentCommand = commandHistory[historyIndex];
+                StateHasChanged();
+            }
+            else if (historyIndex == 0)
+            {
+                historyIndex = -1;
+                currentCommand = string.Empty;
+                StateHasChanged();
+            }
+            return;
+        }
+        
         if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(currentCommand))
         {
             // Store the command for later reference
             var commandToSend = currentCommand;
             
+            // Add to history (at the beginning of the list)
+            commandHistory.Insert(0, commandToSend);
+            historyIndex = -1; // Reset history navigation
+            
             // Add command to output
             AddNormal($"{agent?.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
             
             // Send command
-            var (message, taskId) = await CommandService.ParseAndSendAsync(commandToSend, AgentId);
-            AddNormal(message);
+            var (message, error, taskId) = await CommandService.ParseAndSendAsync(commandToSend, AgentId);
+            if(!string.IsNullOrEmpty(error))
+                AddError(error);
+            if(!string.IsNullOrEmpty(message))
+                AddNormal(message);
             
             // Track task ID if command was sent successfully
             if (taskId != null)
@@ -304,9 +373,16 @@
 
     private async Task ScrollToBottom()
     {
-        await Task.Delay(50);
-        // Note: In a real implementation, you'd use JSInterop to scroll
-        // For now, the CSS overflow will handle it
+        try
+        {
+            await Task.Delay(10);
+            await JSRuntime.InvokeVoidAsync("eval", 
+                "document.querySelector('.terminal-output').scrollTop = document.querySelector('.terminal-output').scrollHeight");
+        }
+        catch
+        {
+            // Ignore errors if element not found
+        }
     }
 
     private void Close()

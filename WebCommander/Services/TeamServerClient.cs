@@ -100,6 +100,7 @@ namespace WebCommander.Services
                 CommandId = commandId,
                 Parameters = parms,
             };
+            Console.WriteLine($"Into TaskAgent {parms.Count}");
             var ser = await agentTask.BinarySerializeAsync();
 
             var taskrequest = new CreateTaskRequest()

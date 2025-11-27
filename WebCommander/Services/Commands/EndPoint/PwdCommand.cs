@@ -1,0 +1,25 @@
+using System.CommandLine;
+using System.CommandLine.Parsing;
+using System.Threading.Tasks;
+using WebCommander.Models;
+
+namespace WebCommander.Services.Commands
+{
+    public class PwdCommand : EndPointCommand
+    {
+        public override string Name => "pwd";
+        public override string Description => "Print the current working directory.";
+        public override CommandId Id => CommandId.Pwd;
+
+        protected override void AddCommandParameters(RootCommand command)
+        {
+            // Pwd command has no parameters
+        }
+
+        public override async Task FillParametersAsync(ParseResult parseResult, ParameterDictionary parms)
+        {
+            // No parameters to fill
+            await Task.CompletedTask;
+        }
+    }
+}

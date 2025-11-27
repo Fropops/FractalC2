@@ -2,13 +2,26 @@ namespace WebCommander.Models
 {
     public enum ParameterId : byte
     {
-        Unknown = 0,
-        Path = 1,
-        PipeName = 2,
-        File = 3,
-        Url = 4,
-        Port = 5,
-        Address = 6,
-        ProcessId = 7
+        Command = 0x00,
+        File = 0x01,
+        Path = 0x02,
+        Payload = 0x03,
+        Verb = 0x04,
+        Id = 0x05,
+        User = 0x06,
+        Domain = 0x07,
+        Password = 0x08,
+        Name = 0x09,
+        Parameters = 0x10,
+        Output = 0x11,
+        Bind = 0x12,
+        Delay = 0x13,
+        Jitter = 0x14,
+        Port = 0x15,
+        Target = 0x16,
+        Service = 0x17,
+        Recursive = 0x18,
+        Key = 0x19,
+        Value = 0x20,
     }
 }

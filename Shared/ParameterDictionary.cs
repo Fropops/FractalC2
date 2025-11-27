@@ -48,11 +48,19 @@ namespace Shared
 
         public void AddParameter<T>(ParameterId id, T item)
         {
+            if (item == null)
+                return;
+            if (item == null)
+                return;
+            if (item is string && string.IsNullOrEmpty(item as string))
+                return;
             this.Add(id, item.BinarySerializeAsync().Result);
         }
 
         public void AddParameter(ParameterId id, byte[] item)
         {
+            if (item == null)
+                return;
             this.Add(id, item);
         }
     }

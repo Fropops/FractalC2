@@ -29,9 +29,11 @@ namespace WebCommander.Services
 
             foreach (var type in commandTypes)
             {
+                Console.WriteLine($"Loading command {type.Name}");
                 var commandBase = CreateCommand(type);
                 if (commandBase != null)
                 {
+                    Console.WriteLine($"Command {type.Name} loaded");
                     _commandMap[commandBase.Name] = type;
                     foreach (var alias in commandBase.Aliases)
                     {
@@ -47,6 +49,7 @@ namespace WebCommander.Services
             {
                 return CreateCommand(commandType, agentId);
             }
+            Console.WriteLine($"Command {cmdName} not found");
             return null;
         }
 
@@ -57,6 +60,7 @@ namespace WebCommander.Services
                 commandBase.Initialize(_client, agentId);
                 return commandBase;
             }
+            Console.WriteLine($"Command {type.Name} not created");
             return null;
         }
 
@@ -73,20 +77,29 @@ namespace WebCommander.Services
             var commandBase = GetCommand(cmdName, agentId);
             if (commandBase != null)
             {
-                Console.WriteLine($"Command: {cmdName} found");
-                parseResult = commandBase.Parse(rawInput);
-                // Handle Help or Errors
-                if (parseResult.Errors.Count > 0 || parseResult.Tokens.Any(t => t.Value == "-h" || t.Value == "--help" || t.Value == "/?"))
+                Console.WriteLine($"Command: {commandBase.Name} created");
+                if(commandBase is EndPointCommand)
                 {
-                    var cmd = parseResult.CommandResult.Command;
-                    var errorMsg = parseResult.Errors.Count > 0 ? $"{string.Join(", ", parseResult.Errors.Select(e => e.Message))}\n" : "";
-                    return ($"{commandBase.GetUsage()}",errorMsg, null);
-                }
+                    
+                    parseResult = commandBase.Parse(rawInput);
+                    // Handle Help or Errors
+                    if (parseResult.Errors.Count > 0 || parseResult.Tokens.Any(t => t.Value == "-h" || t.Value == "--help" || t.Value == "/?"))
+                    {
+                        var cmd = parseResult.CommandResult.Command;
+                        var errorMsg = parseResult.Errors.Count > 0 ? $"{string.Join(", ", parseResult.Errors.Select(e => e.Message))}\n" : "";
+                        return ($"{commandBase.GetUsage()}",errorMsg, null);
+                    }
 
-                await parseResult.InvokeAsync();
-                var cmdResult = commandBase.Result;
-                Console.WriteLine($"Command: {cmdName} executed");
-                return (cmdResult.Message, cmdResult.Error, cmdResult.TaskId);
+                    await parseResult.InvokeAsync();
+                    var cmdResult = commandBase.Result;
+                    Console.WriteLine($"Command: {cmdName} executed");
+                    return (cmdResult.Message, cmdResult.Error, cmdResult.TaskId);
+                }
+                if(commandBase is ShellEndPointCommand)
+                {
+                    var cmdResult = await (commandBase as ShellEndPointCommand).ExecuteAsync(cmdName, rawInput, _client, agentId);
+                    return (cmdResult.Message, cmdResult.Error, cmdResult.TaskId);
+                }
             }
 
             return (null, $"[Error] Unknown command or not implemented.", null);

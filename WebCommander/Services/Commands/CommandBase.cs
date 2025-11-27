@@ -9,6 +9,8 @@ namespace WebCommander.Services.Commands
         public abstract string Description { get; }
         public virtual string[] Aliases { get; } = Array.Empty<string>();
 
+        public string CommandLine { get; protected set;}
+
         public RootCommand Command { get; private set;}
 
         public CommandResult Result { get; protected set;}
@@ -26,6 +28,7 @@ namespace WebCommander.Services.Commands
 
         public ParseResult Parse(string input)
         {
+            this.CommandLine = input;
             return this.Command.Parse(input);
         }
 
