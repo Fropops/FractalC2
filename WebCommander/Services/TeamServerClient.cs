@@ -156,5 +156,24 @@ namespace WebCommander.Services
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<Implant>();
         }
+
+        // WebHost methods
+        public async Task<List<FileWebHost>> GetWebHostFilesAsync()
+        {
+            var result = await _client.GetFromJsonAsync<List<FileWebHost>>("/WebHost");
+            return result ?? new List<FileWebHost>();
+        }
+
+        public async Task<bool> AddWebHostFileAsync(FileWebHost file)
+        {
+            var response = await _client.PostAsJsonAsync("/WebHost", file);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> DeleteWebHostFileAsync(string path)
+        {
+            var response = await _client.DeleteAsync($"/WebHost?path={Uri.EscapeDataString(path)}");
+            return response.IsSuccessStatusCode;
+        }
     }
 }

@@ -1,0 +1,233 @@
+@page "/hosting"
+@using WebCommander.Models
+@using WebCommander.Services
+@using WebCommander.Components
+@inject TeamServerClient Api
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Web Hosting</PageTitle>
+
+<h1>Web Hosting</h1>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowAddModal">
+        <i class="bi bi-plus-circle"></i> Add File
+    </button>
+</div>
+
+@if (files == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (files.Count == 0)
+{
+    <p><em>No files hosted yet.</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Path</th>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var file in files)
+            {
+                <tr>
+                    <td><code>@file.Path</code></td>
+                    <td>@file.Description</td>
+                    <td>
+                        @if (file.IsPowershell)
+                        {
+                            <span class="badge bg-info">PowerShell</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Binary</span>
+                        }
+                    </td>
+                    <td>@FormatFileSize(file.Data?.Length ?? 0)</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteFile(file)">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Add File Modal -->
+@if (showAddModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add File to Web Host</h5>
+                    <button type="button" class="btn-close" @onclick="HideAddModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@newFile" OnValidSubmit="AddFile">
+                        <div class="mb-3">
+                            <label class="form-label">Path</label>
+                            <InputText class="form-control" @bind-Value="newFile.Path" placeholder="/path/to/file.exe" />
+                            <small class="text-muted">The URL path where the file will be accessible</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <InputText class="form-control" @bind-Value="newFile.Description" placeholder="Description of the file" />
+                        </div>
+                        <div class="mb-3 form-check">
+                            <InputCheckbox class="form-check-input" @bind-Value="newFile.IsPowershell" id="isPowershell" />
+                            <label class="form-check-label" for="isPowershell">
+                                PowerShell Script
+                            </label>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">File</label>
+                            <InputFile class="form-control" OnChange="HandleFileSelected" />
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="HideAddModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" disabled="@(!isFileSelected)">
+                                <i class="bi bi-upload"></i> Add
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<ActionToast @ref="toast" />
+
+@code {
+    private List<FileWebHost> files = new();
+    private bool showAddModal = false;
+    private FileWebHost newFile = new();
+    private bool isFileSelected = false;
+    private ActionToast toast;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFiles();
+    }
+
+    private async Task LoadFiles()
+    {
+        try
+        {
+            files = await Api.GetWebHostFilesAsync();
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError("Failed to load files", ex.Message);
+        }
+    }
+
+    private void ShowAddModal()
+    {
+        newFile = new FileWebHost();
+        isFileSelected = false;
+        showAddModal = true;
+    }
+
+    private void HideAddModal()
+    {
+        showAddModal = false;
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                // Read file content
+                using var stream = file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024); // 50MB max
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                newFile.Data = memoryStream.ToArray();
+                isFileSelected = true;
+
+                // Auto-fill path if empty
+                if (string.IsNullOrEmpty(newFile.Path))
+                {
+                    newFile.Path = $"/{file.Name}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError("Failed to read file", ex.Message);
+        }
+    }
+
+    private async Task AddFile()
+    {
+        try
+        {
+            var success = await Api.AddWebHostFileAsync(newFile);
+            if (success)
+            {
+                toast.ShowSuccess($"File {newFile.Path} added successfully.");
+                HideAddModal();
+                await LoadFiles();
+            }
+            else
+            {
+                toast.ShowError("Failed to add file", "Server returned an error");
+            }
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError("Failed to add file", ex.Message);
+        }
+    }
+
+    private async Task DeleteFile(FileWebHost file)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {file.Path}?"))
+        {
+            try
+            {
+                var success = await Api.DeleteWebHostFileAsync(file.Path);
+                if (success)
+                {
+                    toast.ShowSuccess($"File {file.Path} deleted successfully.");
+                    await LoadFiles();
+                }
+                else
+                {
+                    toast.ShowError($"Failed to delete file {file.Path}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                toast.ShowError($"Error deleting file {file.Path}.", ex.Message);
+            }
+        }
+    }
+
+    private string FormatFileSize(int bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+}

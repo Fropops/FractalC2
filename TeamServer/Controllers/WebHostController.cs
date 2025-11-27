@@ -83,13 +83,13 @@ namespace TeamServer.Controllers
             }
         }
 
-        [HttpPost("Remove")]
-        public IActionResult Remove([FromBody] FileWebHost wb)
+        [HttpDelete()]
+        public IActionResult Remove([FromQuery] string path)
         {
             try
             {
-                this._webHostService.Remove(wb.Path);
-                this._auditService.Record(this.UserContext, $"Web hosted {wb.Path} removed.");
+                this._webHostService.Remove(path);
+                this._auditService.Record(this.UserContext, $"Web hosted {path} removed.");
                 return Ok();
             }
             catch (Exception ex)
