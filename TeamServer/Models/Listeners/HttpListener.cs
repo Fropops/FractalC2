@@ -25,7 +25,7 @@ namespace TeamServer.Models
             Secured = secured;
         }
 
-        public HttpListener(string id, string name, int bindPort, string ip, bool secured = true) : base(name, bindPort, ip)
+        public HttpListener(string id, string name, int bindPort, string ip, bool secured = true) : base(id, name, bindPort, ip)
         {
             Secured = secured;
         }
@@ -102,6 +102,7 @@ namespace TeamServer.Models
             services.AddSingleton(this._serverService);
             services.AddSingleton(this._rportfwdService);
             services.AddSingleton(this._downloadFileService);
+            services.AddSingleton(this._implantService);
         }
 
         private void ConfigureApp(IApplicationBuilder app)

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Common;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,6 +35,7 @@ namespace TeamServer.Models
         protected IReversePortForwardService _rportfwdService;
         protected IDatabaseService _dbService;
         protected IDownloadFileService _downloadFileService;
+        protected IImplantService _implantService;
 
         public Listener(string name, int bindPort, string Ip)
         {
@@ -41,7 +43,7 @@ namespace TeamServer.Models
             this.Ip = Ip;
             this.BindPort = bindPort;
 
-            this.Id = Guid.NewGuid().ToString();
+            this.Id = ShortGuid.NewGuid();
         }
 
         public Listener(string id, string name, int bindPort, string Ip)
@@ -63,7 +65,8 @@ namespace TeamServer.Models
             IServerService serverService,
             IReversePortForwardService pfwdService,
             IDatabaseService dbService,
-            IDownloadFileService downloadFileService)
+            IDownloadFileService downloadFileService,
+            IImplantService implantService)
         {
             this._agentService = service;
             this._fileService = fileService;
@@ -79,6 +82,7 @@ namespace TeamServer.Models
             this._rportfwdService = pfwdService;
             this._dbService = dbService;
             this._downloadFileService = downloadFileService;
+            this._implantService = implantService;
         }
 
         public abstract Task Start();

@@ -32,6 +32,7 @@ namespace TeamServer.Services
         protected IReversePortForwardService _rportfwdService;
         protected IDatabaseService _dbService;
         protected IDownloadFileService _downloadFileService;
+        protected IImplantService _implantService;
         public ListenerService(IAgentService service,
             ITaskResultService resultService,
             IFileService fileService, 
@@ -44,7 +45,8 @@ namespace TeamServer.Services
             IServerService serverService,
             IReversePortForwardService pfwdService,
             IDatabaseService dbService,
-            IDownloadFileService downloadFileService)
+            IDownloadFileService downloadFileService,
+            IImplantService implantService)
         {
             this._agentService = service;
             this._fileService = fileService;
@@ -58,14 +60,15 @@ namespace TeamServer.Services
             this._serverService = serverService;
             this._rportfwdService = pfwdService;
             this._dbService = dbService;
-            this._downloadFileService=downloadFileService;   
+            this._downloadFileService=downloadFileService; 
+            this._implantService = implantService;
         }
 
         private readonly List<Listener> _listeners = new List<Listener>();
 
         public void AddListener(Listener listener)
         {
-            listener.Init(_agentService, _resultService, _fileService, _binMakerService, this, _changeTrackingService, _webHostService, _cryptoService, _auditService, _frameService, _serverService, _rportfwdService, _dbService, _downloadFileService);
+            listener.Init(_agentService, _resultService, _fileService, _binMakerService, this, _changeTrackingService, _webHostService, _cryptoService, _auditService, _frameService, _serverService, _rportfwdService, _dbService, _downloadFileService, _implantService);
             _listeners.Add(listener);
             if (listener is HttpListener httpListener)
             {
@@ -90,7 +93,7 @@ namespace TeamServer.Services
             {
                 HttpListener listener = dbHttpListener;
                 this._listeners.Add(listener);
-                listener.Init(_agentService, _resultService, _fileService, _binMakerService, this, _changeTrackingService, _webHostService, _cryptoService, _auditService, _frameService, _serverService, _rportfwdService, _dbService, _downloadFileService);
+                listener.Init(_agentService, _resultService, _fileService, _binMakerService, this, _changeTrackingService, _webHostService, _cryptoService, _auditService, _frameService, _serverService, _rportfwdService, _dbService, _downloadFileService, _implantService);
                 await listener.Start();
             }
         }

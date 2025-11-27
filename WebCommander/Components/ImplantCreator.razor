@@ -5,7 +5,7 @@
 
 <div class="card">
     <div class="card-header">
-        <h5 class="mb-0">Create New Implant</h5>
+        <h5 class="mb-0">Implant Configuration</h5>
     </div>
     <div class="card-body">
         <EditForm Model="@config" OnValidSubmit="HandleValidSubmit">
@@ -16,11 +16,12 @@
             <div class="mb-3">
                 <label for="listener" class="form-label">Listener</label>
                 <select id="listener" class="form-select" @onchange="OnListenerChanged">
-                    <option value="custom">Custom Endpoint</option>
                     @foreach (var listener in listeners)
                     {
                         <option value="@listener.Id">@listener.Name (@listener.Ip:@listener.BindPort)</option>
                     }
+                    <option disabled>──────────</option>
+                    <option value="custom">Custom Endpoint</option>
                 </select>
             </div>
 

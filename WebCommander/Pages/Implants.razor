@@ -2,6 +2,7 @@
 @using WebCommander.Models
 @using WebCommander.Services
 @using WebCommander.Components
+@using WebCommander.Helpers
 @inject AgentService AgentService
 @inject TeamServerClient Api
 @inject IJSRuntime JSRuntime
@@ -44,6 +45,9 @@ else
                     <td>@implant.Config?.Endpoint?.ToString()</td>
                     <td>@(implant.Config?.Listener ?? "Custom")</td>
                     <td>
+                        <button class="btn btn-sm btn-info me-1" @onclick="() => ShowScripts(implant)">
+                            <i class="bi bi-file-code"></i> Scripts
+                        </button>
                         <button class="btn btn-sm btn-primary me-1" @onclick="() => DownloadImplant(implant)">
                             <i class="bi bi-download"></i> Download
                         </button>
@@ -75,11 +79,92 @@ else
     </div>
 }
 
+<!-- Scripts Modal -->
+@if (showScriptsModal && selectedImplant != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Deployment Scripts - @selectedImplant.Config?.ImplantName</h5>
+                    <button type="button" class="btn-close" @onclick="HideScriptsModal"></button>
+                </div>
+                <div class="modal-body">
+                    @{
+                        var listeners = AgentService.GetListeners();
+                        // Filter by listener if one is specified in the implant config
+                        if (!string.IsNullOrEmpty(selectedImplant.Config?.Listener))
+                        {
+                            listeners = listeners.Where(l => l.Name == selectedImplant.Config.Listener).ToList();
+                        }
+                    }
+                    @foreach (var listener in listeners)
+                    {
+                        var protocol = listener.Secured ? "https://" : "http://";
+                        var listenerUrl = $"{protocol}{listener.Ip}:{listener.BindPort}";
+                        var isSecured = listener.Secured;
+                        var implantUrl = $"{listenerUrl}/imp/{selectedImplant.Config?.ImplantName}{GetFileExtension(selectedImplant.Config?.Type ?? ImplantType.Executable)}";
+                        var fileName = $"{selectedImplant.Config?.ImplantName}{GetFileExtension(selectedImplant.Config?.Type ?? ImplantType.Executable)}";
+
+                        <div class="mb-4">
+                            <h6 class="text-primary">Listener: @listener.Name (@listenerUrl)</h6>
+                            
+                            @if (selectedImplant.Config?.Type == ImplantType.PowerShell)
+                            {
+                                <!-- PowerShell Script -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">PowerShell Script (Clear)</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control font-monospace" readonly value="@ScriptHelper.GeneratePowershellScript(implantUrl, isSecured)" />
+                                        <button class="btn btn-outline-secondary" @onclick="() => CopyToClipboard(ScriptHelper.GeneratePowershellScript(implantUrl, isSecured))">
+                                            <i class="bi bi-clipboard"></i> Copy
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- PowerShell Script Base64 -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">PowerShell Script (Base64)</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control font-monospace" readonly value="@ScriptHelper.GeneratePowershellScriptB64(implantUrl, isSecured)" />
+                                        <button class="btn btn-outline-secondary" @onclick="() => CopyToClipboard(ScriptHelper.GeneratePowershellScriptB64(implantUrl, isSecured))">
+                                            <i class="bi bi-clipboard"></i> Copy
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <!-- PowerShell Download Script -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">PowerShell Download Script</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control font-monospace" readonly value="@ScriptHelper.GeneratePowershellDownloadScript(implantUrl, fileName, isSecured)" />
+                                        <button class="btn btn-outline-secondary" @onclick="() => CopyToClipboard(ScriptHelper.GeneratePowershellDownloadScript(implantUrl, fileName, isSecured))">
+                                            <i class="bi bi-clipboard"></i> Copy
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                            <hr />
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideScriptsModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 <ActionToast @ref="toast" />
 
 @code {
     private List<Implant> implants = new();
     private bool showCreateModal = false;
+    private bool showScriptsModal = false;
+    private Implant? selectedImplant = null;
     private ActionToast toast;
 
     protected override void OnInitialized()
@@ -186,6 +271,31 @@ else
         else
         {
             toast.ShowError(result.message, result.details.Replace("\\r\\n", "\n").Replace("\\n", "\n"));
+        }
+    }
+
+    private void ShowScripts(Implant implant)
+    {
+        selectedImplant = implant;
+        showScriptsModal = true;
+    }
+
+    private void HideScriptsModal()
+    {
+        showScriptsModal = false;
+        selectedImplant = null;
+    }
+
+    private async Task CopyToClipboard(string text)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            toast.ShowSuccess("Script copied to clipboard!");
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError("Failed to copy to clipboard", ex.Message);
         }
     }
 

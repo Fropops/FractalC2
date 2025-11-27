@@ -17,6 +17,7 @@ namespace TeamServer.Services
         void AddImplant(Implant implant);
         IEnumerable<Implant> GetImplants();
         Implant GetImplant(string id);
+        Implant GetImplantbyName(string name);
         void RemoveImplant(Implant implant);
     }
     public class ImplantService : IImplantService
@@ -33,6 +34,12 @@ namespace TeamServer.Services
 
         public void AddImplant(Implant implant)
         {
+            if (string.IsNullOrEmpty(implant.Name))
+                implant.Name = implant.Config.ImplantName;
+
+            if (string.IsNullOrEmpty(implant.Listener) && !string.IsNullOrEmpty(implant.Config.Listener))
+                implant.Listener = implant.Config.Listener;
+
             if (!_implants.ContainsKey(implant.Id))
                 _implants.Add(implant.Id, implant);
             else
@@ -50,6 +57,17 @@ namespace TeamServer.Services
             if (!_implants.ContainsKey(id))
                 return null;
             return _implants[id];
+        }
+
+        public Implant GetImplantbyName(string name)
+        {
+            foreach (var implant in this._implants.Values)
+            {
+                if(string.IsNullOrEmpty(implant.Name)) continue;
+                if (implant.Name.ToLower() == name.ToLower())
+                    return implant;
+            }
+            return null;
         }
 
         public IEnumerable<Implant> GetImplants()
