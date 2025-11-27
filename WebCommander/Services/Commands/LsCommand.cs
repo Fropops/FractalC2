@@ -12,36 +12,16 @@ namespace WebCommander.Services.Commands
         public override CommandId Id => CommandId.Ls;
         public override string[] Aliases => new[] { "dir" };
 
-        private Option<string> _pathArg;
+        private Argument<string> _pathArg;
 
-        public override Command CreateCommand()
+        protected override void AddCommandParameters(RootCommand command)
         {
-            var command = new Command(Name, Description);
-            // command.AddAlias("dir"); // AddAlias issue in beta
-            _pathArg = new Option<string>("path") { Description = "Path to list" };
-            // Default value handled manually in service
-            command.Add(_pathArg);
-            return command;
+            command.Arguments.Add(new Argument<string>(ParameterId.Path.ToString()) { Arity = ArgumentArity.ZeroOrOne });
         }
 
-        public override async Task<(string message, string? taskId)> ExecuteAsync(ParseResult result, TeamServerClient client, string agentId)
+        public override async Task FillParametersAsync(ParseResult parseResult, ParameterDictionary parms)
         {
-            var parms = new ParameterDictionary();
-            var path = result.GetValue(_pathArg);
-            if (!string.IsNullOrEmpty(path))
-            {
-                parms.AddParameter(ParameterId.Path, path);
-            }
-            
-            try
-            {
-                var taskId = await client.TaskAgent(Name, agentId, Id, parms);
-                return ($"{Name} task sent.", taskId);
-            }
-            catch (Exception ex)
-            {
-                return ($"[Error] Failed to send task: {ex.Message}", null);
-            }
+            parms.AddParameter(ParameterId.Path, parseResult.GetValue<string>(ParameterId.Path.ToString()));
         }
     }
 }

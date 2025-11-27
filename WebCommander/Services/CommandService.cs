@@ -13,13 +13,11 @@ namespace WebCommander.Services
     public class CommandService
     {
         private readonly TeamServerClient _client;
-        private readonly RootCommand _rootCommand;
-        private readonly Dictionary<Command, CommandBase> _commandMap = new();
+        private readonly Dictionary<string, Type> _commandMap = new();
 
         public CommandService(TeamServerClient client)
         {
             _client = client;
-            _rootCommand = new RootCommand("TeamServer Agent Terminal");
             InitializeCommands();
         }
 
@@ -31,46 +29,67 @@ namespace WebCommander.Services
 
             foreach (var type in commandTypes)
             {
-                if (Activator.CreateInstance(type) is CommandBase commandBase)
+                var commandBase = CreateCommand(type);
+                if (commandBase != null)
                 {
-                    var command = commandBase.CreateCommand();
-                    _rootCommand.Add(command);
-                    _commandMap[command] = commandBase;
+                    _commandMap[commandBase.Name] = type;
+                    foreach (var alias in commandBase.Aliases)
+                    {
+                        _commandMap[alias] = type;
+                    }
                 }
             }
         }
 
-        public async Task<(string message, string? taskId)> ParseAndSendAsync(string rawInput, string agentId)
+        public CommandBase GetCommand(string cmdName, string agentId = null)
+        {
+            if (_commandMap.TryGetValue(cmdName, out var commandType))
+            {
+                return CreateCommand(commandType, agentId);
+            }
+            return null;
+        }
+
+        public CommandBase CreateCommand(Type type, string agentId = null)
+        {
+            if (Activator.CreateInstance(type) is CommandBase commandBase)
+            {
+                commandBase.Initialize(_client, agentId);
+                return commandBase;
+            }
+            return null;
+        }
+
+        public async Task<(string? message, string? error, string? taskId)> ParseAndSendAsync(string rawInput, string agentId)
         {
             if (string.IsNullOrWhiteSpace(rawInput))
-                return (string.Empty, null);
+                return (null, null, null);
 
-            var result = _rootCommand.Parse(rawInput);
+            //juste pour récupérer le nom de la commande qui nous intéresse
+            var parseResult = new RootCommand().Parse(rawInput);
+            string cmdName = parseResult.Tokens.FirstOrDefault().Value;
 
-            // Handle Help or Errors
-            if (result.Errors.Count > 0 || result.Tokens.Any(t => t.Value == "-h" || t.Value == "--help" || t.Value == "/?"))
+            Console.WriteLine($"Command: {cmdName}");
+            var commandBase = GetCommand(cmdName, agentId);
+            if (commandBase != null)
             {
-                 var cmd = result.CommandResult.Command;
-                 var errorMsg = result.Errors.Count > 0 ? "Invalid parameters.\n" : "";
-                 return ($"{errorMsg}Command: {cmd.Name}\nDescription: {cmd.Description}\nUsage: {cmd.Name} [arguments]", null);
+                Console.WriteLine($"Command: {cmdName} found");
+                parseResult = commandBase.Parse(rawInput);
+                // Handle Help or Errors
+                if (parseResult.Errors.Count > 0 || parseResult.Tokens.Any(t => t.Value == "-h" || t.Value == "--help" || t.Value == "/?"))
+                {
+                    var cmd = parseResult.CommandResult.Command;
+                    var errorMsg = parseResult.Errors.Count > 0 ? $"{string.Join(", ", parseResult.Errors.Select(e => e.Message))}\n" : "";
+                    return ($"{commandBase.GetUsage()}",errorMsg, null);
+                }
+
+                await parseResult.InvokeAsync();
+                var cmdResult = commandBase.Result;
+                Console.WriteLine($"Command: {cmdName} executed");
+                return (cmdResult.Message, cmdResult.Error, cmdResult.TaskId);
             }
 
-            var commandResult = result.CommandResult;
-            var command = commandResult.Command;
-
-            if (_commandMap.TryGetValue(command, out var commandBase))
-            {
-                if (commandBase is EndPointCommand endPointCommand)
-                {
-                    return await endPointCommand.ExecuteAsync(result, _client, agentId);
-                }
-                else if (commandBase is ExecuteCommand)
-                {
-                    return ("ExecuteCommand not implemented yet.", null);
-                }
-            }
-
-            return ($"[Error] Unknown command or not implemented.", null);
+            return (null, $"[Error] Unknown command or not implemented.", null);
         }
     }
 }

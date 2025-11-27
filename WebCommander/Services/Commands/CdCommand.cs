@@ -5,7 +5,7 @@ using WebCommander.Models;
 
 namespace WebCommander.Services.Commands
 {
-    public class CdCommand : EndPointCommand
+    /*public class CdCommand : EndPointCommand
     {
         public override string Name => "cd";
         public override string Description => "Change directory";
@@ -13,11 +13,14 @@ namespace WebCommander.Services.Commands
 
         private Argument<string> _pathArg;
 
-        public override Command CreateCommand()
+        public override RootCommand CreateCommand()
         {
-            var command = new Command(Name, Description);
+            var command = base.CreateCommand();
             _pathArg = new Argument<string>("path") { Description = "Path to change to" };
             command.Add(_pathArg);
+
+           
+
             return command;
         }
 
@@ -40,5 +43,5 @@ namespace WebCommander.Services.Commands
                 return ($"[Error] Failed to send task: {ex.Message}", null);
             }
         }
-    }
+    }*/
 }

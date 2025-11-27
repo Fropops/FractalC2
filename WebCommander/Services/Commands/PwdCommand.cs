@@ -5,15 +5,15 @@ using WebCommander.Models;
 
 namespace WebCommander.Services.Commands
 {
-    public class PwdCommand : EndPointCommand
+    /*public class PwdCommand : EndPointCommand
     {
         public override string Name => "pwd";
         public override string Description => "Print working directory";
         public override CommandId Id => CommandId.Pwd;
 
-        public override Command CreateCommand()
+        public override Command CreateCommand(string alias = null)
         {
-            return new Command(Name, Description);
+            return new Command(alias ?? Name, Description);
         }
 
         public override async Task<(string message, string? taskId)> ExecuteAsync(ParseResult result, TeamServerClient client, string agentId)
@@ -30,5 +30,5 @@ namespace WebCommander.Services.Commands
                 return ($"[Error] Failed to send task: {ex.Message}", null);
             }
         }
-    }
+    }*/
 }
