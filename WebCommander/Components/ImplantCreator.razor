@@ -144,13 +144,23 @@
     protected override void OnInitialized()
     {
         listeners = AgentService.GetListeners();
+        if (listeners.Any())
+        {
+            selectedListenerId = listeners.First().Id;
+            isCustomEndpoint = false;
+            UpdateEndpointFromListener();
+        }
     }
 
     private void OnListenerChanged(ChangeEventArgs e)
     {
         selectedListenerId = e.Value?.ToString() ?? "custom";
         isCustomEndpoint = selectedListenerId == "custom";
+        UpdateEndpointFromListener();
+    }
 
+    private void UpdateEndpointFromListener()
+    {
         if (!isCustomEndpoint)
         {
             var listener = listeners.FirstOrDefault(l => l.Id == selectedListenerId);
