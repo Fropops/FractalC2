@@ -34,6 +34,7 @@ namespace EntryPoint
 
 #if DEBUG
             Console.WriteLine("Decrypting.");
+            Console.WriteLine($"Key = {Starter.Properties.Resources.Key}");
 #endif
             asm = Decrypt(Encoding.UTF8.GetString(Starter.Properties.Resources.Payload), Starter.Properties.Resources.Key);
 #if DEBUG

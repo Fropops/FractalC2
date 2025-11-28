@@ -39,8 +39,9 @@ namespace TeamServer.Controllers
         private readonly IImplantService _implantService;
         private readonly IChangeTrackingService _changeTrackingService;
         private readonly IConfiguration _config;
+        private readonly ICryptoService _cryptoService;
 
-        public ImplantsController(IAgentService agentService, IFileService fileService, ISocksService socksService, IChangeTrackingService changeService, IAuditService auditService, ITaskResultService agentTaskResultService, IFrameService frameService, ITaskService taskService, IImplantService implantService, IChangeTrackingService changeTrackingService, IConfiguration config)
+        public ImplantsController(IAgentService agentService, IFileService fileService, ISocksService socksService, IChangeTrackingService changeService, IAuditService auditService, ITaskResultService agentTaskResultService, IFrameService frameService, ITaskService taskService, IImplantService implantService, IChangeTrackingService changeTrackingService, IConfiguration config, ICryptoService cryptoService)
         {
             this._fileService = fileService;
             this._socksService = socksService;
@@ -52,6 +53,7 @@ namespace TeamServer.Controllers
             this._implantService = implantService;
             this._changeTrackingService = changeTrackingService;
             this._config = config;
+            this._cryptoService = cryptoService;
         }
 
         [HttpGet]
@@ -97,6 +99,7 @@ namespace TeamServer.Controllers
             string val = Encoding.UTF8.GetString(body.ReadStream().Result);
             var config = JsonConvert.DeserializeObject<ImplantConfig>(val);
             config.ImplantName = Payload.GenerateName();
+            config.ServerKey = _cryptoService.ServerKey;
             string logs = string.Empty;
             try
             {
@@ -118,12 +121,9 @@ namespace TeamServer.Controllers
 
         private (string, Implant) GenerateImplant(ImplantConfig config)
         {
-            SpawnConfig spawnConfig = new SpawnConfig();
-            spawnConfig.FromSection(this._config.GetSection("Spawn"));
-            PayloadConfig payloadConfig = new PayloadConfig();
-            payloadConfig.FromSection(this._config.GetSection("Payload"));
-            string logs = string.Empty;
-            var generator = new PayloadGenerator(payloadConfig, spawnConfig);
+             string logs = string.Empty;
+
+            var generator = new PayloadGenerator(this._config.FoldersConfigs(), this._config.SpawnConfigs());
             generator.MessageSent += (sender, message) =>
             {
                 logs += message.ToString() + Environment.NewLine;

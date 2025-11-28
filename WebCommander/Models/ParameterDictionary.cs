@@ -44,7 +44,6 @@ namespace WebCommander.Models
 
         public void AddParameter<T>(ParameterId id, T item)
         {
-            Console.WriteLine($"Into AddParameter<T> {id}");
             if(item == null)
                 return;
             if(item is string && string.IsNullOrEmpty(item as string))
@@ -54,7 +53,6 @@ namespace WebCommander.Models
 
         public void AddParameter(ParameterId id, byte[] item)
         {
-            Console.WriteLine($"Into AddParameter {id}");
             if(item == null)
                 return;
             this.Add(id, item);

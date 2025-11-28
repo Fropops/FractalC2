@@ -10,7 +10,7 @@ namespace Common.Payload
     {
         public ExecuteResult ReplaceRessource(string scriptPath, string sourceExePath, string resourcePath, string destExePath)
         {
-            var cmd = this.Config.PythonFolder + "/bin/python";
+            var cmd = Path.Combine(this.FoldersConfig.PythonFolder,"python");
 
             List<string> args = new List<string>();
             args.Add(scriptPath);
@@ -18,7 +18,7 @@ namespace Common.Payload
             args.Add(resourcePath);
             args.Add(destExePath);
 
-            var ret = ExecuteCommand(cmd, args, this.Config.WorkingFolder);
+            var ret = ExecuteCommand(cmd, args, this.FoldersConfig.WorkingFolder);
             return ret;
         }
     }

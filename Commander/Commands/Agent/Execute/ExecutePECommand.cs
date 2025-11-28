@@ -45,8 +45,8 @@ namespace Commander.Commands.Agent.Execute
             else
                 context.Terminal.WriteLine($"Generating payload with params {prms}...");
 
-            var generator = new PayloadGenerator(context.Config.PayloadConfig, context.Config.SpawnConfig);
-            string binFileName = Path.Combine(context.Config.PayloadConfig.WorkingFolder, ShortGuid.NewGuid() + ".bin");
+            var generator = new PayloadGenerator(context.Config.FoldersConfig, context.Config.SpawnConfig);
+            string binFileName = Path.Combine(context.Config.FoldersConfig.WorkingFolder, ShortGuid.NewGuid() + ".bin");
             var result = generator.GenerateBin(exePath, binFileName, agent.Metadata.Architecture == "x86", prms);
 
             if (result.Result != 0 || !File.Exists(binFileName))

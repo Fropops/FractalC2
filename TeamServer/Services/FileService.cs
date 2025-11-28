@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using TeamServer.Helper;
 using TeamServer.Models;
 using TeamServer.Models.File;
 
@@ -49,7 +50,7 @@ namespace TeamServer.Services
 
         public string GetFullPath(string fileName)
         {
-            var root = PathHelper.GetAbsolutePath(_configuration.GetValue<string>("FilesFolder"));
+            var root = PathHelper.GetAbsolutePath(_configuration.FoldersConfigs().FilesFolder);
 
             var actualPath = Path.Combine(root, fileName.Replace("..", string.Empty));
             if (!actualPath.StartsWith(root))

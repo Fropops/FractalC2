@@ -56,7 +56,7 @@ namespace Common.Payload
         {
             string cargoPath = @$"/home/{Environment.UserName}/.cargo/bin";
             this.MessageSent?.Invoke(this, $"[>] Executing: "+ Path.Combine(cargoPath, "cargo"));
-            return ExecuteCommand(Path.Combine(cargoPath, "cargo"), parameters, this.Config.IncRustFolder);
+            return ExecuteCommand(Path.Combine(cargoPath, "cargo"), parameters, this.FoldersConfig.IncRustFolder);
         }
 
     }

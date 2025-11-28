@@ -64,7 +64,7 @@ namespace Common.Payload
 
         public ExecuteResult GenerateBin(string inputPath, string outFile, bool x86, string dotNetParams = null)
         {
-            var cmd = this.Config.DonutFolder + "/donut";
+            var cmd = this.FoldersConfig.DonutFolder + "/donut";
 
            
             List<string> args = new List<string>();
@@ -88,7 +88,7 @@ namespace Common.Payload
             //Console.WriteLine(String.Join(' ', args));
 
             //string args = $"'{inputFile}' -f 1 -a 2 -o '{outFile}' -p '{listener.Ip}:{listener.BindPort}'";
-            var ret = ExecuteCommand(cmd, args, this.Config.WorkingFolder);
+            var ret = ExecuteCommand(cmd, args, this.FoldersConfig.WorkingFolder);
             return ret;
         }
     }

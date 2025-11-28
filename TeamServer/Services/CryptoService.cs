@@ -2,12 +2,15 @@ using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using System.Linq;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace TeamServer.Services;
 
 public interface ICryptoService
 {
     byte[] Key { get; }
+
+    string ServerKey { get; }
     bool EncryptFrames { get; }
     byte[] Encrypt(byte[] data);
     byte[] Decrypt(byte[] data);
@@ -18,12 +21,15 @@ public class CryptoService : ICryptoService
     private readonly IConfiguration _configService;
     public byte[] Key { get; private set; }
 
+    public string ServerKey { get; private set; }
+
     public bool EncryptFrames { get; private set; }
     public CryptoService(IConfiguration configService)
     {
         _configService = configService;
         
         Key = Convert.FromBase64String(configService.GetValue<string>("ServerKey"));
+        ServerKey = configService.GetValue<string>("ServerKey");
         var enc = configService.GetValue<bool?>("EncryptFrames");
         EncryptFrames = !enc.HasValue || enc.Value;
     }

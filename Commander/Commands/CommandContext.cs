@@ -102,16 +102,11 @@ namespace Commander.Commands
 
         internal static byte[] GeneratePayloadAndDisplay(this CommandContext context, ImplantConfig options, bool verbose = false)
         {
-            if (options.IsDebug)
-            {
-                options.DebugPath = Path.Combine(context.Config.PayloadConfig.WorkingFolder, "agent-debug");
-                if(!Directory.Exists(options.DebugPath)) Directory.CreateDirectory(options.DebugPath);
-            }
             byte[] pay = null;
             AnsiConsole.Status()
                     .Start($"[olive]Generating Payload {options.Type} for Endpoint {options.Endpoint} (arch = {options.Architecture}).[/]", ctx =>
                     {
-                        var generator = new PayloadGenerator(context.Config.PayloadConfig, context.Config.SpawnConfig);
+                        var generator = new PayloadGenerator(context.Config.FoldersConfig, context.Config.SpawnConfig);
                         generator.MessageSent += (object sender, string msg) => { if (verbose) context.Terminal.WriteLine(msg); };
                         options.ImplantName = Payload.GenerateName();
                         pay = generator.GenerateImplant(options);

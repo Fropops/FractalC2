@@ -44,11 +44,18 @@ namespace TeamServer
 
             services.AddCors(options =>
             {
+                //options.AddPolicy("AllowBlazor", builder =>
+                //{
+                //    builder.WithOrigins("http://localhost:5032") // Vérifiez bien que c'est le port de votre Blazor
+                //           .AllowAnyMethod()
+                //           .AllowAnyHeader();
+                //});
                 options.AddPolicy("AllowBlazor", builder =>
                 {
-                    builder.WithOrigins("http://localhost:5032") // Vérifiez bien que c'est le port de votre Blazor
-                           .AllowAnyMethod()
-                           .AllowAnyHeader();
+                    builder
+                        .AllowAnyOrigin()   // Autorise toutes les IP / domaines
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
                 });
             });
 

@@ -297,7 +297,7 @@ namespace Commander.Commands
                     break;
             }
 
-            string outPath = Path.Combine(context.Config.PayloadConfig.ImplantsFolder, outFile);
+            string outPath = Path.Combine(context.Config.FoldersConfig.ImplantsFolder, outFile);
             if (!string.IsNullOrEmpty(context.Options.path))
                 outPath = Path.Combine(context.Options.path, outFile);
 

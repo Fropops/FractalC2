@@ -16,7 +16,6 @@ namespace Common.Payload
         public ImplantArchitecture Architecture { get; set; } = ImplantArchitecture.x64;
         public string ServerKey { get; set; }
         public bool IsDebug { get; set; }
-        public string DebugPath { get; set; }
         public bool IsVerbose { get; set; }
 
         public string ImplantName { get; set; }

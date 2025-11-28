@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Common;
 using Microsoft.Extensions.Configuration;
 using TeamServer.Helper;
 
@@ -60,7 +61,8 @@ public class AuditService : IAuditService
     {
         _configService = configService;
 
-        Folder = configService.GetValue<string>("AuditFolder");
+        var root = PathHelper.GetAbsolutePath(Folder = configService.FoldersConfigs().AuditFolder);
+
         if(!Directory.Exists(Folder))
             Directory.CreateDirectory(Folder);
     }
