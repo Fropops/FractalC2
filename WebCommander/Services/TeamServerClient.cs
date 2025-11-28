@@ -7,20 +7,56 @@ namespace WebCommander.Services
     public class TeamServerClient
     {
         private readonly HttpClient _client;
+        private readonly AuthService _authService;
+        private bool _isConfigured = false;
 
-        public TeamServerClient(HttpClient client)
+        public TeamServerClient(HttpClient client, AuthService authService)
         {
             _client = client;
+            _authService = authService;
+        }
+
+        private async Task EnsureConfiguredAsync()
+        {
+            if (_isConfigured)
+                return;
+
+            var auth = await _authService.GetAuthConfigAsync();
+            if (auth == null || string.IsNullOrWhiteSpace(auth.ServerUrl))
+            {
+                throw new InvalidOperationException("Not authenticated. Please configure authentication first.");
+            }
+
+            _client.BaseAddress = new Uri(auth.ServerUrl);
+            var token = await _authService.GenerateTokenAsync();
+            _client.DefaultRequestHeaders.Remove("Authorization");
+            _client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", $"Bearer {token}");
+            _isConfigured = true;
+        }
+
+        public async Task ReconfigureAsync()
+        {
+            _isConfigured = false;
+            await EnsureConfiguredAsync();
+        }
+
+        public async Task ValidateAuthAsync()
+        {
+            await EnsureConfiguredAsync();
+            var response = await _client.GetAsync("/Auth");
+            response.EnsureSuccessStatusCode();
         }
 
         public async Task<List<Agent>> GetAgentsAsync()
         {
+            await EnsureConfiguredAsync();
             var result = await _client.GetFromJsonAsync<List<Agent>>("/Agents");
             return result ?? new List<Agent>();
         }
 
         public async Task<List<Listener>> GetListenersAsync()
         {
+            await EnsureConfiguredAsync();
             var result = await _client.GetFromJsonAsync<List<Listener>>("/Listeners");
             return result ?? new List<Listener>();
         }
@@ -72,6 +108,7 @@ namespace WebCommander.Services
 
         public async Task<List<Change>> GetChangesAsync(bool history)
         {
+            await EnsureConfiguredAsync();
             var result = await _client.GetFromJsonAsync<List<Change>>($"/session/Changes?history={history}");
             return result ?? new List<Change>();
         }

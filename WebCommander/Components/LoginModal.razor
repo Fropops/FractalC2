@@ -1,0 +1,140 @@
+@using WebCommander.Models
+@using WebCommander.Services
+@inject AuthService AuthService
+@inject TeamServerClient TeamServerClient
+@inject AgentService AgentService
+
+<div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 10050;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <img src="icon-192.png" alt="Fractal C2" style="height: 32px; width: 32px; margin-right: 8px;" />
+                    Fractal C2 - Authentication
+                </h5>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@authConfig" OnValidSubmit="HandleLogin">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="mb-3">
+                        <label for="serverUrl" class="form-label">TeamServer URL</label>
+                        <input type="text" id="serverUrl" class="form-control" @bind="authConfig.ServerUrl" placeholder="http://localhost:5000" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" id="username" class="form-control" @bind="authConfig.Username" placeholder="Enter username" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="apiKey" class="form-label">API Key</label>
+                        <input type="password" id="apiKey" class="form-control" @bind="authConfig.ApiKey" placeholder="Enter API key" required />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            @errorMessage
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-end gap-2">
+                        @if (AllowCancel)
+                        {
+                            <button type="button" class="btn btn-secondary" @onclick="OnCancelClicked">Cancel</button>
+                        }
+                        <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            Connect
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnLoginSuccess { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public bool AllowCancel { get; set; } = false;
+
+    private AuthConfig authConfig = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Try to load existing auth config
+        var existing = await AuthService.GetAuthConfigAsync();
+        if (existing != null)
+        {
+            authConfig = existing;
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            // Save auth config
+            await AuthService.SaveAuthConfigAsync(authConfig);
+
+            // Reconfigure client (sets headers)
+            await TeamServerClient.ReconfigureAsync();
+
+            // Validate connection with server
+            await AuthService.ValidateConnectionAsync(TeamServerClient);
+
+            // Initialize data (fetches initial state)
+            await AgentService.InitializeDataAsync();
+
+            // Start polling
+            AgentService.StartPolling();
+
+            // Notify success
+            await OnLoginSuccess.InvokeAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode != null && ((int)ex.StatusCode >= 400 && (int)ex.StatusCode < 500))
+            {
+                errorMessage = "Invalid username or API key.";
+            }
+            else
+            {
+                errorMessage = "Server is inaccessible.";
+            }
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+             // Handle JWT key size error (IDX10653)
+             errorMessage = "Invalid username or API key.";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to connect: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnCancelClicked()
+    {
+        await OnCancel.InvokeAsync();
+    }
+}

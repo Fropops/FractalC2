@@ -1,8 +1,9 @@
 @using WebCommander.Services
 @inject AgentService AgentService
+@inject AuthService AuthService
 @implements IDisposable
 
-@if (isLoading)
+@if (isLoading && isAuthenticated)
 {
     <div class="loading-overlay">
         <div class="loading-content">
@@ -49,11 +50,13 @@
 </style>
 
 @code {
-    private bool isLoading = true;
+    private bool isLoading = false;
     private int progress = 0;
+    private bool isAuthenticated = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        isAuthenticated = await AuthService.IsAuthenticatedAsync();
         isLoading = AgentService.IsInitialLoading;
         progress = AgentService.LoadingProgress;
         AgentService.OnLoadingStateChanged += OnLoadingStateChanged;

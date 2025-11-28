@@ -1,12 +1,38 @@
 ﻿@inherits LayoutComponentBase
+@using WebCommander.Services
+@inject AuthService AuthService
+@inject TeamServerClient TeamServerClient
+@inject AgentService AgentService
+@implements IAsyncDisposable
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://github.com/Fropops/FractalC2" target="_blank">About</a>
+        <div class="top-row px-4 d-flex align-items-center gap-3">
+            @if (isAuthenticated)
+            {
+                <div class="position-relative">
+                    <div class="d-flex align-items-center cursor-pointer user-select-none" @onclick="ToggleUserMenu" role="button">
+                        <i class="bi bi-person-circle fs-5 me-2"></i>
+                        <span class="fw-bold">@username</span>
+                    </div>
+                    @if (showUserMenu)
+                    {
+                        <div class="position-absolute end-0 mt-2 bg-white rounded shadow-sm border p-1" style="z-index: 1000; min-width: 150px;">
+                            <button class="btn btn-link text-decoration-none text-danger w-100 text-start px-3 py-2 d-flex align-items-center" @onclick="Disconnect">
+                                <i class="bi bi-box-arrow-right me-2"></i>
+                                Disconnect
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+            <a href="https://github.com/Fropops/FractalC2" target="_blank" class="text-decoration-none text-dark" title="About">
+                <i class="bi bi-info-circle fs-5"></i>
+            </a>
         </div>
 
         <article class="content px-4">
@@ -15,6 +41,81 @@
     </main>
 </div>
 
+@if (showLoginModal)
+{
+    <LoginModal OnLoginSuccess="OnLoginSuccess" AllowCancel="false" />
+}
+
 <ConnectionErrorOverlay />
 <NotificationToast />
 <LoadingIndicator />
+
+@code {
+    private bool showLoginModal = false;
+    private bool isAuthenticated = false;
+    private string username = string.Empty;
+    private bool showUserMenu = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check if user is authenticated locally
+        isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        Console.WriteLine("IsAuthenticated: " + isAuthenticated);
+        
+        if (isAuthenticated)
+        {
+            var auth = await AuthService.GetAuthConfigAsync();
+            username = auth?.Username ?? "User";
+
+            try
+            {
+                // Validate connection with server
+                await AuthService.ValidateConnectionAsync(TeamServerClient);
+                
+                // If valid, initialize data and start polling
+                await AgentService.InitializeDataAsync();
+                AgentService.StartPolling();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Startup validation failed: {ex.Message}");
+                showLoginModal = true;
+            }
+        }
+        else
+        {
+            showLoginModal = true;
+        }
+    }
+
+    private void ToggleUserMenu()
+    {
+        showUserMenu = !showUserMenu;
+    }
+
+    private async Task Disconnect()
+    {
+        showUserMenu = false;
+        AgentService.StopPolling();
+        AgentService.ClearCache();
+        await AuthService.ClearAuthConfigAsync();
+        isAuthenticated = false;
+        username = string.Empty;
+        showLoginModal = true;
+        StateHasChanged();
+    }
+
+    private async Task OnLoginSuccess()
+    {
+        showLoginModal = false;
+        isAuthenticated = true;
+        var auth = await AuthService.GetAuthConfigAsync();
+        username = auth?.Username ?? "User";
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Cleanup if needed
+    }
+}

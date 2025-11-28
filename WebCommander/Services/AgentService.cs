@@ -10,12 +10,13 @@ namespace WebCommander.Services
         private readonly Dictionary<string, Implant> _implants = new();
         private readonly Dictionary<string, AgentTaskResult> _taskResults = new();
         private readonly Dictionary<string, TeamServerAgentTask> _tasks = new();
-        private readonly System.Threading.Timer _timer;
+        private System.Threading.Timer? _timer;
         private bool _firstCall = true;
-        private bool _isInitialLoading = true;
+        private bool _isInitialLoading = false;
         private int _totalChanges = 0;
         private int _processedChanges = 0;
         private bool _hasConnectionError = false;
+        private bool _isPolling = false;
 
         public event Action? OnAgentsUpdated;
         public event Action? OnListenersUpdated;
@@ -26,20 +27,56 @@ namespace WebCommander.Services
         public event Action? OnTasksUpdated;
         public event Action? OnProgressUpdated;
         public event Action? OnConnectionStatusChanged;
+        public event Action? OnAuthorizationErrorChanged;
 
         public bool IsInitialLoading => _isInitialLoading;
         public int LoadingProgress => _totalChanges > 0 ? (_processedChanges * 100) / _totalChanges : 0;
         public bool HasConnectionError => _hasConnectionError;
+        public bool HasAuthorizationError { get; private set; } = false;
 
         public AgentService(TeamServerClient client)
         {
             _client = client;
+        }
+
+        public async Task InitializeDataAsync()
+        {
+            ClearCache();
+            _isInitialLoading = true;
+            OnLoadingStateChanged?.Invoke();
+
+            try
+            {
+                // Perform initial fetch
+                await PollForChanges();
+            }
+            finally
+            {
+                _isInitialLoading = false;
+                OnLoadingStateChanged?.Invoke();
+            }
+        }
+
+        public void StartPolling()
+        {
+            if (_isPolling) return;
             
-            // Start polling immediately and then every 2 seconds
+            _isPolling = true;
             _timer = new System.Threading.Timer(async _ =>
             {
-                await PollForChanges();
+                if (_isPolling)
+                {
+                    await PollForChanges();
+                }
             }, null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
+        }
+
+        public void StopPolling()
+        {
+            _isPolling = false;
+            _timer?.Change(Timeout.Infinite, Timeout.Infinite);
+            _timer?.Dispose();
+            _timer = null;
         }
 
         private async Task PollForChanges()
@@ -56,201 +93,212 @@ namespace WebCommander.Services
                     OnConnectionStatusChanged?.Invoke();
                 }
 
-                Console.WriteLine($"Received {changes.Count} changes.");
-
-            // Track progress during initial loading
-            if (_isInitialLoading)
-            {
-                _totalChanges = changes.Count;
-                _processedChanges = 0;
-                OnProgressUpdated?.Invoke();
-            }
-
-            bool agentsUpdated = false;
-            bool listenersUpdated = false;
-            bool implantsUpdated = false;
-            bool tasksUpdated = false;
-
-            foreach (var change in changes)
-            {
-                Console.WriteLine($"Processing change: {change.Type} for ID {change.Id}");
-                
-                if (change.Type == ChangingElement.Agent)
+                if (HasAuthorizationError)
                 {
-                    try
-                    {
-                        var agent = await _client.GetAgentAsync(change.Id);
-                        if (agent != null)
-                        {
-                            Console.WriteLine($"Updated agent {agent.Metadata?.ImplantId} ({agent.Id})");
-                            
-                            bool isNewAgent = !_agents.ContainsKey(agent.Id);
-                            
-                            // Fetch metadata if this is the first time we see this agent
-                            if (isNewAgent)
-                            {
-                                Console.WriteLine($"Fetching metadata for agent {agent.Id}");
-                                agent.Metadata = await _client.GetAgentMetadataAsync(agent.Id);
-                                
-                                // Notify about new agent only if not in initial loading
-                                if (!_isInitialLoading)
-                                {
-                                    OnNewAgent?.Invoke(agent);
-                                }
-                            }
-                            else
-                            {
-                                // Preserve existing metadata when updating
-                                agent.Metadata = _agents[agent.Id].Metadata;
-                            }
-                            
-                            _agents[agent.Id] = agent;
-                            agentsUpdated = true;
-                        }
-                    }
-                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        // Resource was deleted, remove from cache
-                        if (_agents.Remove(change.Id))
-                        {
-                            Console.WriteLine($"Agent {change.Id} was deleted, removed from cache");
-                            agentsUpdated = true;
-                        }
-                    }
-                }
-                else if (change.Type == ChangingElement.Listener)
-                {
-                    try
-                    {
-                        var listener = await _client.GetListenerAsync(change.Id);
-                        if (listener != null)
-                        {
-                            Console.WriteLine($"Updated listener {listener.Name} ({listener.Id})");
-                            _listeners[listener.Id] = listener;
-                            listenersUpdated = true;
-                        }
-                    }
-                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        // Resource was deleted, remove from cache
-                        if (_listeners.Remove(change.Id))
-                        {
-                            Console.WriteLine($"Listener {change.Id} was deleted, removed from cache");
-                            listenersUpdated = true;
-                        }
-                    }
-                }
-                else if (change.Type == ChangingElement.Result)
-                {
-                    try
-                    {
-                        var result = await _client.GetTaskResultAsync(change.Id);
-                        if (result != null)
-                        {
-                            Console.WriteLine($"Received result for task {change.Id} with status {result.Status} : {result.Output}");
-                            
-                            // Cache the result
-                            _taskResults[result.Id] = result;
-                            
-                            // Only notify if completed and not in initial loading
-                            if ((result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error) && !_isInitialLoading)
-                            {
-                                OnAgentResult?.Invoke(result);
-                            }
-                        }
-                    }
-                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        // Resource was deleted, remove from cache
-                        if (_taskResults.Remove(change.Id))
-                        {
-                            Console.WriteLine($"Task result {change.Id} was deleted, removed from cache");
-                        }
-                    }
-                }
-                else if (change.Type == ChangingElement.Task)
-                {
-                    try
-                    {
-                        var task = await _client.GetTaskAsync(change.Id);
-                        if (task != null)
-                        {
-                            Console.WriteLine($"Received task {task.Id} for agent {task.AgentId}: {task.Command}");
-                            _tasks[task.Id] = task;
-                            tasksUpdated = true;
-                        }
-                    }
-                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        // Resource was deleted, remove from cache
-                        if (_tasks.Remove(change.Id))
-                        {
-                            Console.WriteLine($"Task {change.Id} was deleted, removed from cache");
-                            tasksUpdated = true;
-                        }
-                    }
-                }
-                else if (change.Type == ChangingElement.Implant)
-                {
-                    try
-                    {
-                        var implant = await _client.GetImplantAsync(change.Id);
-                        if (implant != null)
-                        {
-                            Console.WriteLine($"Updated implant {implant.Name} ({implant.Id})");
-                            _implants[implant.Id] = implant;
-                            implantsUpdated = true;
-                        }
-                    }
-                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        // Resource was deleted, remove from cache
-                        if (_implants.Remove(change.Id))
-                        {
-                            Console.WriteLine($"Implant {change.Id} was deleted, removed from cache");
-                            implantsUpdated = true;
-                        }
-                    }
+                    HasAuthorizationError = false;
+                    OnAuthorizationErrorChanged?.Invoke();
                 }
 
-                // Update progress during initial loading
+                // Track progress during initial loading
                 if (_isInitialLoading)
                 {
-                    _processedChanges++;
+                    _totalChanges = changes.Count;
+                    _processedChanges = 0;
                     OnProgressUpdated?.Invoke();
                 }
-            }
 
-            // Notify subscribers
-            if (agentsUpdated)
-            {
-                OnAgentsUpdated?.Invoke();
-            }
-            if (listenersUpdated)
-            {
-                OnListenersUpdated?.Invoke();
-            }
-            if (implantsUpdated)
-            {
-                OnImplantsUpdated?.Invoke();
-            }
-            if (tasksUpdated)
-            {
-                OnTasksUpdated?.Invoke();
-            }
+                bool agentsUpdated = false;
+                bool listenersUpdated = false;
+                bool implantsUpdated = false;
+                bool tasksUpdated = false;
 
-                // Mark initial loading as complete after first poll
-                if (_isInitialLoading)
+                foreach (var change in changes)
                 {
-                    // Add a small delay to let the user see the 100% progress
-                    await Task.Delay(500);
-                    _isInitialLoading = false;
-                    OnLoadingStateChanged?.Invoke();
+                    // Console.WriteLine($"Processing change: {change.Type} for ID {change.Id}");
+                    
+                    if (change.Type == ChangingElement.Agent)
+                    {
+                        try
+                        {
+                            var agent = await _client.GetAgentAsync(change.Id);
+                            if (agent != null)
+                            {
+                                bool isNewAgent = !_agents.ContainsKey(agent.Id);
+                                
+                                // Fetch metadata if this is the first time we see this agent
+                                if (isNewAgent)
+                                {
+                                    agent.Metadata = await _client.GetAgentMetadataAsync(agent.Id);
+                                    
+                                    // Notify about new agent only if not in initial loading
+                                    if (!_isInitialLoading)
+                                    {
+                                        OnNewAgent?.Invoke(agent);
+                                    }
+                                }
+                                else
+                                {
+                                    // Preserve existing metadata when updating
+                                    agent.Metadata = _agents[agent.Id].Metadata;
+                                }
+                                
+                                _agents[agent.Id] = agent;
+                                agentsUpdated = true;
+                            }
+                        }
+                        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            if (_agents.Remove(change.Id))
+                            {
+                                agentsUpdated = true;
+                            }
+                        }
+                    }
+                    else if (change.Type == ChangingElement.Listener)
+                    {
+                        try
+                        {
+                            var listener = await _client.GetListenerAsync(change.Id);
+                            if (listener != null)
+                            {
+                                _listeners[listener.Id] = listener;
+                                listenersUpdated = true;
+                            }
+                        }
+                        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            if (_listeners.Remove(change.Id))
+                            {
+                                listenersUpdated = true;
+                            }
+                        }
+                    }
+                    else if (change.Type == ChangingElement.Result)
+                    {
+                        try
+                        {
+                            var result = await _client.GetTaskResultAsync(change.Id);
+                            if (result != null)
+                            {
+                                _taskResults[result.Id] = result;
+                                
+                                if ((result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error) && !_isInitialLoading)
+                                {
+                                    OnAgentResult?.Invoke(result);
+                                }
+                            }
+                        }
+                        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            _taskResults.Remove(change.Id);
+                        }
+                    }
+                    else if (change.Type == ChangingElement.Task)
+                    {
+                        try
+                        {
+                            var task = await _client.GetTaskAsync(change.Id);
+                            if (task != null)
+                            {
+                                _tasks[task.Id] = task;
+                                tasksUpdated = true;
+                            }
+                        }
+                        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            if (_tasks.Remove(change.Id))
+                            {
+                                tasksUpdated = true;
+                            }
+                        }
+                    }
+                    else if (change.Type == ChangingElement.Implant)
+                    {
+                        try
+                        {
+                            var implant = await _client.GetImplantAsync(change.Id);
+                            if (implant != null)
+                            {
+                                _implants[implant.Id] = implant;
+                                implantsUpdated = true;
+                            }
+                        }
+                        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            if (_implants.Remove(change.Id))
+                            {
+                                implantsUpdated = true;
+                            }
+                        }
+                    }
+
+                    // Update progress during initial loading
+                    if (_isInitialLoading)
+                    {
+                        _processedChanges++;
+                        OnProgressUpdated?.Invoke();
+                    }
                 }
+
+                // Notify subscribers
+                if (agentsUpdated) OnAgentsUpdated?.Invoke();
+                if (listenersUpdated) OnListenersUpdated?.Invoke();
+                if (implantsUpdated) OnImplantsUpdated?.Invoke();
+                if (tasksUpdated) OnTasksUpdated?.Invoke();
+
+            }
+            catch (HttpRequestException ex)
+            {
+                // Check if this is an authorization error (4XX)
+                if (ex.StatusCode != null && ((int)ex.StatusCode >= 400 && (int)ex.StatusCode < 500))
+                {
+                    // Authorization error - Stop polling and show login
+                    StopPolling();
+
+                    if (_hasConnectionError)
+                    {
+                        _hasConnectionError = false;
+                        OnConnectionStatusChanged?.Invoke();
+                    }
+                    
+                    if (!HasAuthorizationError)
+                    {
+                        HasAuthorizationError = true;
+                        OnAuthorizationErrorChanged?.Invoke();
+                    }
+                }
+                else
+                {
+                    // Connection error - Continue polling (retry) but show error
+                    if (HasAuthorizationError)
+                    {
+                        HasAuthorizationError = false;
+                        OnAuthorizationErrorChanged?.Invoke();
+                    }
+                    
+                    if (!_hasConnectionError)
+                    {
+                        _hasConnectionError = true;
+                        OnConnectionStatusChanged?.Invoke();
+                    }
+                }
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("Not authenticated"))
+            {
+                 // Should not happen if we validate before starting polling, but if it does, stop polling
+                 StopPolling();
             }
             catch (Exception ex)
             {
-                // Set error state and notify UI
+                // Generic error - treat as connection error
+                Console.WriteLine($"Polling error: {ex.Message}");
+                
+                if (HasAuthorizationError)
+                {
+                    HasAuthorizationError = false;
+                    OnAuthorizationErrorChanged?.Invoke();
+                }
+                
                 if (!_hasConnectionError)
                 {
                     _hasConnectionError = true;
@@ -272,6 +320,32 @@ namespace WebCommander.Services
         public List<Implant> GetImplants()
         {
             return _implants.Values.ToList();
+        }
+
+        public void ClearCache()
+        {
+            _agents.Clear();
+            _listeners.Clear();
+            _implants.Clear();
+            _taskResults.Clear();
+            _tasks.Clear();
+            _firstCall = true;
+            _isInitialLoading = true;
+            _totalChanges = 0;
+            _processedChanges = 0;
+            
+            // Clear error states
+            _hasConnectionError = false;
+            HasAuthorizationError = false;
+            
+            // Notify all subscribers
+            OnAgentsUpdated?.Invoke();
+            OnListenersUpdated?.Invoke();
+            OnImplantsUpdated?.Invoke();
+            OnTasksUpdated?.Invoke();
+            OnLoadingStateChanged?.Invoke();
+            OnConnectionStatusChanged?.Invoke();
+            OnAuthorizationErrorChanged?.Invoke();
         }
 
         public List<TeamServerAgentTask> GetTasks()

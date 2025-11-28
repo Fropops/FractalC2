@@ -12,12 +12,6 @@ builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<AgentService>();
 builder.Services.AddSingleton<CommandService>();
 
-builder.Services.AddHttpClient<TeamServerClient>((sp, client) =>
-{
-    client.BaseAddress = new Uri("http://localhost:5000");
-    var authService = sp.GetRequiredService<AuthService>();
-    var token = authService.GenerateToken();
-    client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", $"Bearer {token}");
-});
+builder.Services.AddHttpClient<TeamServerClient>();
 
 await builder.Build().RunAsync();

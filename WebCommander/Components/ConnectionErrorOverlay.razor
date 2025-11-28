@@ -1,21 +1,46 @@
 @using WebCommander.Services
 @using WebCommander.Components
 @inject AgentService AgentService
+@inject AuthService AuthService
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
-<!-- Always show for debugging -->
-<div class="connection-error-overlay" style="@(hasError ? "" : "display: none;")">
-    <div class="connection-error-content">
-        <div class="error-icon">⚠️</div>
-        <h3>TeamServer Unavailable</h3>
-        <p>Unable to connect to the TeamServer.</p>
-        <p class="text-muted">Retrying automatically...</p>
-        <div class="spinner-border text-danger mt-3" role="status">
-            <span class="visually-hidden">Loading...</span>
+@if (isAuthenticated && hasAuthError)
+{
+    <div class="connection-error-overlay">
+        <div class="connection-error-content">
+            <div class="error-icon">🔒</div>
+            <h3>Authorization Failed</h3>
+            <p>Your credentials are invalid or have expired.</p>
+            <p class="text-muted">Please re-authenticate to continue.</p>
+            <button class="btn btn-primary mt-3" @onclick="ShowLoginModal">
+                <i class="bi bi-key"></i> Re-authenticate
+            </button>
         </div>
     </div>
-</div>
+}
+else if (isAuthenticated && hasConnectionError)
+{
+    <div class="connection-error-overlay">
+        <div class="connection-error-content">
+            <div class="error-icon">⚠️</div>
+            <h3>TeamServer Unavailable</h3>
+            <p>Unable to connect to the TeamServer.</p>
+            <p class="text-muted">Retrying automatically...</p>
+            <div class="spinner-border text-danger mt-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <button class="btn btn-secondary mt-3" @onclick="ShowLoginModal">
+                <i class="bi bi-server"></i> Change Server
+            </button>
+        </div>
+    </div>
+}
+
+@if (showLogin)
+{
+    <LoginModal OnLoginSuccess="OnLoginSuccess" OnCancel="OnLoginCancel" AllowCancel="true" />
+}
 
 <style>
     .connection-error-overlay {
@@ -56,49 +81,72 @@
 </style>
 
 @code {
-    private bool hasError = false;
+    private bool hasConnectionError = false;
+    private bool hasAuthError = false;
+    private bool showLogin = false;
+    private bool isAuthenticated = false;
     private System.Threading.Timer? _checkTimer;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        hasError = AgentService.HasConnectionError;
-        AgentService.OnConnectionStatusChanged += OnConnectionStatusChanged;
+        isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        hasConnectionError = AgentService.HasConnectionError;
+        hasAuthError = AgentService.HasAuthorizationError;
         
-        // Check state periodically in case we missed the initial error
+        AgentService.OnConnectionStatusChanged += OnConnectionStatusChanged;
+        AgentService.OnAuthorizationErrorChanged += OnAuthorizationErrorChanged;
+        
+        // Check state periodically
         _checkTimer = new System.Threading.Timer(_ =>
         {
-            var currentError = AgentService.HasConnectionError;
-            if (currentError != hasError)
+            var currentConnectionError = AgentService.HasConnectionError;
+            var currentAuthError = AgentService.HasAuthorizationError;
+            
+            if (currentConnectionError != hasConnectionError || currentAuthError != hasAuthError)
             {
-                hasError = currentError;
+                hasConnectionError = currentConnectionError;
+                hasAuthError = currentAuthError;
                 InvokeAsync(StateHasChanged);
             }
         }, null, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(500));
     }
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // Force check state after first render
-            var currentError = AgentService.HasConnectionError;
-            if (currentError != hasError)
-            {
-                hasError = currentError;
-                InvokeAsync(StateHasChanged);
-            }
-        }
-    }
-
     private void OnConnectionStatusChanged()
     {
-        hasError = AgentService.HasConnectionError;
+        hasConnectionError = AgentService.HasConnectionError;
         InvokeAsync(StateHasChanged);
+    }
+
+    private void OnAuthorizationErrorChanged()
+    {
+        hasAuthError = AgentService.HasAuthorizationError;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ShowLoginModal()
+    {
+        AgentService.StopPolling();
+        showLogin = true;
+        StateHasChanged();
+    }
+
+    private async Task OnLoginSuccess()
+    {
+        showLogin = false;
+        isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        StateHasChanged();
+    }
+
+    private void OnLoginCancel()
+    {
+        showLogin = false;
+        StateHasChanged();
     }
 
     public void Dispose()
     {
         AgentService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
+        AgentService.OnAuthorizationErrorChanged -= OnAuthorizationErrorChanged;
         _checkTimer?.Dispose();
     }
 }
