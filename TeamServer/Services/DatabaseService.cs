@@ -1,9 +1,12 @@
+using Common;
+using Microsoft.Extensions.Configuration;
 using SQLite;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using TeamServer.Database;
+using TeamServer.Helper;
 
 namespace TeamServer.Service;
 public interface IDatabaseService
@@ -26,11 +29,10 @@ public class DatabaseService : IDatabaseService
     private readonly SQLiteConnection _connection;
     private readonly SQLiteAsyncConnection _asyncConnection;
 
-    public DatabaseService()
+    public DatabaseService(IConfiguration _configuration)
     {
-        var directory = Directory.GetCurrentDirectory();
-
-        var path = Path.Combine(directory, "data.db");
+        var root = PathHelper.GetAbsolutePath(_configuration.FoldersConfigs().DBFolder);
+        var path = Path.Combine(root, "data.db");
 
         using (var conn = new SQLiteConnection(path))
         {
