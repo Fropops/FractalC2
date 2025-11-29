@@ -2,9 +2,10 @@ using System.Collections.Generic;
 
 namespace WebCommander.Models
 {
-    public static class CommandCategories
+    public static class CommandCategory
     {
-        public static string Core { get; set; } = "Agent Core";
+        public static string Core { get; set; } = "Core";
+        public static string Execution { get; set; } = "Execution";
         public static string Services { get; set; } = "Agent Services";
         public static string Navigation { get; set; } = "Navigation";
         public static string Commander { get; set; } = "Commander";

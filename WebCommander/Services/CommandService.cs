@@ -78,28 +78,9 @@ namespace WebCommander.Services
             if (commandBase != null)
             {
                 Console.WriteLine($"Command: {commandBase.Name} created");
-                if(commandBase is EndPointCommand)
-                {
-                    
-                    parseResult = commandBase.Parse(rawInput);
-                    // Handle Help or Errors
-                    if (parseResult.Errors.Count > 0 || parseResult.Tokens.Any(t => t.Value == "-h" || t.Value == "--help" || t.Value == "/?"))
-                    {
-                        var cmd = parseResult.CommandResult.Command;
-                        var errorMsg = parseResult.Errors.Count > 0 ? $"{string.Join(", ", parseResult.Errors.Select(e => e.Message))}\n" : "";
-                        return ($"{commandBase.GetUsage()}",errorMsg, null);
-                    }
-
-                    await parseResult.InvokeAsync();
-                    var cmdResult = commandBase.Result;
-                    Console.WriteLine($"Command: {cmdName} executed");
-                    return (cmdResult.Message, cmdResult.Error, cmdResult.TaskId);
-                }
-                if(commandBase is ShellEndPointCommand)
-                {
-                    var cmdResult = await (commandBase as ShellEndPointCommand).ExecuteAsync(cmdName, rawInput, _client, agentId);
-                    return (cmdResult.Message, cmdResult.Error, cmdResult.TaskId);
-                }
+                var cmdResult = await commandBase.ExecuteAsync(rawInput);
+                Console.WriteLine($"Command: {cmdName} executed");
+                return (cmdResult.Message, cmdResult.Error, cmdResult.TaskId);
             }
 
             return (null, $"[Error] Unknown command or not implemented.", null);

@@ -6,11 +6,11 @@ using WebCommander.Helpers;
 
 namespace WebCommander.Services.Commands
 {
-    public abstract class ExecuteCommand : NonParsedCommand
+    public abstract class NonParsedCommand : CommandBase
     {
         public override string GetUsage()
         {
-            return $"Usage: {this.Name} [toolName] [arguments]";
+            return $"Usage: {this.Name} [command]";
         }
 
         public override async Task<CommandResult> ExecuteAsync(string cmdLine)
@@ -21,18 +21,15 @@ namespace WebCommander.Services.Commands
             {
                 var parms = new ParameterDictionary();
                 var args = cmdLine.GetArgs();
-                if(args.Count() < 2)
+                string cmdName = args[0];
+                string actualCmdLine = cmdLine.ExtractAfterParam(0);
+                if(string.IsNullOrWhiteSpace(actualCmdLine))
                 {
                     return new CommandResult().Failed($"{this.GetUsage()}");
                 }
-
-                string toolName = args[1];
-                string actualCmdLine = cmdLine.ExtractAfterParam(1);
-                
-                parms.AddParameter(ParameterId.Name, toolName);
+        
                 if (!string.IsNullOrWhiteSpace(actualCmdLine))
-                    parms.AddParameter(ParameterId.Parameters, actualCmdLine);
-                parms.AddParameter(ParameterId.Output, true);
+                    parms.AddParameter(ParameterId.Command, actualCmdLine);
                 
                 var taskId = await this._client.TaskAgent(Name, this._agentId, Id, parms);
                 return cmdResult.Succeed($"Command {this.Name} tasked to agent {this._agentId}.", taskId);

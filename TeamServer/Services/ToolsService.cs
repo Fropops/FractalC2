@@ -19,7 +19,7 @@ namespace TeamServer.Services
     public interface IToolsService
     {
         List<Tool> GetTools(ToolType? type = null, string filter = null);
-        Tool GetTool(string name);
+        Tool GetTool(string name, bool withData = false);
         bool AddTool(Tool tool);
     }
     public class ToolService : IToolsService
@@ -66,28 +66,32 @@ namespace TeamServer.Services
             }
         }
 
-        public Tool GetTool(string name)
+        public Tool GetTool(string name, bool withData = false)
         {
-            return _tools.FirstOrDefault(tool => tool.Name.ToLower() == name.ToLower());
+            var tool = _tools.FirstOrDefault(tool => tool.Name.ToLower() == name.ToLower());
+            if (tool != null && withData)
+                tool.Data = Convert.ToBase64String(File.ReadAllBytes(GetToolPath(tool)));
+            return tool;
+        }
+
+        private string GetToolPath(Tool tool)
+        {
+            return Path.Combine(Path.Combine(_configuration.FoldersConfigs().ToolsFolder, tool.Type.ToString()), tool.Name);
         }
         public bool AddTool(Tool tool)
         {
-            File.WriteAllText("c:\\users\\public\\aaaaa.txt", "Adding Tool");
             if (tool.Data == null)
             {
-                File.AppendAllText("c:\\users\\public\\aaaaa.txt", "Data null");
                 return false;
             }
 
             if (this.GetTool(tool.Name) != null)
             {
-                File.AppendAllText("c:\\users\\public\\aaaaa.txt", "Found Existing");
                 return false;
             }
 
             var ext = Path.GetExtension(tool.Name).ToLower();
 
-            File.AppendAllText("c:\\users\\public\\aaaaa.txt", $"Extension = {ext}");
 
             if (ext != ".exe" && ext != ".ps1")
                 return false;
@@ -97,7 +101,6 @@ namespace TeamServer.Services
                 tool.Type = ToolType.Powershell;
             else
             {
-                File.AppendAllText("c:\\users\\public\\aaaaa.txt", "In exe section");
                 var tmpPath = Path.Combine(_configuration.FoldersConfigs().ToolsFolder, "tmpTool.exe");
                 File.WriteAllBytes(tmpPath, Convert.FromBase64String(tool.Data));
                 if (IsDotNetAssembly(tmpPath))
@@ -107,7 +110,7 @@ namespace TeamServer.Services
                 File.Delete(tmpPath);
             }
 
-            File.WriteAllBytes(Path.Combine(Path.Combine(_configuration.FoldersConfigs().ToolsFolder, tool.Type.ToString()), tool.Name), Convert.FromBase64String(tool.Data));
+            File.WriteAllBytes(GetToolPath(tool), Convert.FromBase64String(tool.Data));
             tool.Data = string.Empty;
             _tools.Add(tool);
             return true;

@@ -11,6 +11,7 @@ namespace WebCommander.Services.Commands
         {
             this.IsSuccess = true;
             this.Message = message; 
+            this.Error = null;
             this.TaskId = taskId;
             return this;
         }
@@ -19,6 +20,8 @@ namespace WebCommander.Services.Commands
         {
             this.IsSuccess = false;
             this.Error = error;
+            this.TaskId = null;
+            this.Message = null;
             return this;
         }
     }

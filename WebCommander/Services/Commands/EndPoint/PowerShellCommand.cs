@@ -5,7 +5,7 @@ using WebCommander.Models;
 
 namespace WebCommander.Services.Commands.EndPoint
 {
-    public class PowerShellCommand : ShellEndPointCommand
+    public class PowerShellCommand : NonParsedCommand
     {
         public override string Name => "powershell";
         public override string Description => "Send a command to be executed by the agent powershell";

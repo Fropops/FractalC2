@@ -5,10 +5,8 @@ using WebCommander.Models;
 
 namespace WebCommander.Services.Commands
 {
-    public abstract class EndPointCommand : CommandBase
+    public abstract class EndPointCommand : ParsedCommand
     {
-        public abstract CommandId Id { get; }
-
         public override async Task<CommandResult> ExecuteAsync(ParseResult parseResult, TeamServerClient client, string agentId)
         {
             CommandResult cmdResult = new CommandResult();
