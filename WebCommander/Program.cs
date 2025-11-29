@@ -11,6 +11,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<AgentService>();
 builder.Services.AddSingleton<CommandService>();
+builder.Services.AddSingleton<TerminalHistoryService>();
 
 builder.Services.AddHttpClient<TeamServerClient>();
 

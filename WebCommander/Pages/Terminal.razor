@@ -7,6 +7,7 @@
 @inject NavigationManager NavigationManager
 @inject CommandService CommandService
 @inject IJSRuntime JSRuntime
+@inject TerminalHistoryService TerminalHistoryService
 
 <PageTitle>Terminal - @(agent?.Metadata?.ImplantId ?? "Unknown")</PageTitle>
 
@@ -148,20 +149,6 @@
 </style>
 
 @code {
-    public enum TerminalLineType
-    {
-        Normal,
-        Error,
-        Warning,
-        Info
-    }
-
-    public class TerminalLine
-    {
-        public string Text { get; set; } = string.Empty;
-        public TerminalLineType Type { get; set; } = TerminalLineType.Normal;
-    }
-
     [Parameter]
     public string AgentId { get; set; } = string.Empty;
 
@@ -177,17 +164,30 @@
     private List<string> commandHistory = new();
     private int historyIndex = -1;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
         
         if (agent != null)
         {
-            AddInfo($"Connected to agent {agent.Metadata?.ImplantId ?? "Unknown"}");
-            AddInfo($"User: {agent.Metadata?.Desc}");
-            AddInfo($"Architecture: {agent.Metadata?.Architecture}");
-            AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
-            AddNormal("");
+            var history = await TerminalHistoryService.LoadHistoryAsync(AgentId);
+            if (history != null && history.OutputLines.Any())
+            {
+                outputLines = history.OutputLines;
+                commandHistory = history.CommandHistory;
+                sentTaskIds = history.SentTaskIds;
+                taskCommands = history.TaskCommands;
+                // Scroll to bottom after loading
+                shouldScrollToBottom = true;
+            }
+            else
+            {
+                AddInfo($"Connected to agent {agent.Metadata?.ImplantId ?? "Unknown"}");
+                AddInfo($"User: {agent.Metadata?.Desc}");
+                AddInfo($"Architecture: {agent.Metadata?.Architecture}");
+                AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
+                AddNormal("");
+            }
         }
 
         AgentService.OnAgentsUpdated += RefreshAgent;
@@ -213,24 +213,28 @@
     private void AddNormal(string text)
     {
         outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Normal });
+        _ = SaveHistory();
         _ = ScrollToBottom();
     }
 
     private void AddError(string text)
     {
         outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Error });
+        _ = SaveHistory();
         _ = ScrollToBottom();
     }
 
     private void AddWarning(string text)
     {
         outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Warning });
+        _ = SaveHistory();
         _ = ScrollToBottom();
     }
 
     private void AddInfo(string text)
     {
         outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Info });
+        _ = SaveHistory();
         _ = ScrollToBottom();
     }
 
@@ -295,11 +299,19 @@
         }
     }
 
+    private bool shouldScrollToBottom = false;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await inputElement.FocusAsync();
+        }
+
+        if (shouldScrollToBottom)
+        {
+            shouldScrollToBottom = false;
+            await ScrollToBottom();
         }
     }
 
@@ -368,7 +380,23 @@
             
             // Scroll to bottom
             await ScrollToBottom();
+            await SaveHistory();
         }
+    }
+
+    private async Task SaveHistory()
+    {
+        if (agent == null) return;
+
+        var history = new TerminalHistory
+        {
+            OutputLines = outputLines,
+            CommandHistory = commandHistory,
+            SentTaskIds = sentTaskIds,
+            TaskCommands = taskCommands
+        };
+
+        await TerminalHistoryService.SaveHistoryAsync(AgentId, history);
     }
 
     private async Task ScrollToBottom()
