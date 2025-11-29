@@ -13,6 +13,7 @@ namespace Common.Config
         public string DBFolder { get; set; }
         public string FilesFolder { get; set; }
         public string AuditFolder { get; set; }
+        public string ToolsFolder { get; set; }
         public string ImplantTemplatesFolder { get; set; }
         public string ImplantsFolder { get; set; }
         public string WorkingFolder { get; set; }
@@ -25,6 +26,7 @@ namespace Common.Config
             this.DBFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("DBFolder", "/tmp/DB"));
             this.FilesFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("FilesFolder", "/tmp/Files"));
             this.AuditFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("AuditFolder", "/tmp/Audit"));
+            this.ToolsFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("ToolsFolder", "/tmp/Tools"));
             this.ImplantTemplatesFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("ImplantTemplatesFolder", "/tmp/ImplantTemplates"));
             this.ImplantsFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("ImplantsFolder", "/tmp/Implants"));
             this.WorkingFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("WorkingFolder", "/tmp"));
@@ -37,6 +39,7 @@ namespace Common.Config
                 Console.WriteLine("[CONFIG][PAYLOAD][DBFolder] : " + this.DBFolder);
                 Console.WriteLine("[CONFIG][PAYLOAD][FilesFolder] : " + this.FilesFolder);
                 Console.WriteLine("[CONFIG][PAYLOAD][AuditFolder] : " + this.AuditFolder);
+                Console.WriteLine("[CONFIG][PAYLOAD][ToolsFolder] : " + this.ToolsFolder);
                 Console.WriteLine("[CONFIG][PAYLOAD][ImplantTemplateFolder] : " + this.ImplantTemplatesFolder);
                 Console.WriteLine("[CONFIG][PAYLOAD][ImplantsFolder] : " + this.ImplantsFolder);
                 Console.WriteLine("[CONFIG][PAYLOAD][WorkingFolder] : " + this.WorkingFolder);

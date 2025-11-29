@@ -1,0 +1,210 @@
+@page "/tools"
+@using WebCommander.Models
+@using WebCommander.Services
+@inject TeamServerClient TeamServerClient
+@inject IJSRuntime JSRuntime
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Tools</h2>
+        <div>
+            <label for="fileUpload" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-2"></i>Add Tool
+            </label>
+            <InputFile id="fileUpload" OnChange="UploadFile" class="d-none" accept=".exe,.ps1" />
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" placeholder="Search by name..." 
+                               @bind="searchTerm" @bind:event="oninput" @onkeyup="OnSearch" />
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="d-flex gap-2">
+                        <button class="btn @(selectedType == null ? "btn-primary" : "btn-outline-primary")" 
+                                @onclick="@(() => FilterTools(null))">
+                            All
+                        </button>
+                        @foreach (var type in Enum.GetValues<ToolType>())
+                        {
+                            <button class="btn @(selectedType == type ? "btn-primary" : "btn-outline-primary")" 
+                                    @onclick="@(() => FilterTools(type))">
+                                @type
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (tools.Count == 0)
+    {
+        <div class="alert alert-info">
+            No tools found.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var tool in tools)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        @if (tool.Type == ToolType.Powershell)
+                                        {
+                                            <i class="bi bi-terminal fs-5 text-primary"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-file-earmark-binary fs-5 text-success"></i>
+                                        }
+                                    </div>
+                                    <span class="fw-bold">@tool.Name</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">@tool.Type</span>
+                            </td>
+                            <td class="text-end">
+                                <!-- Actions will be added here later -->
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<ActionToast @ref="toast" />
+
+@code {
+    private List<Tool> tools = new();
+    private ToolType? selectedType = null;
+    private string searchTerm = string.Empty;
+    private bool isLoading = false;
+    private System.Threading.Timer? debounceTimer;
+    private ActionToast toast;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTools();
+    }
+
+    private async Task LoadTools()
+    {
+        isLoading = true;
+        try
+        {
+            tools = await TeamServerClient.GetToolsAsync(selectedType, searchTerm);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading tools: {ex.Message}");
+            toast?.ShowError("Failed to load tools", ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task FilterTools(ToolType? type)
+    {
+        selectedType = type;
+        await LoadTools();
+    }
+
+    private void OnSearch()
+    {
+        debounceTimer?.Dispose();
+        debounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(LoadTools);
+        }, null, 300, Timeout.Infinite);
+    }
+
+    private async Task UploadFile(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        try
+        {
+            isLoading = true;
+            
+            var tool = new Tool
+            {
+                Name = file.Name
+            };
+
+            var extension = Path.GetExtension(file.Name).ToLower();
+            if (extension == ".ps1")
+            {
+                tool.Type = ToolType.Powershell;
+            }
+            else if (extension == ".exe")
+            {
+                tool.Type = ToolType.Exe;
+            }
+            else
+            {
+                // Default to Exe or handle error? 
+                // User requirement said filter on exe and ps1, so we assume valid input or default.
+                tool.Type = ToolType.Exe; 
+            }
+
+            // Read file content
+            using var stream = file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024); // 50MB limit
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            tool.Data = Convert.ToBase64String(memoryStream.ToArray());
+
+            var success = await TeamServerClient.CreateToolAsync(tool);
+            if (success)
+            {
+                toast.ShowSuccess($"Tool {tool.Name} uploaded successfully.");
+                await LoadTools();
+            }
+            else
+            {
+                toast.ShowError($"Failed to upload tool {tool.Name}.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading tool: {ex.Message}");
+            toast.ShowError("Error uploading tool", ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

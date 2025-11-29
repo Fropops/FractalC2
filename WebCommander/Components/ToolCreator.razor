@@ -1,0 +1,125 @@
+@using WebCommander.Models
+@using WebCommander.Services
+@inject TeamServerClient TeamServerClient
+
+<div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Tool</h5>
+                <button type="button" class="btn-close" @onclick="OnCancel"></button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@tool" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="mb-3">
+                        <label for="file" class="form-label">File</label>
+                        <InputFile OnChange="LoadFile" class="form-control" accept=".exe,.ps1" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <InputText id="name" class="form-control" @bind-Value="tool.Name" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Type</label>
+                        <InputSelect id="type" class="form-select" @bind-Value="tool.Type">
+                            @foreach (var type in Enum.GetValues<ToolType>())
+                            {
+                                <option value="@type">@type</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            @errorMessage
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            Upload
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnSuccess { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private Tool tool = new Tool();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+    private IBrowserFile? selectedFile;
+
+    private async Task LoadFile(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        tool.Name = selectedFile.Name;
+
+        var extension = Path.GetExtension(selectedFile.Name).ToLower();
+        if (extension == ".ps1")
+        {
+            tool.Type = ToolType.Powershell;
+        }
+        else if (extension == ".exe")
+        {
+            tool.Type = ToolType.Exe;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (selectedFile == null)
+        {
+            errorMessage = "Please select a file.";
+            return;
+        }
+
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            // Read file content
+            using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB limit
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            tool.Data = Convert.ToBase64String(memoryStream.ToArray());
+
+            var success = await TeamServerClient.CreateToolAsync(tool);
+            if (success)
+            {
+                await OnSuccess.InvokeAsync();
+            }
+            else
+            {
+                errorMessage = "Failed to upload tool.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

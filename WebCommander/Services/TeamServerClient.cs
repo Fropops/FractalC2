@@ -63,6 +63,7 @@ namespace WebCommander.Services
 
         public async Task<Listener?> GetListenerAsync(string id)
         {
+            await EnsureConfiguredAsync();
             var response = await _client.GetAsync($"/Listeners/{id}");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
@@ -72,6 +73,7 @@ namespace WebCommander.Services
 
         public async Task<Agent?> GetAgentAsync(string id)
         {
+            await EnsureConfiguredAsync();
             var response = await _client.GetAsync($"/Agents/{id}");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
@@ -81,6 +83,7 @@ namespace WebCommander.Services
 
         public async Task<AgentMetadata?> GetAgentMetadataAsync(string id)
         {
+            await EnsureConfiguredAsync();
             var response = await _client.GetAsync($"/Agents/{id}/metadata");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
@@ -90,6 +93,7 @@ namespace WebCommander.Services
 
         public async Task<AgentTaskResult?> GetTaskResultAsync(string id)
         {
+            await EnsureConfiguredAsync();
             var response = await _client.GetAsync($"/Results/{id}");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
@@ -99,6 +103,7 @@ namespace WebCommander.Services
 
         public async Task<TeamServerAgentTask?> GetTaskAsync(string id)
         {
+            await EnsureConfiguredAsync();
             var response = await _client.GetAsync($"/Tasks/{id}");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
@@ -115,22 +120,26 @@ namespace WebCommander.Services
 
         public async Task StartListenerAsync(StartHttpListenerRequest request)
         {
+            await EnsureConfiguredAsync();
             await _client.PostAsJsonAsync("/Listeners", request);
         }
 
         public async Task<bool> StopListenerAsync(string id)
         {
+            await EnsureConfiguredAsync();
             var response = await _client.DeleteAsync($"/Listeners?id={id}");
             return response.IsSuccessStatusCode;
         }
 
         public async Task StopAgentAsync(string id)
         {
+            await EnsureConfiguredAsync();
             await _client.DeleteAsync($"/Agents/{id}");
         }
 
         public async Task<string> TaskAgent(string label, string agentId, CommandId commandId, ParameterDictionary parms)
         {
+            await EnsureConfiguredAsync();
             var agentTask = new AgentTask()
             {
                 Id = ShortGuid.NewGuid(),
@@ -155,13 +164,15 @@ namespace WebCommander.Services
         }
 
         public async Task<List<Implant>> GetImplantsAsync()
-        {
+        {   
+            await EnsureConfiguredAsync();
             var result = await _client.GetFromJsonAsync<List<Implant>>("/Implants");
             return result ?? new List<Implant>();
         }
 
         public async Task<Implant?> GetImplantAsync(string id)
         {
+            await EnsureConfiguredAsync();
             var response = await _client.GetAsync($"/Implants/{id}");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
@@ -171,6 +182,7 @@ namespace WebCommander.Services
 
         public async Task<(bool success, string details)> CreateImplantAsync(ImplantConfig config)
         {
+            await EnsureConfiguredAsync();
             var response = await _client.PostAsJsonAsync("/Implants", config);
             // We don't ensure success status code here because we want to return the logs even if it failed (if the API returns logs on failure)
             // But if the user wants to treat non-200 as failure in the UI, we might need to handle it.
@@ -181,12 +193,14 @@ namespace WebCommander.Services
 
         public async Task<bool> DeleteImplantAsync(string id)
         {
+            await EnsureConfiguredAsync();
             var response = await _client.DeleteAsync($"/Implants/{id}");
             return response.IsSuccessStatusCode;
         }
 
         public async Task<Implant?> GetImplantWithDataAsync(string id)
         {
+            await EnsureConfiguredAsync();
             var response = await _client.GetAsync($"/Implants/{id}?withData=true");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
@@ -197,19 +211,54 @@ namespace WebCommander.Services
         // WebHost methods
         public async Task<List<FileWebHost>> GetWebHostFilesAsync()
         {
+            await EnsureConfiguredAsync();
             var result = await _client.GetFromJsonAsync<List<FileWebHost>>("/WebHost");
             return result ?? new List<FileWebHost>();
         }
 
         public async Task<bool> AddWebHostFileAsync(FileWebHost file)
-        {
+        {   
+            await EnsureConfiguredAsync();
             var response = await _client.PostAsJsonAsync("/WebHost", file);
             return response.IsSuccessStatusCode;
         }
 
         public async Task<bool> DeleteWebHostFileAsync(string path)
         {
+            await EnsureConfiguredAsync();
             var response = await _client.DeleteAsync($"/WebHost?path={Uri.EscapeDataString(path)}");
+            return response.IsSuccessStatusCode;
+        }
+
+        // Tools methods
+        public async Task<List<Tool>> GetToolsAsync(ToolType? type = null, string? name = null)
+        {
+            await EnsureConfiguredAsync();
+            var url = "/Tools";
+            var queryParams = new List<string>();
+
+            if (type.HasValue)
+            {
+                queryParams.Add($"type={type.Value}");
+            }
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                queryParams.Add($"name={Uri.EscapeDataString(name)}");
+            }
+
+            if (queryParams.Any())
+            {
+                url += "?" + string.Join("&", queryParams);
+            }
+            
+            var result = await _client.GetFromJsonAsync<List<Tool>>(url);
+            return result ?? new List<Tool>();
+        }
+
+        public async Task<bool> CreateToolAsync(Tool tool)
+        {
+            await EnsureConfiguredAsync();
+            var response = await _client.PostAsJsonAsync("/Tools", tool);
             return response.IsSuccessStatusCode;
         }
     }
