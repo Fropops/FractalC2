@@ -158,7 +158,22 @@ namespace WebCommander.Services
 
             var response = await _client.PostAsJsonAsync($"/Agents/{agentId}", taskrequest);
             if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response}");
+            {
+                var errorMsg = response.ReasonPhrase;
+                try
+                {
+                    var errorContent = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                    if (errorContent.TryGetProperty("detail", out var detail))
+                    {
+                        errorMsg = detail.GetString();
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+                throw new Exception(errorMsg);
+            }
             
             return agentTask.Id;
         }

@@ -81,6 +81,7 @@ namespace TeamServer
             services.AddSingleton<IDownloadFileService, DownloadFileService>();
             services.AddSingleton<IImplantService, ImplantService>();
             services.AddSingleton<IToolsService, ToolService>();
+            services.AddSingleton<ITaskInterceptionService, TaskInterceptionService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

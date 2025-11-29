@@ -29,9 +29,9 @@ namespace TeamServer.Controllers
         private readonly ITaskResultService _agentTaskResultService;
         private readonly IFrameService _frameService;
         private readonly ITaskService _taskService;
-        private readonly IToolsService _toolsService;
+        private readonly ITaskInterceptionService _taskInterceptionService;
 
-        public AgentsController(IAgentService agentService, IFileService fileService, ISocksService socksService, IChangeTrackingService changeService, IAuditService auditService, ITaskResultService agentTaskResultService, IFrameService frameService, ITaskService taskService, IToolsService toolsService)
+        public AgentsController(IAgentService agentService, IFileService fileService, ISocksService socksService, IChangeTrackingService changeService, IAuditService auditService, ITaskResultService agentTaskResultService, IFrameService frameService, ITaskService taskService, ITaskInterceptionService taskInterceptionService)
         {
             this._agentService = agentService;
             this._fileService = fileService;
@@ -41,7 +41,7 @@ namespace TeamServer.Controllers
             this._agentTaskResultService = agentTaskResultService;
             this._frameService = frameService;
             this._taskService= taskService;
-            this._toolsService = toolsService;
+            this._taskInterceptionService = taskInterceptionService;
         }
 
         [HttpGet]
@@ -115,16 +115,11 @@ namespace TeamServer.Controllers
             byte[] ser = Convert.FromBase64String(ctr.TaskBin);
             var task = ser.BinaryDeserializeAsync<AgentTask>().Result;
 
-            if(task.CommandId == CommandId.Assembly)
-            {
-                if (!task.HasParameter(ParameterId.Name))
-                    return Problem("Missing tool name");
-                var toolName = task.GetParameter<string>(ParameterId.Name);
-                var tool = this._toolsService.GetTool(toolName, true);
-                if (tool is null)
-                    return Problem($"Tool {toolName} was not found !");
-                task.Parameters.AddParameter(ParameterId.File, Convert.FromBase64String(tool.Data));
-            }
+
+            var interceptionResult = this._taskInterceptionService.Intercept(task);
+            if (!interceptionResult.Success)
+                return Problem(interceptionResult.Error);
+          
 
             this._frameService.CacheFrame(agentId, NetFrameType.Task, task);
 
