@@ -21,11 +21,13 @@ namespace WebCommander.Services.Commands
 
         protected TeamServerClient _client {get; set;}
         protected string _agentId {get;set;}
+        protected CommandService _commandService {get;set;}
 
-        public virtual void Initialize(TeamServerClient client, string agentId = null)
+        public virtual void Initialize(TeamServerClient client, string agentId = null, CommandService commandService = null)
         {
             this._client = client;
             this._agentId = agentId;
+            this._commandService = commandService;
         }
 
         public virtual async Task<CommandResult> ExecuteAsync(string commandLine)

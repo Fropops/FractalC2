@@ -14,6 +14,7 @@ namespace WebCommander.Services
     {
         private readonly TeamServerClient _client;
         private readonly Dictionary<string, Type> _commandMap = new();
+        private readonly List<CommandBase> _commands = new();
 
         public CommandService(TeamServerClient client)
         {
@@ -34,6 +35,7 @@ namespace WebCommander.Services
                 if (commandBase != null)
                 {
                     Console.WriteLine($"Command {type.Name} loaded");
+                    _commands.Add(commandBase);
                     _commandMap[commandBase.Name] = type;
                     foreach (var alias in commandBase.Aliases)
                     {
@@ -57,11 +59,16 @@ namespace WebCommander.Services
         {
             if (Activator.CreateInstance(type) is CommandBase commandBase)
             {
-                commandBase.Initialize(_client, agentId);
+                commandBase.Initialize(_client, agentId, this);
                 return commandBase;
             }
             Console.WriteLine($"Command {type.Name} not created");
             return null;
+        }
+
+        public List<CommandBase> GetCommands()
+        {
+            return _commands;
         }
 
         public async Task<(string? message, string? error, string? taskId)> ParseAndSendAsync(string rawInput, string agentId)

@@ -15,9 +15,9 @@ namespace WebCommander.Services.Commands
             return this.Command.Parse(input);
         }
 
-        public override void Initialize(TeamServerClient client, string agentId = null)
+        public override void Initialize(TeamServerClient client, string agentId = null, CommandService commandService = null)
         {
-            base.Initialize(client, agentId);
+            base.Initialize(client, agentId, commandService);
             this.CreateCommand(client, agentId);
         }
 

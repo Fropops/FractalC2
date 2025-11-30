@@ -68,7 +68,14 @@ public class AuditService : IAuditService
     }
     public void Record(AuditItem auditItem)
     {
-        File.AppendAllText(FileName + ".txt", $"{auditItem.Date.ToString("dd/MM/yyyy HH:mm:ss")} | {auditItem.Type} | {auditItem.Category} | {auditItem.Source} | {auditItem.Target} | {auditItem.Message}{Environment.NewLine}");
+        try
+        {
+            File.AppendAllText(FileName + ".txt", $"{auditItem.Date.ToString("dd/MM/yyyy HH:mm:ss")} | {auditItem.Type} | {auditItem.Category} | {auditItem.Source} | {auditItem.Target} | {auditItem.Message}{Environment.NewLine}");
+        }
+        catch
+        {
+
+        }
     }
 
     public void Record(AuditType type, AuditCategory category, string source, string target, string message)

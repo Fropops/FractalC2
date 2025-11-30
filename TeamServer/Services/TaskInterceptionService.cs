@@ -87,6 +87,8 @@ namespace TeamServer.Services
             var tool = this._toolsService.GetTool(toolName, true);
             if (tool is null)
                 return Failed($"Tool {toolName} was not found !");
+            if (tool.Type != Common.APIModels.ToolType.DotNet)
+                return Failed($"Tool {toolName} is not a .Net Executable !");
             task.Parameters.AddParameter(ParameterId.File, Convert.FromBase64String(tool.Data));
             return Succeed();
         }
