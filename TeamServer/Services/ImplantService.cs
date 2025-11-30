@@ -12,6 +12,7 @@ using TeamServer.Service;
 namespace TeamServer.Services
 {
 
+    [InjectableService]
     public interface IImplantService : IStorable
     {
         void AddImplant(Implant implant);
@@ -20,6 +21,8 @@ namespace TeamServer.Services
         Implant GetImplantbyName(string name);
         void RemoveImplant(Implant implant);
     }
+
+    [InjectableServiceImplementation(typeof(IImplantService))]
     public class ImplantService : IImplantService
     {
         private readonly IChangeTrackingService _changeTrackingService;

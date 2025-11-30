@@ -3,9 +3,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Shared;
 using TeamServer.Database;
+using TeamServer.Services;
 
 namespace TeamServer.Service;
 
+[InjectableService]
 public interface IDownloadFileService: IStorable
 {
     void Add(DownloadFile file);
@@ -16,6 +18,7 @@ public interface IDownloadFileService: IStorable
     void Remove(string id);
 }
 
+[InjectableServiceImplementation(typeof(IDownloadFileService))]
 public class DownloadFileService : IDownloadFileService
 {
     private Dictionary<string, DownloadFile> _files = new Dictionary<string, DownloadFile>();

@@ -24,7 +24,6 @@ namespace TeamServer.Models
         private IAgentService _agentService;
         private IFileService _fileService;
         private IListenerService _listenerService;
-        private IBinMakerService _binMakerService;
         private ILoggerFactory _loggerFactory;
         private readonly IChangeTrackingService _changeTrackingService;
         private readonly IWebHostService _webHostService;
@@ -38,7 +37,6 @@ namespace TeamServer.Models
         public HttpListenerController(IAgentService agentService,
             IFileService fileService,
             IListenerService listenerService,
-            IBinMakerService binMakerService,
             ILoggerFactory loggerFactory,
             IChangeTrackingService changeTrackingService,
             IWebHostService webHostService,
@@ -53,7 +51,6 @@ namespace TeamServer.Models
             this._agentService=agentService;
             this._fileService = fileService;
             this._listenerService = listenerService;
-            this._binMakerService = binMakerService;
             this._loggerFactory = loggerFactory;
             this._changeTrackingService = changeTrackingService;
             this._webHostService = webHostService;

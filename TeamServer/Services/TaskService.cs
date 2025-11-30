@@ -3,9 +3,11 @@ using System.Threading.Tasks;
 using Common.Models;
 using Shared;
 using TeamServer.Database;
+using TeamServer.Services;
 
 namespace TeamServer.Service;
 
+[InjectableService]
 public interface ITaskService : IStorable
 {
     void Add(TeamServerAgentTask task);
@@ -17,6 +19,7 @@ public interface ITaskService : IStorable
     List<TeamServerAgentTask> GetForAgent(string agentId);
 }
 
+[InjectableServiceImplementation(typeof(ITaskService))]
 public class TaskService : ITaskService
 {
     private readonly IDatabaseService _dbService;

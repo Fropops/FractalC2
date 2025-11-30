@@ -20,7 +20,6 @@ namespace TeamServer.Controllers
         private readonly IAgentService _agentService;
         private readonly ITaskResultService _resultService;
         private readonly IFileService _fileService;
-        private readonly IBinMakerService _binMakerService;
         private readonly ILoggerFactory _loggerFactory;
         private readonly IChangeTrackingService _changeTrackingService;
         private readonly IWebHostService _webHostService;
@@ -30,7 +29,7 @@ namespace TeamServer.Controllers
         private readonly IServerService _serverService;
         private readonly IReversePortForwardService _reversePortForwardService;
 
-        public ListenersController(ILoggerFactory loggerFactory, IListenerService listenerService, IAgentService agentService, IFileService fileService, IBinMakerService binMakerService, IChangeTrackingService trackService,
+        public ListenersController(ILoggerFactory loggerFactory, IListenerService listenerService, IAgentService agentService, IFileService fileService, IChangeTrackingService trackService,
             IWebHostService webHostService,
             ICryptoService cryptoService,
             IAuditService auditService,
@@ -41,7 +40,6 @@ namespace TeamServer.Controllers
             this._listenerService = listenerService;
             _agentService=agentService;
             _fileService = fileService;
-            _binMakerService = binMakerService;
             _loggerFactory = loggerFactory;
             _changeTrackingService = trackService;
             _webHostService = webHostService;

@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Common.APIModels;
+using TeamServer.Services;
 
+[InjectableService]
 public interface IChangeTrackingService
 {
     List<Change> ConsumeChanges(string session);
@@ -11,6 +13,7 @@ public interface IChangeTrackingService
     void TrackChange(ChangingElement element, string id);
 }
 
+[InjectableServiceImplementation(typeof(IChangeTrackingService))]
 public class ChangeTrackingService : IChangeTrackingService
 {
     public Dictionary<string, List<Change>> TrackedChanges = new Dictionary<string, List<Change>>();

@@ -7,6 +7,7 @@ using TeamServer.Service;
 
 namespace TeamServer.Services;
 
+[InjectableService]
 public interface IWebHostService : IStorable
 {
     void Add(string path, FileWebHost file);
@@ -26,6 +27,7 @@ public interface IWebHostService : IStorable
 
 }
 
+[InjectableServiceImplementation(typeof(IWebHostService))]
 public class WebHostService : IWebHostService
 {
     private readonly IDatabaseService _dbService;

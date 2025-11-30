@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using TeamServer.Models;
+using TeamServer.Service;
 using TeamServer.Services;
 
+[InjectableService]
 public interface IUserService
 {
     User GetUser(string userId);
@@ -10,6 +12,7 @@ public interface IUserService
     void AddUser(User user);
 }
 
+[InjectableServiceImplementation(typeof(IUserService))]
 public class UserService : IUserService
 {
     private Dictionary<string, User> users = new Dictionary<string, User>();

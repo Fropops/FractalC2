@@ -10,6 +10,7 @@ using TeamServer.Forwarding;
 
 namespace TeamServer.Services
 {
+    [InjectableService]
     public interface IReversePortForwardService
     {
         Task<bool> StartClient(string id, string agentId, ReversePortForwardDestination destination);
@@ -19,6 +20,8 @@ namespace TeamServer.Services
 
         RPortFwdClient GetClientById(string id);
     }
+
+    [InjectableServiceImplementation(typeof(IReversePortForwardService))]
     public class ReversePortForwardService : IReversePortForwardService
     {
         private bool _log = false;

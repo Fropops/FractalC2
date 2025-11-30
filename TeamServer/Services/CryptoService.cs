@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace TeamServer.Services;
 
+[InjectableService]
 public interface ICryptoService
 {
     byte[] Key { get; }
@@ -16,6 +17,7 @@ public interface ICryptoService
     byte[] Decrypt(byte[] data);
 }
 
+[InjectableServiceImplementation(typeof(ICryptoService))]
 public class CryptoService : ICryptoService
 {
     private readonly IConfiguration _configService;

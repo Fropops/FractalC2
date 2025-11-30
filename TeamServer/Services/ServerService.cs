@@ -12,6 +12,7 @@ using TeamServer.Service;
 
 namespace TeamServer.Services;
 
+[InjectableService]
 public interface IServerService
 {
     IAgentService AgentService { get; }
@@ -26,6 +27,7 @@ public interface IServerService
     Task HandleInboundFrames(IEnumerable<NetFrame> frames, string relay);
 }
 
+[InjectableServiceImplementation(typeof(IServerService))]
 public class ServerService : IServerService
 {
     public IAgentService AgentService { get; }

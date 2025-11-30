@@ -8,6 +8,7 @@ using TeamServer.Forwarding;
 
 namespace TeamServer.Services
 {
+    [InjectableService]
     public interface ISocksService
     {
         Task<bool> StartProxy(string agentId, int port);
@@ -18,6 +19,8 @@ namespace TeamServer.Services
         SocksClient GetClientById(string agentId, string socksProxyId);
         List<KeyValuePair<string, SocksProxy>> GetProxies();
     }
+
+    [InjectableServiceImplementation(typeof(ISocksService))]
     public class SocksService : ISocksService
     {
         private readonly IAgentService _agentService;

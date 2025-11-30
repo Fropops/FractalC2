@@ -10,6 +10,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TeamServer.Services;
 
+[InjectableService]
 public interface IFrameService
 {
     byte[] GetData(NetFrame frame);
@@ -24,6 +25,7 @@ public interface IFrameService
     Queue<NetFrame> ExtractCachedFrame(string destination);
 }
 
+[InjectableServiceImplementation(typeof(IFrameService))]
 public class FrameService : IFrameService
 {
     private Dictionary<string, Queue<NetFrame>> _CachedFrames = new Dictionary<string, Queue<NetFrame>>();

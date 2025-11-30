@@ -10,9 +10,11 @@ using System.Threading.Tasks;
 using TeamServer.Helper;
 using TeamServer.Models;
 using TeamServer.Models.File;
+using TeamServer.Service;
 
 namespace TeamServer.Services
 {
+    [InjectableService]
     public interface IFileService
     {
         FileDescriptor GetFile(string id);
@@ -37,6 +39,8 @@ namespace TeamServer.Services
 
         public void AddAgentFileChunk(AgentFileChunck chunk);
     }
+
+    [InjectableServiceImplementation(typeof(IFileService))]
     public class FileService : IFileService
     {
         public static int ChunkSize = 500000;

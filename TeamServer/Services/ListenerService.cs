@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace TeamServer.Services
 {
+    [InjectableService]
     public interface IListenerService : IStorable
     {
         void AddListener(Listener listener);
@@ -17,12 +18,12 @@ namespace TeamServer.Services
         void RemoveListener(Listener listener);
     }
 
+    [InjectableServiceImplementation(typeof(IListenerService))]
     public class ListenerService : IListenerService
     {
         protected IAgentService _agentService;
         protected ITaskResultService _resultService;
         protected IFileService _fileService;
-        protected IBinMakerService _binMakerService;
         protected IChangeTrackingService _changeTrackingService;
         protected IWebHostService _webHostService;
         protected ICryptoService _cryptoService;
@@ -36,7 +37,6 @@ namespace TeamServer.Services
         public ListenerService(IAgentService service,
             ITaskResultService resultService,
             IFileService fileService, 
-            IBinMakerService binMakerService,
             IChangeTrackingService changeTrackingService,
             IWebHostService webHostService,
             ICryptoService cryptoService,
@@ -50,7 +50,6 @@ namespace TeamServer.Services
         {
             this._agentService = service;
             this._fileService = fileService;
-            this._binMakerService = binMakerService;
             this._changeTrackingService = changeTrackingService;
             this._webHostService = webHostService;
             this._cryptoService = cryptoService;
@@ -68,7 +67,7 @@ namespace TeamServer.Services
 
         public void AddListener(Listener listener)
         {
-            listener.Init(_agentService, _resultService, _fileService, _binMakerService, this, _changeTrackingService, _webHostService, _cryptoService, _auditService, _frameService, _serverService, _rportfwdService, _dbService, _downloadFileService, _implantService);
+            listener.Init(_agentService, _resultService, _fileService, this, _changeTrackingService, _webHostService, _cryptoService, _auditService, _frameService, _serverService, _rportfwdService, _dbService, _downloadFileService, _implantService);
             _listeners.Add(listener);
             if (listener is HttpListener httpListener)
             {
@@ -93,7 +92,7 @@ namespace TeamServer.Services
             {
                 HttpListener listener = dbHttpListener;
                 this._listeners.Add(listener);
-                listener.Init(_agentService, _resultService, _fileService, _binMakerService, this, _changeTrackingService, _webHostService, _cryptoService, _auditService, _frameService, _serverService, _rportfwdService, _dbService, _downloadFileService, _implantService);
+                listener.Init(_agentService, _resultService, _fileService, this, _changeTrackingService, _webHostService, _cryptoService, _auditService, _frameService, _serverService, _rportfwdService, _dbService, _downloadFileService, _implantService);
                 await listener.Start();
             }
         }

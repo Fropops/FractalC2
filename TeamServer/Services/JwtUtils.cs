@@ -5,27 +5,20 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
+using TeamServer.Helper;
 using TeamServer.Models;
 
-namespace TeamServer.Helper
+namespace TeamServer.Services
 {
+    [InjectableService]
     public interface IJwtUtils
     {
         public string GenerateToken(User user);
         public UserContext ValidateToken(string token);
     }
 
-    public class UserContext
-    {
-        public UserContext(User user, string session)
-        {
-            User = user;
-            Session = session;
-        }
-        public User User { get; set; }
-        public string Session { get; private set; }
-    }
 
+    [InjectableServiceImplementation(typeof(IJwtUtils))]
     public class JwtUtils : IJwtUtils
     {
         private readonly IUserService _userService;

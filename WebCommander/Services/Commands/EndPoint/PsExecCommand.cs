@@ -1,0 +1,31 @@
+using System.CommandLine;
+using System.CommandLine.Parsing;
+using WebCommander.Models;
+
+namespace WebCommander.Services.Commands.EndPoint
+{
+    public class PsExecCommand : EndPointCommand
+    {
+        public override string Name => "psexec";
+        public override string Description => "Send a path to be run as remote service";
+        public override CommandId Id => CommandId.PsExec;
+        public override string Category => CommandCategory.Execution;
+
+        protected override void AddCommandParameters(RootCommand command)
+        {
+            command.Add(new Argument<string>("target") { Description = "Target computer" });
+            command.Add(new Argument<string>("path") { Description = "Path of the service to start" });
+        }
+
+        public override Task FillParametersAsync(ParseResult result, ParameterDictionary parms)
+        {
+            var target = result.GetValue<string>("target");
+            var path = result.GetValue<string>("path");
+            
+            parms.AddParameter(ParameterId.Target, target);
+            parms.AddParameter(ParameterId.Path, path);
+            
+            return Task.CompletedTask;
+        }
+    }
+}

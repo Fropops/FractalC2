@@ -5,10 +5,13 @@ using Shared;
 namespace TeamServer.Services
 {
 
+    [InjectableService]
     public interface ITaskInterceptionService
     {
         InterceptionResult Intercept(AgentTask task);
     }
+
+    [InjectableServiceImplementation(typeof(ITaskInterceptionService))]
     public class TaskInterceptionService : ITaskInterceptionService
     {
         public List<TaskInterceptor> Interceptors { get; set; } = new List<TaskInterceptor>();

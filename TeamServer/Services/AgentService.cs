@@ -10,7 +10,7 @@ using TeamServer.Service;
 
 namespace TeamServer.Services
 {
-
+    [InjectableService]
     public interface IAgentService : IStorable
     {
         void AddAgent(Agent agent);
@@ -22,6 +22,8 @@ namespace TeamServer.Services
 
         void Checkin(Agent agent, AgentMetadata metaData = null);
     }
+
+    [InjectableServiceImplementation(typeof(IAgentService))]
     public class AgentService : IAgentService
     {
         private readonly IChangeTrackingService _changeTrackingService;

@@ -24,7 +24,6 @@ namespace TeamServer.Models
         protected IAgentService _agentService;
         protected ITaskResultService _resultService;
         protected IFileService _fileService;
-        protected IBinMakerService _binMakerService;
         protected IListenerService _listenerService;
         protected IChangeTrackingService _changeTrackingService;
         protected IWebHostService _webHostService;
@@ -57,7 +56,7 @@ namespace TeamServer.Models
 
         public void Init(IAgentService service,
             ITaskResultService resultService,
-            IFileService fileService, IBinMakerService binMakerService, IListenerService listenerService, IChangeTrackingService changeTrackingService,
+            IFileService fileService, IListenerService listenerService, IChangeTrackingService changeTrackingService,
             IWebHostService webHostService,
             ICryptoService cryptoService,
             IAuditService auditService,
@@ -70,7 +69,6 @@ namespace TeamServer.Models
         {
             this._agentService = service;
             this._fileService = fileService;
-            this._binMakerService = binMakerService;
             this._listenerService = listenerService;
             this._changeTrackingService = changeTrackingService;
             this._webHostService = webHostService;

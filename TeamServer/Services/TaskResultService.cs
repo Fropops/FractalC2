@@ -8,9 +8,10 @@ using TeamServer.Database;
 using TeamServer.Models;
 using TeamServer.Service;
 
+
 namespace TeamServer.Services
 {
-
+    [InjectableService]
     public interface ITaskResultService : IStorable
     {
         void AddTaskResult(AgentTaskResult res);
@@ -18,6 +19,7 @@ namespace TeamServer.Services
         AgentTaskResult GetAgentTaskResult(string id);
         void Remove(AgentTaskResult result);
     }
+    [InjectableServiceImplementation(typeof(ITaskResultService))]
     public class TaskResultService : ITaskResultService
     {
         private readonly IDatabaseService _dbService;

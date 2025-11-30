@@ -6,6 +6,7 @@ using TeamServer.Helper;
 
 namespace TeamServer.Services;
 
+[InjectableService]
 public interface IAuditService
 {
     void Record(AuditItem auditItem);
@@ -45,6 +46,7 @@ public enum AuditCategory
     Host,
 }
 
+[InjectableServiceImplementation(typeof(IAuditService))]
 public class AuditService : IAuditService
 {
     private readonly IConfiguration _configService;

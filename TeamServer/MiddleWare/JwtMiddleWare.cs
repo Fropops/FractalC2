@@ -3,7 +3,7 @@ namespace TeamServer.MiddleWare;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using TeamServer.Helper;
+using TeamServer.Services;
 
 public class JwtMiddleware
 {

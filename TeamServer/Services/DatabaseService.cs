@@ -7,8 +7,11 @@ using System.IO;
 using System.Threading.Tasks;
 using TeamServer.Database;
 using TeamServer.Helper;
+using TeamServer.Services;
 
 namespace TeamServer.Service;
+
+[InjectableService]
 public interface IDatabaseService
 {
     public Task<List<T>> Load<T>() where T : TeamServerDao, new();
@@ -24,6 +27,7 @@ public interface IDatabaseService
     public Task<T> Get<T>(System.Linq.Expressions.Expression<Func<T, bool>> expr) where T : TeamServerDao, new();
 }
 
+[InjectableServiceImplementation(typeof(IDatabaseService))]
 public class DatabaseService : IDatabaseService
 {
     private readonly SQLiteConnection _connection;

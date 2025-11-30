@@ -11,17 +11,19 @@ using System.Threading.Tasks;
 using TeamServer.Helper;
 using TeamServer.Models;
 using TeamServer.Models.File;
+using TeamServer.Service;
 
 namespace TeamServer.Services
 {
 
-
+    [InjectableService]
     public interface IToolsService
     {
         List<Tool> GetTools(ToolType? type = null, string filter = null);
         Tool GetTool(string name, bool withData = false);
         bool AddTool(Tool tool);
     }
+    [InjectableServiceImplementation(typeof(IToolsService))]
     public class ToolService : IToolsService
     {
         private readonly IConfiguration _configuration;

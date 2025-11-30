@@ -61,27 +61,11 @@ namespace TeamServer
 
             services.AddLogging();
 
-            services.AddSingleton<IDatabaseService, DatabaseService>();
-            services.AddSingleton<IListenerService, ListenerService>();
-            services.AddSingleton<IAgentService, AgentService>();
-            services.AddSingleton<ITaskService, TaskService>();
-            services.AddSingleton<ITaskResultService, TaskResultService>();
-            services.AddSingleton<IFileService, FileService>();
-            services.AddSingleton<IBinMakerService, BinMakerService>();
-            services.AddSingleton<ISocksService, SocksService>();
-            services.AddSingleton<IUserService, UserService>();
-            services.AddSingleton<IJwtUtils, JwtUtils>();
-            services.AddSingleton<IChangeTrackingService, ChangeTrackingService>();
-            services.AddSingleton<IWebHostService, WebHostService>();
-            services.AddSingleton<ICryptoService, CryptoService>();
-            services.AddSingleton<IAuditService, AuditService>();
-            services.AddSingleton<IFrameService, FrameService>();
-            services.AddSingleton<IServerService, ServerService>();
-            services.AddSingleton<IReversePortForwardService, ReversePortForwardService>();
-            services.AddSingleton<IDownloadFileService, DownloadFileService>();
-            services.AddSingleton<IImplantService, ImplantService>();
-            services.AddSingleton<IToolsService, ToolService>();
-            services.AddSingleton<ITaskInterceptionService, TaskInterceptionService>();
+
+            var discoveredServices = ServiceDiscovery.DiscoverInjectableServices(Assembly.GetExecutingAssembly());
+
+            foreach (var (serviceInterface, implementation) in discoveredServices)
+                services.AddSingleton(serviceInterface, implementation);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
