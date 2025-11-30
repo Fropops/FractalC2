@@ -112,13 +112,26 @@ namespace TeamServer
 
         private void LoadFromDB(IApplicationBuilder app)
         {
-            app.ApplicationServices.GetService<IListenerService>().LoadFromDB();
-            app.ApplicationServices.GetService<IAgentService>().LoadFromDB();
-            app.ApplicationServices.GetService<ITaskService>().LoadFromDB();
-            app.ApplicationServices.GetService<ITaskResultService>().LoadFromDB();
-            app.ApplicationServices.GetService<IWebHostService>().LoadFromDB();
-            app.ApplicationServices.GetService<IDownloadFileService>().LoadFromDB();
-            app.ApplicationServices.GetService<IImplantService>().LoadFromDB();
+            var assembly = Assembly.GetExecutingAssembly();
+
+            var storableInterfaceTypes = assembly.GetTypes()
+                .Where(t => t.IsInterface &&
+                           typeof(IStorable).IsAssignableFrom(t) &&
+                           t != typeof(IStorable));
+
+            foreach(var storableInterface in storableInterfaceTypes)
+            {
+                var service = app.ApplicationServices.GetService(storableInterface) as IStorable;
+                if (service != null)
+                    service.LoadFromDB();
+            }
+            //app.ApplicationServices.GetService<IListenerService>().LoadFromDB();
+            //app.ApplicationServices.GetService<IAgentService>().LoadFromDB();
+            //app.ApplicationServices.GetService<ITaskService>().LoadFromDB();
+            //app.ApplicationServices.GetService<ITaskResultService>().LoadFromDB();
+            //app.ApplicationServices.GetService<IWebHostService>().LoadFromDB();
+            //app.ApplicationServices.GetService<IDownloadFileService>().LoadFromDB();
+            //app.ApplicationServices.GetService<IImplantService>().LoadFromDB();
         }
 
 
