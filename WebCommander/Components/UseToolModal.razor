@@ -17,7 +17,8 @@
                             <option value="">Select an agent...</option>
                             @foreach (var agent in ActiveAgents)
                             {
-                                <option value="@agent.Id">@agent.Metadata?.ImplantId</option>
+                                var displayText = $"({agent.Id}) {agent.Metadata?.ImplantId} - {agent.Metadata?.Desc}";
+                                <option value="@agent.Id">@displayText</option>
                             }
                         </select>
                     </div>
@@ -82,8 +83,11 @@
             command += $" {parameters}";
         }
 
-        // Navigate to terminal with command as query parameter
-        var encodedCommand = Uri.EscapeDataString(command);
-        NavigationManager.NavigateTo($"/terminal/{selectedAgentId}?command={encodedCommand}");
+        // Navigate to terminal with command in state (no URL length limitation)
+        var navigationOptions = new NavigationOptions
+        {
+            HistoryEntryState = command
+        };
+        NavigationManager.NavigateTo($"/terminal/{selectedAgentId}", navigationOptions);
     }
 }

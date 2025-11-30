@@ -152,10 +152,6 @@
     [Parameter]
     public string AgentId { get; set; } = string.Empty;
 
-    [Parameter]
-    [SupplyParameterFromQuery(Name = "command")]
-    public string? Command { get; set; }
-
     private Agent? agent;
     private string currentCommand = string.Empty;
     private List<TerminalLine> outputLines = new();
@@ -168,6 +164,7 @@
     private List<string> commandHistory = new();
     private int historyIndex = -1;
     private bool shouldExecuteCommand = false;
+    private string? commandToExecute = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -198,10 +195,11 @@
         AgentService.OnAgentsUpdated += RefreshAgent;
         AgentService.OnAgentResult += HandleAgentResult;
 
-        // Auto-execute command if provided via query parameter
-        if (!string.IsNullOrWhiteSpace(Command))
+        // Auto-execute command if provided via navigation state
+        if (NavigationManager.HistoryEntryState is string command && !string.IsNullOrWhiteSpace(command))
         {
             shouldExecuteCommand = true;
+            commandToExecute = command;
         }
     }
 
@@ -318,11 +316,12 @@
         {
             await inputElement.FocusAsync();
 
-            // Execute command from query parameter if provided
-            if (shouldExecuteCommand && !string.IsNullOrWhiteSpace(Command))
+            // Execute command from navigation state if provided
+            if (shouldExecuteCommand && !string.IsNullOrWhiteSpace(commandToExecute))
             {
                 shouldExecuteCommand = false;
-                await ExecuteCommand(Command);
+                await ExecuteCommand(commandToExecute);
+                commandToExecute = null;
             }
         }
 
