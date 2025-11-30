@@ -152,6 +152,10 @@
     [Parameter]
     public string AgentId { get; set; } = string.Empty;
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "command")]
+    public string? Command { get; set; }
+
     private Agent? agent;
     private string currentCommand = string.Empty;
     private List<TerminalLine> outputLines = new();
@@ -163,6 +167,7 @@
     // Command history
     private List<string> commandHistory = new();
     private int historyIndex = -1;
+    private bool shouldExecuteCommand = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -192,6 +197,12 @@
 
         AgentService.OnAgentsUpdated += RefreshAgent;
         AgentService.OnAgentResult += HandleAgentResult;
+
+        // Auto-execute command if provided via query parameter
+        if (!string.IsNullOrWhiteSpace(Command))
+        {
+            shouldExecuteCommand = true;
+        }
     }
 
     private void RefreshAgent()
@@ -306,6 +317,13 @@
         if (firstRender)
         {
             await inputElement.FocusAsync();
+
+            // Execute command from query parameter if provided
+            if (shouldExecuteCommand && !string.IsNullOrWhiteSpace(Command))
+            {
+                shouldExecuteCommand = false;
+                await ExecuteCommand(Command);
+            }
         }
 
         if (shouldScrollToBottom)
@@ -411,6 +429,44 @@
         {
             // Ignore errors if element not found
         }
+    }
+
+    private async Task ExecuteCommand(string commandToSend)
+    {
+        if (string.IsNullOrWhiteSpace(commandToSend) || agent == null)
+            return;
+
+        // Add to history (at the beginning of the list)
+        commandHistory.Insert(0, commandToSend);
+        historyIndex = -1; // Reset history navigation
+
+        // Add command to output
+        AddNormal($"{agent.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
+
+        // Send command
+        var (message, error, taskId) = await CommandService.ParseAndSendAsync(commandToSend, AgentId);
+        if (!string.IsNullOrEmpty(error))
+            AddError(error);
+        if (!string.IsNullOrEmpty(message))
+            AddNormal(message);
+
+        // Track task ID if command was sent successfully
+        if (taskId != null)
+        {
+            sentTaskIds.Add(taskId);
+            // Store command name (first word)
+            var cmdName = commandToSend.Split(' ')[0];
+            taskCommands[taskId] = cmdName;
+        }
+
+        // Clear input
+        currentCommand = string.Empty;
+
+        StateHasChanged();
+
+        // Scroll to bottom
+        await ScrollToBottom();
+        await SaveHistory();
     }
 
     private void Close()

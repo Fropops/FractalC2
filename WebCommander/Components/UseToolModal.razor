@@ -1,0 +1,89 @@
+@using WebCommander.Models
+@inject NavigationManager NavigationManager
+
+@if (IsVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Use Tool with Agent</h5>
+                    <button type="button" class="btn-close" @onclick="Cancel"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Agent</label>
+                        <select class="form-select" @bind="selectedAgentId">
+                            <option value="">Select an agent...</option>
+                            @foreach (var agent in ActiveAgents)
+                            {
+                                <option value="@agent.Id">@agent.Metadata?.ImplantId</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tool</label>
+                        <input type="text" class="form-control" value="@ToolName" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Parameters (optional)</label>
+                        <textarea class="form-control" rows="3" @bind="parameters" 
+                                  placeholder="Enter parameters..."></textarea>
+                        <small class="form-text text-muted">
+                            Parameters will be passed to the inline-assembly command
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="Submit" disabled="@(!CanSubmit)">
+                        Execute
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public string ToolName { get; set; } = string.Empty;
+
+    [Parameter]
+    public List<Agent> ActiveAgents { get; set; } = new();
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private string selectedAgentId = string.Empty;
+    private string parameters = string.Empty;
+
+    private bool CanSubmit => !string.IsNullOrEmpty(selectedAgentId);
+
+    private async Task Cancel()
+    {
+        selectedAgentId = string.Empty;
+        parameters = string.Empty;
+        await OnCancel.InvokeAsync();
+    }
+
+    private void Submit()
+    {
+        if (string.IsNullOrEmpty(selectedAgentId))
+            return;
+
+        // Build the command
+        var command = $"inline-assembly {ToolName}";
+        if (!string.IsNullOrWhiteSpace(parameters))
+        {
+            command += $" {parameters}";
+        }
+
+        // Navigate to terminal with command as query parameter
+        var encodedCommand = Uri.EscapeDataString(command);
+        NavigationManager.NavigateTo($"/terminal/{selectedAgentId}?command={encodedCommand}");
+    }
+}

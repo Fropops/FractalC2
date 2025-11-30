@@ -1,7 +1,9 @@
 @page "/tools"
 @using WebCommander.Models
 @using WebCommander.Services
+@using WebCommander.Components
 @inject TeamServerClient TeamServerClient
+@inject AgentService AgentService
 @inject IJSRuntime JSRuntime
 
 <div class="container-fluid">
@@ -92,7 +94,9 @@
                                 <span class="badge bg-secondary">@tool.Type</span>
                             </td>
                             <td class="text-end">
-                                <!-- Actions will be added here later -->
+                                <button class="btn btn-sm btn-primary" @onclick="() => ShowUseToolModal(tool)">
+                                    <i class="bi bi-play-circle me-1"></i>Use with Agent
+                                </button>
                             </td>
                         </tr>
                     }
@@ -103,6 +107,10 @@
 </div>
 
 <ActionToast @ref="toast" />
+<UseToolModal IsVisible="@showModal" 
+              ToolName="@selectedTool?.Name" 
+              ActiveAgents="@GetActiveAgents()" 
+              OnCancel="@HideModal" />
 
 @code {
     private List<Tool> tools = new();
@@ -111,6 +119,8 @@
     private bool isLoading = false;
     private System.Threading.Timer? debounceTimer;
     private ActionToast toast;
+    private bool showModal = false;
+    private Tool? selectedTool = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -206,5 +216,24 @@
         {
             isLoading = false;
         }
+    }
+
+    private void ShowUseToolModal(Tool tool)
+    {
+        selectedTool = tool;
+        showModal = true;
+    }
+
+    private void HideModal()
+    {
+        showModal = false;
+        selectedTool = null;
+    }
+
+    private List<Agent> GetActiveAgents()
+    {
+        // Consider agents active if they've been seen in the last 5 minutes
+        var threshold = DateTime.UtcNow.AddMinutes(-5);
+        return AgentService.GetAgents().Where(a => a.LastSeen > threshold).ToList();
     }
 }
