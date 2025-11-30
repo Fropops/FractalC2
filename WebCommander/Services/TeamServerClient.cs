@@ -43,7 +43,7 @@ namespace WebCommander.Services
         public async Task ValidateAuthAsync()
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync("/Auth");
+            var response = await _client.GetAsync("/Session/Auth");
             response.EnsureSuccessStatusCode();
         }
 
