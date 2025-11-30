@@ -13,6 +13,7 @@ public abstract class FrameHandler
     {
         this.Server = server;
     }
+
     public abstract NetFrameType FrameType { get; }
 
     public abstract Task ProcessFrame(NetFrame frame, string relay);

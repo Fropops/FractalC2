@@ -23,7 +23,7 @@ public interface IServerService
 
     IReversePortForwardService ReversePortForwardService { get; }
     ISocksService SocksService { get; }
-    IDownloadFileService DownloadFileService { get; }
+    ILootService LootService { get; }
     Task HandleInboundFrames(IEnumerable<NetFrame> frames, string relay);
 }
 
@@ -35,7 +35,7 @@ public class ServerService : IServerService
     public IChangeTrackingService ChangeTrackingService { get; }
     public ITaskResultService TaskResultService { get; }
     public ITaskService TaskService { get; }
-    public IDownloadFileService DownloadFileService { get; }
+    public ILootService LootService { get; }
     public ISocksService SocksService { get; }
 
     public IReversePortForwardService ReversePortForwardService { get; }
@@ -47,7 +47,7 @@ public class ServerService : IServerService
         ISocksService socksService,
         IReversePortForwardService reversePortForwardService,
         ITaskService taskService,
-        IDownloadFileService downloadFileService)
+        ILootService lootService)
     {
         this.AgentService = agentService;
         this.FrameService=frameService;
@@ -56,7 +56,7 @@ public class ServerService : IServerService
         this.SocksService=socksService;
         this.ReversePortForwardService = reversePortForwardService;
         this.TaskService=taskService;
-        this.DownloadFileService=downloadFileService;
+        this.LootService = lootService;
 
         this.LoadModules();
     }
