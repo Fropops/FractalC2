@@ -81,7 +81,7 @@ namespace TeamServer.Controllers
         /// <param name="agentId">ID de l'agent</param>
         /// <param name="request">Requête contenant le nom du fichier et les données en base64</param>
         /// <returns>Confirmation de l'ajout</returns>
-        [HttpPost("lott/{agentId}/add")]
+        [HttpPost("loot/{agentId}/add")]
         [ProducesResponseType(typeof(object), 201)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> AddFile(string agentId, [FromBody] Loot loot)
@@ -118,7 +118,7 @@ namespace TeamServer.Controllers
         /// <param name="agentId">ID de l'agent</param>
         /// <param name="fileName">Nom du fichier à supprimer</param>
         /// <returns>Confirmation de la suppression</returns>
-        [HttpDelete("agent/{agentId}/{fileName}")]
+        [HttpDelete("lott/{agentId}/{fileName}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteFile(string agentId, string fileName)
@@ -144,7 +144,7 @@ namespace TeamServer.Controllers
         /// <param name="agentId">ID de l'agent</param>
         /// <param name="fileName">Nom du fichier image</param>
         /// <returns>Le thumbnail en base64 ou le fichier image directement</returns>
-        [HttpGet("lott/{agentId}/thumbnail/{fileName}")]
+        [HttpGet("loot/{agentId}/thumbnail/{fileName}")]
         [ProducesResponseType(typeof(FileContentResult), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]
@@ -157,7 +157,7 @@ namespace TeamServer.Controllers
                 if (loot == null)
                     return NotFound(new { message = $"Fichier '{fileName}' non trouvé pour l'agent '{agentId}'" });
 
-                if (loot.IsImage != "true")
+                if (!loot.IsImage)
                     return BadRequest(new { message = "Le fichier n'est pas une image" });
 
                 if (string.IsNullOrEmpty(loot.ThumbnailData))

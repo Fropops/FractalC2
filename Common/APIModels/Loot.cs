@@ -11,7 +11,7 @@ namespace Common.APIModels
         public string FileName { get; set; }
         public string AgentId { get; set; }
         public string ThumbnailData { get; set; }
-        public string IsImage { get; set; }
+        public bool IsImage { get; set; }
         public string Data { get; set; }
     }
 }

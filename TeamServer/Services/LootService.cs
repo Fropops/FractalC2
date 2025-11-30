@@ -34,7 +34,7 @@ public class LootService : ILootService
     private readonly ConcurrentDictionary<string, AgentLootCache> _cache;
     private static readonly string[] ImageExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg", ".ico" };
     private const int CacheExpirationSeconds = 30;
-    private const int ThumbnailMaxSize = 100;
+    private const int ThumbnailMaxSize = 250;
 
     public LootService(IConfiguration configuration)
     {
@@ -85,7 +85,7 @@ public class LootService : ILootService
             return null;
 
         // Générer le thumbnail si nécessaire
-        if (includeThumbnail && loot.IsImage == "true" && string.IsNullOrEmpty(loot.ThumbnailData))
+        if (includeThumbnail && loot.IsImage && string.IsNullOrEmpty(loot.ThumbnailData))
         {
             await GenerateThumbnailAsync(agentId, loot);
         }
@@ -119,7 +119,7 @@ public class LootService : ILootService
         foreach (var loot in cache.Loots)
         {
             // Générer le thumbnail si nécessaire
-            if (includeThumbnail && loot.IsImage == "true" && string.IsNullOrEmpty(loot.ThumbnailData))
+            if (includeThumbnail && loot.IsImage && string.IsNullOrEmpty(loot.ThumbnailData))
             {
                 await GenerateThumbnailAsync(agentId, loot);
             }
@@ -214,7 +214,7 @@ public class LootService : ILootService
                 {
                     FileName = fileName,
                     AgentId = agentId,
-                    IsImage = isImage ? "true" : "false",
+                    IsImage = isImage ? true : false,
                     ThumbnailData = null,
                     Data = null
                 });

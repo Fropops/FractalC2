@@ -1,0 +1,135 @@
+@using WebCommander.Models
+@using WebCommander.Services
+@inject TeamServerClient TeamServerClient
+
+@if (isVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Loot</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="lootFile" class="form-label">Select File</label>
+                        <InputFile OnChange="LoadFiles" class="form-control" id="lootFile" />
+                    </div>
+                    
+                    @if (isUploading)
+                    {
+                        <div class="progress mb-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                        </div>
+                        <p class="text-center text-muted">Uploading...</p>
+                    }
+                    
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="Close" disabled="@isUploading">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="Upload" disabled="@(!canUpload || isUploading)">
+                        Upload
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string AgentId { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnLootUploaded { get; set; }
+
+    private bool isVisible = false;
+    private bool isUploading = false;
+    private bool canUpload = false;
+    private string errorMessage = string.Empty;
+    private IBrowserFile? selectedFile;
+
+    public void Show()
+    {
+        isVisible = true;
+        Reset();
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        isVisible = false;
+        StateHasChanged();
+    }
+
+    private void Reset()
+    {
+        selectedFile = null;
+        canUpload = false;
+        isUploading = false;
+        errorMessage = string.Empty;
+    }
+
+    private void LoadFiles(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        canUpload = selectedFile != null;
+        errorMessage = string.Empty;
+    }
+
+    private async Task Upload()
+    {
+        if (selectedFile == null) return;
+
+        isUploading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            // Read file content
+            using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB limit
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            var fileBytes = memoryStream.ToArray();
+            var base64Data = Convert.ToBase64String(fileBytes);
+
+            var loot = new Loot
+            {
+                AgentId = AgentId,
+                FileName = selectedFile.Name,
+                Data = base64Data,
+                IsImage = IsImageFile(selectedFile.Name)
+            };
+
+            var success = await TeamServerClient.CreateLootAsync(AgentId, loot);
+            if (success)
+            {
+                await OnLootUploaded.InvokeAsync();
+                Close();
+            }
+            else
+            {
+                errorMessage = "Failed to upload loot.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private bool IsImageFile(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLower();
+        return new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" }.Contains(ext);
+    }
+}

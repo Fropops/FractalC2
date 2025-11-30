@@ -1,5 +1,9 @@
 @using WebCommander.Models
 @using WebCommander.Helpers
+@using WebCommander.Services
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject AgentService AgentService
 @implements IDisposable
 
 <div class="card mb-3">
@@ -8,16 +12,28 @@
             <i class="bi bi-laptop"></i> Agent: @(Agent.Metadata?.ImplantId ?? "Unknown")
         </h4>
         <div>
-            @if (ShowInteractButton && (AgentHelper.IsAgentAlive(Agent, AllAgents) ?? false))
+            @if (ActivePage != "info")
             {
-                <button class="btn btn-sm btn-primary me-2" @onclick="OnInteract">
-                    <i class="bi bi-chat-dots"></i> Interact
+                <button class="btn btn-sm btn-info me-1" @onclick="ShowInfo">
+                    <i class="bi bi-info-circle"></i> Infos
                 </button>
             }
-            @if (ShowBackButton)
+            @if (ActivePage != "tasks")
             {
-                <button class="btn btn-sm btn-secondary" @onclick="OnBack">
-                    <i class="bi bi-arrow-left"></i> @BackButtonText
+                <button class="btn btn-sm btn-success me-1" @onclick="ShowTasks">
+                    <i class="bi bi-list-task"></i> Tasks
+                </button>
+            }
+            @if (ActivePage != "loots")
+            {
+                <button class="btn btn-sm btn-secondary me-1" @onclick="ShowLoots">
+                    <i class="bi bi-folder2-open"></i> Loots
+                </button>
+            }
+            @if (ActivePage != "terminal" && (AgentHelper.IsAgentAlive(Agent, AgentService.GetAgents()) ?? false))
+            {
+                <button class="btn btn-sm btn-primary me-1" @onclick="InteractWithAgent">
+                    <i class="bi bi-chat-dots"></i> Interact
                 </button>
             }
         </div>
@@ -58,23 +74,8 @@
     [Parameter, EditorRequired]
     public Agent Agent { get; set; } = null!;
 
-    [Parameter, EditorRequired]
-    public List<Agent> AllAgents { get; set; } = new();
-
     [Parameter]
-    public bool ShowInteractButton { get; set; } = true;
-
-    [Parameter]
-    public bool ShowBackButton { get; set; } = true;
-
-    [Parameter]
-    public string BackButtonText { get; set; } = "Back";
-
-    [Parameter]
-    public EventCallback OnInteract { get; set; }
-
-    [Parameter]
-    public EventCallback OnBack { get; set; }
+    public string ActivePage { get; set; } = string.Empty;
 
     private System.Threading.Timer? _timer;
 
@@ -84,6 +85,35 @@
         {
             await InvokeAsync(StateHasChanged);
         }, null, 0, 1000);
+    }
+
+    private void ShowInfo()
+    {
+        NavigationManager.NavigateTo($"/agent-info/{Agent.Id}");
+    }
+
+    private void ShowTasks()
+    {
+        NavigationManager.NavigateTo($"/agent-tasks/{Agent.Id}");
+    }
+
+    private void ShowLoots()
+    {
+        NavigationManager.NavigateTo($"/loots/{Agent.Id}");
+    }
+
+    private void InteractWithAgent()
+    {
+        NavigationManager.NavigateTo($"/terminal/{Agent.Id}");
+    }
+
+    private async Task DeleteAgent()
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete agent {Agent.Metadata?.ImplantId ?? "Unknown"}?"))
+        {
+            await AgentService.StopAgentAsync(Agent.Id);
+            NavigationManager.NavigateTo("/agents");
+        }
     }
 
     public void Dispose()

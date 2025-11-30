@@ -1,0 +1,173 @@
+@page "/loots/{AgentId}"
+@using WebCommander.Models
+@using WebCommander.Services
+@using WebCommander.Components
+@inject TeamServerClient TeamServerClient
+@inject AgentService AgentService
+@inject ToastService ToastService
+@implements IDisposable
+
+<div class="container-fluid">
+    @if (agent != null)
+    {
+        <AgentHeader Agent="agent" ActivePage="loots" />
+    }
+
+    <div class="d-flex justify-content-between align-items-center my-3">
+        <h3>Loots</h3>
+        <div class="btn btn-success position-relative">
+            <i class="bi bi-plus-lg"></i> Add Loot
+            <InputFile OnChange="UploadFile" class="position-absolute top-0 start-0 opacity-0 w-100 h-100" style="cursor: pointer;" />
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link @(activeTab == "images" ? "active" : "")" @onclick="@(() => activeTab = "images")" style="cursor: pointer;">Images</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(activeTab == "files" ? "active" : "")" @onclick="@(() => activeTab = "files")" style="cursor: pointer;">Files</a>
+        </li>
+    </ul>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading loots...</p>
+        </div>
+    }
+    else
+    {
+        @if (activeTab == "images")
+        {
+            <LootImageGallery Loots="ImageLoots" AgentId="@AgentId" />
+        }
+        else
+        {
+            <LootFileList Loots="FileLoots" AgentId="@AgentId" OnLootDeleted="LoadLoots" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string AgentId { get; set; } = string.Empty;
+
+    private Agent? agent;
+    private List<Loot> loots = new();
+    private string activeTab = "images";
+    private bool isLoading = true;
+
+    private List<Loot> ImageLoots => loots.Where(l => l.IsImage).ToList();
+    private List<Loot> FileLoots => loots.Where(l => !l.IsImage).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAgent();
+        await LoadLoots();
+        AgentService.OnAgentsUpdated += RefreshAgent;
+    }
+
+    private async Task LoadAgent()
+    {
+        agent = AgentService.GetAgent(AgentId);
+        if (agent == null)
+        {
+            try
+            {
+                agent = await TeamServerClient.GetAgentAsync(AgentId);
+            }
+            catch
+            {
+                // Handle error
+            }
+        }
+    }
+
+    private async Task LoadLoots()
+    {
+        isLoading = true;
+        try
+        {
+            loots = await TeamServerClient.GetLootsAsync(AgentId, includeThumbnail: true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading loots: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task UploadFile(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        isLoading = true;
+        try
+        {
+            // 100MB limit
+            using var stream = file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            var fileBytes = memoryStream.ToArray();
+            var base64Data = Convert.ToBase64String(fileBytes);
+
+            var loot = new Loot
+            {
+                AgentId = AgentId,
+                FileName = file.Name,
+                Data = base64Data,
+                IsImage = IsImageFile(file.Name)
+            };
+
+            var success = await TeamServerClient.CreateLootAsync(AgentId, loot);
+            if (success)
+            {
+                await LoadLoots();
+                ToastService.ShowSuccess($"Uploaded {file.Name}", "Loot Added");
+            }
+            else
+            {
+                Console.WriteLine("Upload failed");
+                ToastService.ShowError("Upload failed", "Error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading file: {ex.Message}");
+            ToastService.ShowError($"Error uploading file: {ex.Message}", "Error");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private bool IsImageFile(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLower();
+        return new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" }.Contains(ext);
+    }
+
+    private void RefreshAgent()
+    {
+        var updatedAgent = AgentService.GetAgent(AgentId);
+        if (updatedAgent != null)
+        {
+            agent = updatedAgent;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        AgentService.OnAgentsUpdated -= RefreshAgent;
+    }
+}

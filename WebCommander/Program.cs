@@ -12,6 +12,7 @@ builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<AgentService>();
 builder.Services.AddSingleton<CommandService>();
 builder.Services.AddSingleton<TerminalHistoryService>();
+builder.Services.AddSingleton<ToastService>();
 
 builder.Services.AddHttpClient<TeamServerClient>();
 

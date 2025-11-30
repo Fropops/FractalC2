@@ -4,6 +4,8 @@
 @using WebCommander.Helpers
 @using WebCommander.Components
 @inject AgentService AgentService
+@inject ToastService ToastService
+@inject TeamServerClient TeamServerClient
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
@@ -15,14 +17,8 @@
 }
 else
 {
-    <div class="container-fluid mt-3">
-        <AgentHeader Agent="@agent" 
-                     AllAgents="@AgentService.GetAgents()"
-                     ShowInteractButton="true"
-                     ShowBackButton="true"
-                     BackButtonText="Back to Agents"
-                     OnInteract="InteractWithAgent"
-                     OnBack="Close" />
+    <div class="container-fluid">
+        <AgentHeader Agent="@agent" ActivePage="tasks" />
 
         <div class="card">
             <div class="card-header">
@@ -75,7 +71,13 @@ else
                                     <td>
                                         @if (status == AgentResultStatus.Completed || status == AgentResultStatus.Error)
                                         {
-                                            <button class="btn btn-sm btn-secondary" @onclick="() => ViewTaskResult(task.Id)">View Result</button>
+                                            <button class="btn btn-sm btn-secondary me-1" @onclick="() => ViewTaskResult(task.Id)">View Result</button>
+                                            @if (result != null && !string.IsNullOrEmpty(result.Output))
+                                            {
+                                                <button class="btn btn-sm btn-warning" @onclick="() => AddToLoot(task.Id)">
+                                                    <i class="bi bi-folder-plus"></i> Add to Loot
+                                                </button>
+                                            }
                                         }
                                     </td>
                                 </tr>
@@ -130,9 +132,39 @@ else
         NavigationManager.NavigateTo($"/task-result/{AgentId}/{taskId}");
     }
 
-    private void Close()
+    private async Task AddToLoot(string taskId)
     {
-        NavigationManager.NavigateTo("/agents");
+        var result = AgentService.GetTaskResult(taskId);
+        if (result == null || string.IsNullOrEmpty(result.Output)) return;
+
+        var fileName = $"task_{taskId}.txt";
+        var fileContent = System.Text.Encoding.UTF8.GetBytes(result.Output);
+        var base64Data = Convert.ToBase64String(fileContent);
+
+        var loot = new Loot
+        {
+            AgentId = AgentId,
+            FileName = fileName,
+            Data = base64Data,
+            IsImage = false
+        };
+
+        try
+        {
+            var success = await TeamServerClient.CreateLootAsync(AgentId, loot);
+            if (success)
+            {
+                ToastService.ShowSuccess($"Task output saved as {fileName}", "Loot Added");
+            }
+            else
+            {
+                ToastService.ShowError("Failed to add loot", "Error");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error adding loot: {ex.Message}", "Error");
+        }
     }
 
     private void InteractWithAgent()

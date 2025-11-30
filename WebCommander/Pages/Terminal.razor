@@ -19,12 +19,7 @@
     else
     {
         <div class="container-fluid">
-            <AgentHeader Agent="@agent" 
-                         AllAgents="@AgentService.GetAgents()"
-                         ShowInteractButton="false"
-                         ShowBackButton="true"
-                         BackButtonText="Close"
-                         OnBack="Close" />
+            <AgentHeader Agent="@agent" ActivePage="terminal" />
         </div>
         
         <div class="terminal-container">

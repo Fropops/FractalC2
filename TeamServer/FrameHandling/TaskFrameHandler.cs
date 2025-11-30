@@ -13,7 +13,6 @@ public class TaskFrameHandler : FrameHandler
     public override async Task ProcessFrame(NetFrame frame, string relay)
     {
         var taskOutput = await this.ExtractFrameData<AgentTaskResult>(frame);
-        var agent = this.Server.TaskResultService.GetAgentTaskResult(taskOutput.Id);
 
         var task = this.Server.TaskService.Get(taskOutput.Id);
         if(task != null && task.CommandId == CommandId.Download && taskOutput.Objects != null)
@@ -21,7 +20,7 @@ public class TaskFrameHandler : FrameHandler
             var file = await taskOutput.Objects.BinaryDeserializeAsync<DownloadFile>();
             taskOutput.Objects = null;
             if (taskOutput.Output == null) taskOutput.Output = string.Empty;
-            await this.Server.LootService.AddFileAsync(agent.Id, file.FileName, file.Data);
+            await this.Server.LootService.AddFileAsync(frame.Source, file.FileName, file.Data);
             taskOutput.Output += $"File {file.FileName} available in agent Loots" + Environment.NewLine;
 
         }
@@ -33,7 +32,7 @@ public class TaskFrameHandler : FrameHandler
             if (taskOutput.Output == null) taskOutput.Output = string.Empty;
             foreach (var file in files)
             {
-                await this.Server.LootService.AddFileAsync(agent.Id, file.FileName, file.Data);
+                await this.Server.LootService.AddFileAsync(frame.Source, file.FileName, file.Data);
                 taskOutput.Output += $"File {file.FileName} available in agent Loots" + Environment.NewLine;
             }
         }

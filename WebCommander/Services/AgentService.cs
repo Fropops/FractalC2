@@ -312,6 +312,11 @@ namespace WebCommander.Services
             return _agents.Values.ToList();
         }
 
+        public Agent? GetAgent(string id)
+        {
+            return _agents.TryGetValue(id, out var agent) ? agent : null;
+        }
+
         public List<Listener> GetListeners()
         {
             return _listeners.Values.ToList();

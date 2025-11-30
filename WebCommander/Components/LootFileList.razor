@@ -1,0 +1,120 @@
+@using WebCommander.Models
+@using WebCommander.Services
+@inject IJSRuntime JSRuntime
+@inject TeamServerClient TeamServerClient
+@inject ToastService ToastService
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>File Name</th>
+                <th style="width: 200px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var loot in Loots)
+            {
+                <tr>
+                    <td>
+                        <i class="bi bi-file-earmark me-2"></i>
+                        @loot.FileName
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-1" @onclick="() => DownloadFile(loot)" disabled="@isDownloading">
+                            @if (currentDownloadingFile == loot.FileName)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-download"></i>
+                            }
+                            Download
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteFile(loot)">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+            }
+            @if (!Loots.Any())
+            {
+                <tr>
+                    <td colspan="2" class="text-center text-muted py-4">
+                        <i class="bi bi-folder2-open mb-2" style="font-size: 1.5rem;"></i>
+                        <p class="mb-0">No files found.</p>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter]
+    public List<Loot> Loots { get; set; } = new();
+
+    [Parameter]
+    public string AgentId { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnLootDeleted { get; set; }
+
+    private bool isDownloading = false;
+    private string? currentDownloadingFile;
+
+    private async Task DownloadFile(Loot loot)
+    {
+        if (isDownloading) return;
+
+        isDownloading = true;
+        currentDownloadingFile = loot.FileName;
+        StateHasChanged();
+
+        try 
+        {
+            var fullLoot = await TeamServerClient.GetLootAsync(AgentId, loot.FileName, includeData: true, includeThumbnail: false);
+            if (fullLoot != null && !string.IsNullOrEmpty(fullLoot.Data))
+            {
+                 await JSRuntime.InvokeVoidAsync("downloadFile", fullLoot.FileName, fullLoot.Data);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error downloading file: {ex.Message}");
+            ToastService.ShowError($"Error downloading file: {ex.Message}", "Error");
+        }
+        finally
+        {
+            isDownloading = false;
+            currentDownloadingFile = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteFile(Loot loot)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {loot.FileName}?"))
+            return;
+
+        try
+        {
+            var success = await TeamServerClient.DeleteLootAsync(AgentId, loot.FileName);
+            if (success)
+            {
+                ToastService.ShowSuccess($"Deleted {loot.FileName}", "Loot Deleted");
+                await OnLootDeleted.InvokeAsync();
+            }
+            else
+            {
+                ToastService.ShowError("Failed to delete loot", "Error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting file: {ex.Message}");
+            ToastService.ShowError($"Error deleting file: {ex.Message}", "Error");
+        }
+    }
+}

@@ -15,14 +15,8 @@
 }
 else
 {
-    <div class="container-fluid mt-3">
-        <AgentHeader Agent="@agent" 
-                     AllAgents="@AgentService.GetAgents()"
-                     ShowInteractButton="true"
-                     ShowBackButton="true"
-                     BackButtonText="Back to Agents"
-                     OnInteract="InteractWithAgent"
-                     OnBack="Close" />
+    <div class="container-fluid">
+        <AgentHeader Agent="@agent" ActivePage="info" />
 
         <div class="card">
             <div class="card-header">

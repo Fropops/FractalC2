@@ -1,23 +1,26 @@
 @using WebCommander.Models
 @using WebCommander.Services
 @inject AgentService AgentService
+@inject ToastService ToastService
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
-@foreach (var notification in notifications)
+@foreach (var toast in toasts)
 {
-    <div class="toast-notification @(notification.IsVisible ? "show" : "")" 
-         style="animation-delay: @(notification.Index * 0.1)s">
-        <div class="toast-header">
-            <strong class="me-auto">🎉 New Agent</strong>
-            <button type="button" class="btn-close" @onclick="() => RemoveNotification(notification)">×</button>
+    <div class="toast-notification show" 
+         style="animation-delay: @(toast.Index * 0.1)s">
+        <div class="toast-header @GetHeaderClass(toast.Type)">
+            <strong class="me-auto">@toast.Title</strong>
+            <button type="button" class="btn-close" @onclick="() => RemoveToast(toast)">×</button>
         </div>
         <div class="toast-body">
-            <strong>Agent @(notification.Agent.Metadata?.ImplantId ?? "Unknown")</strong> just connected<br/>
-            <small>@notification.Agent.Metadata?.Desc</small>
-            <div class="mt-2 text-center">
-                <button class="btn btn-sm btn-primary" @onclick="() => InteractWithAgent(notification.Agent)">Interact</button>
-            </div>
+            @((MarkupString)toast.Message)
+            @if (toast.Agent != null)
+            {
+                <div class="mt-2 text-center">
+                    <button class="btn btn-sm btn-primary" @onclick="() => InteractWithAgent(toast.Agent)">Interact</button>
+                </div>
+            }
         </div>
     </div>
 }
@@ -54,6 +57,11 @@
         border-top-right-radius: calc(0.375rem - 1px);
     }
 
+    .toast-header.success { background-color: #d4edda; color: #155724; }
+    .toast-header.error { background-color: #f8d7da; color: #721c24; }
+    .toast-header.warning { background-color: #fff3cd; color: #856404; }
+    .toast-header.info { background-color: #d1ecf1; color: #0c5460; }
+
     .toast-body {
         padding: 0.75rem;
     }
@@ -70,6 +78,7 @@
         padding: 0;
         width: 1em;
         height: 1em;
+        margin-left: auto;
     }
 
     .btn-close:hover {
@@ -78,60 +87,73 @@
 </style>
 
 @code {
-    private class NotificationItem
+    private class ToastItem
     {
-        public Agent Agent { get; set; }
-        public bool IsVisible { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public ToastType Type { get; set; } = ToastType.Info;
+        public Agent? Agent { get; set; }
         public int Index { get; set; }
         public System.Threading.Timer? Timer { get; set; }
     }
 
-    private List<NotificationItem> notifications = new();
-    private int notificationCounter = 0;
+    private List<ToastItem> toasts = new();
+    private int toastCounter = 0;
 
     protected override void OnInitialized()
     {
         AgentService.OnNewAgent += OnNewAgent;
+        ToastService.OnShow += OnShowToast;
+    }
+
+    private void OnShowToast(ToastMessage message)
+    {
+        AddToast(message.Title, message.Message, message.Type);
     }
 
     private void OnNewAgent(Agent agent)
     {
-        var notification = new NotificationItem
-        {
-            Agent = agent,
-            IsVisible = false,
-            Index = notificationCounter++
-        };
-
-        notifications.Add(notification);
-        InvokeAsync(StateHasChanged);
-
-        // Show notification after a brief delay
-        Task.Delay(100).ContinueWith(_ =>
-        {
-            notification.IsVisible = true;
-            InvokeAsync(StateHasChanged);
-        });
-
-        // Auto-remove after 15 seconds
-        notification.Timer = new System.Threading.Timer(_ =>
-        {
-            RemoveNotification(notification);
-        }, null, TimeSpan.FromSeconds(15), Timeout.InfiniteTimeSpan);
+        AddToast("🎉 New Agent", 
+            $"<strong>Agent {agent.Metadata?.ImplantId ?? "Unknown"}</strong> just connected<br/><small>{agent.Metadata?.Desc}</small>", 
+            ToastType.Info, 
+            agent);
     }
 
-    private void RemoveNotification(NotificationItem notification)
+    private void AddToast(string title, string message, ToastType type, Agent? agent = null)
     {
-        notification.IsVisible = false;
+        var toast = new ToastItem
+        {
+            Title = title,
+            Message = message,
+            Type = type,
+            Agent = agent,
+            Index = toastCounter++
+        };
+
+        toasts.Add(toast);
         InvokeAsync(StateHasChanged);
 
-        // Remove from list after animation
-        Task.Delay(300).ContinueWith(_ =>
+        // Auto-remove after 5 seconds (15 for agents)
+        var duration = agent != null ? 15 : 5;
+        toast.Timer = new System.Threading.Timer(_ =>
         {
-            notifications.Remove(notification);
-            notification.Timer?.Dispose();
-            InvokeAsync(StateHasChanged);
+            RemoveToast(toast);
+        }, null, TimeSpan.FromSeconds(duration), Timeout.InfiniteTimeSpan);
+    }
+
+    private void RemoveToast(ToastItem toast)
+    {
+        InvokeAsync(() =>
+        {
+            toasts.Remove(toast);
+            toast.Timer?.Dispose();
+            StateHasChanged();
         });
+    }
+
+    private string GetHeaderClass(ToastType type)
+    {
+        return type.ToString().ToLower();
     }
 
     private void InteractWithAgent(Agent agent)
@@ -142,9 +164,10 @@
     public void Dispose()
     {
         AgentService.OnNewAgent -= OnNewAgent;
-        foreach (var notification in notifications)
+        ToastService.OnShow -= OnShowToast;
+        foreach (var toast in toasts)
         {
-            notification.Timer?.Dispose();
+            toast.Timer?.Dispose();
         }
     }
 }

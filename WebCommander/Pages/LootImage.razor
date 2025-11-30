@@ -1,0 +1,102 @@
+@page "/loots/{AgentId}/image/{FileName}"
+@using WebCommander.Models
+@using WebCommander.Services
+@inject TeamServerClient TeamServerClient
+@inject NavigationManager NavigationManager
+@inject ToastService ToastService
+@inject IJSRuntime JSRuntime
+
+<div class="container-fluid h-100 d-flex flex-column">
+    <div class="d-flex justify-content-between align-items-center my-3">
+        <button class="btn btn-outline-secondary" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i> Back to Loots
+        </button>
+        <h4 class="text-truncate mx-3" title="@FileName">@FileName</h4>
+        <button class="btn btn-danger" @onclick="DeleteImage">
+            <i class="bi bi-trash"></i> Delete
+        </button>
+    </div>
+
+    <div class="flex-grow-1 d-flex justify-content-center align-items-center bg-light rounded border p-3" style="min-height: 0; overflow: auto;">
+        @if (isLoading)
+        {
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        }
+        else if (loot != null && !string.IsNullOrEmpty(loot.Data))
+        {
+            <img src="data:image/png;base64,@loot.Data" alt="@loot.FileName" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+        }
+        else
+        {
+            <div class="text-center text-danger">
+                <i class="bi bi-exclamation-triangle mb-2" style="font-size: 2rem;"></i>
+                <p>Failed to load image.</p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string AgentId { get; set; } = string.Empty;
+
+    [Parameter]
+    public string FileName { get; set; } = string.Empty;
+
+    private Loot? loot;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadImage();
+    }
+
+    private async Task LoadImage()
+    {
+        isLoading = true;
+        try
+        {
+            loot = await TeamServerClient.GetLootAsync(AgentId, FileName, includeData: true, includeThumbnail: false);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading image: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo($"/loots/{AgentId}");
+    }
+
+    private async Task DeleteImage()
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {FileName}?"))
+            return;
+
+        try
+        {
+            var success = await TeamServerClient.DeleteLootAsync(AgentId, FileName);
+            if (success)
+            {
+                ToastService.ShowSuccess($"Deleted {FileName}", "Loot Deleted");
+                NavigationManager.NavigateTo($"/loots/{AgentId}");
+            }
+            else
+            {
+                ToastService.ShowError("Failed to delete loot", "Error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting image: {ex.Message}");
+            ToastService.ShowError($"Error deleting image: {ex.Message}", "Error");
+        }
+    }
+}

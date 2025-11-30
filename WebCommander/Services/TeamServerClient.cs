@@ -276,5 +276,50 @@ namespace WebCommander.Services
             var response = await _client.PostAsJsonAsync("/Tools", tool);
             return response.IsSuccessStatusCode;
         }
+
+        // Loot methods
+        public async Task<List<Loot>> GetLootsAsync(string agentId, bool includeThumbnail = true, bool includeData = false)
+        {
+            await EnsureConfiguredAsync();
+            var url = $"/loot/{agentId}?includeThumbnail={includeThumbnail}&includeData={includeData}";
+            var result = await _client.GetFromJsonAsync<List<Loot>>(url);
+            return result ?? new List<Loot>();
+        }
+
+        public async Task<Loot?> GetLootAsync(string agentId, string fileName, bool includeData = true, bool includeThumbnail = true)
+        {
+            await EnsureConfiguredAsync();
+            var url = $"/loot/{agentId}/{Uri.EscapeDataString(fileName)}?includeData={includeData}&includeThumbnail={includeThumbnail}";
+            var response = await _client.GetAsync(url);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null;
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<Loot>();
+        }
+
+        public async Task<Loot?> GetLootThumbnailAsync(string agentId, string fileName)
+        {
+            await EnsureConfiguredAsync();
+            var url = $"/loot/{agentId}/thumbnail/{Uri.EscapeDataString(fileName)}";
+            var response = await _client.GetAsync(url);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null;
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<Loot>();
+        }
+
+        public async Task<bool> CreateLootAsync(string agentId, Loot loot)
+        {
+            await EnsureConfiguredAsync();
+            var response = await _client.PostAsJsonAsync($"/loot/{agentId}/add", loot);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> DeleteLootAsync(string agentId, string fileName)
+        {
+            await EnsureConfiguredAsync();
+            var response = await _client.DeleteAsync($"/loot/{agentId}/{Uri.EscapeDataString(fileName)}");
+            return response.IsSuccessStatusCode;
+        }
     }
 }
