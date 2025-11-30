@@ -22,7 +22,6 @@ namespace TeamServer.Models
         public const string AuthorizationHeader = "Authorization";
 
         private IAgentService _agentService;
-        private IFileService _fileService;
         private IListenerService _listenerService;
         private ILoggerFactory _loggerFactory;
         private readonly IChangeTrackingService _changeTrackingService;
@@ -35,7 +34,6 @@ namespace TeamServer.Models
         private readonly IDownloadFileService _downloadFileService;
         private readonly IImplantService _implantService;
         public HttpListenerController(IAgentService agentService,
-            IFileService fileService,
             IListenerService listenerService,
             ILoggerFactory loggerFactory,
             IChangeTrackingService changeTrackingService,
@@ -49,7 +47,6 @@ namespace TeamServer.Models
             IImplantService implantService)
         {
             this._agentService=agentService;
-            this._fileService = fileService;
             this._listenerService = listenerService;
             this._loggerFactory = loggerFactory;
             this._changeTrackingService = changeTrackingService;

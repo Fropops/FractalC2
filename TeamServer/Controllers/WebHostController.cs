@@ -13,14 +13,12 @@ namespace TeamServer.Controllers
     {
         private UserContext UserContext => this.HttpContext.Items["User"] as UserContext;
 
-        private readonly IFileService _fileService;
         private readonly IListenerService _listenerService;
         private readonly IAgentService _agentService;
         private readonly IWebHostService _webHostService;
         private readonly IAuditService _auditService;
-        public WebHostController(IFileService fileService, IListenerService listenerService, IAgentService agentService, IWebHostService webHostService, IAuditService auditService)
+        public WebHostController(IListenerService listenerService, IAgentService agentService, IWebHostService webHostService, IAuditService auditService)
         {
-            _fileService = fileService;
             _listenerService = listenerService;
             _agentService = agentService;
             _webHostService = webHostService;

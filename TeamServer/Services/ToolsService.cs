@@ -9,9 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using TeamServer.Helper;
-using TeamServer.Models;
-using TeamServer.Models.File;
-using TeamServer.Service;
 
 namespace TeamServer.Services
 {

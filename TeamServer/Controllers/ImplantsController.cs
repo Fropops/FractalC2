@@ -29,7 +29,6 @@ namespace TeamServer.Controllers
     {
         private UserContext UserContext => this.HttpContext.Items["User"] as UserContext;
 
-        private readonly IFileService _fileService;
         private readonly ISocksService _socksService;
         private readonly IChangeTrackingService _changeService;
         private readonly IAuditService _auditService;
@@ -41,9 +40,8 @@ namespace TeamServer.Controllers
         private readonly IConfiguration _config;
         private readonly ICryptoService _cryptoService;
 
-        public ImplantsController(IAgentService agentService, IFileService fileService, ISocksService socksService, IChangeTrackingService changeService, IAuditService auditService, ITaskResultService agentTaskResultService, IFrameService frameService, ITaskService taskService, IImplantService implantService, IChangeTrackingService changeTrackingService, IConfiguration config, ICryptoService cryptoService)
+        public ImplantsController(IAgentService agentService, ISocksService socksService, IChangeTrackingService changeService, IAuditService auditService, ITaskResultService agentTaskResultService, IFrameService frameService, ITaskService taskService, IImplantService implantService, IChangeTrackingService changeTrackingService, IConfiguration config, ICryptoService cryptoService)
         {
-            this._fileService = fileService;
             this._socksService = socksService;
             this._changeService = changeService;
             this._auditService = auditService;

@@ -6,8 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using TeamServer.Helper;
-using TeamServer.Models;
-using TeamServer.Models.File;
 using TeamServer.Services;
 namespace TeamServer.Controllers
 {
@@ -16,13 +14,11 @@ namespace TeamServer.Controllers
     [Authorize]
     public class FilesController : ControllerBase
     {
-        private readonly IFileService _fileService;
         private readonly IListenerService _listenerService;
         private readonly IAgentService _agentService;
         private readonly IWebHostService _webHostService;
-        public FilesController(IFileService fileService, IListenerService listenerService, IAgentService agentService, IWebHostService webHostService)
+        public FilesController( IListenerService listenerService, IAgentService agentService, IWebHostService webHostService)
         {
-            _fileService = fileService;
             _listenerService = listenerService;
             _agentService = agentService;
             _webHostService = webHostService;

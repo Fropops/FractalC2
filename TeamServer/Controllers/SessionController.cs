@@ -34,6 +34,12 @@ namespace TeamServer.Controllers
             _implantService=implantService;
         }
 
+        [HttpGet("auth")]
+        public IActionResult Challenge()
+        {
+            return Ok();
+        }
+
         [HttpGet("changes")]
         public IActionResult Changes(bool history = false)
         {

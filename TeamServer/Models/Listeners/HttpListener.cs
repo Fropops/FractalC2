@@ -91,7 +91,6 @@ namespace TeamServer.Models
             //});
             services.AddSingleton(this._listenerService);
             services.AddSingleton(this._agentService);
-            services.AddSingleton(this._fileService);
             services.AddSingleton(this._changeTrackingService);
             services.AddSingleton(this._webHostService);
             services.AddSingleton(this._cryptoService);

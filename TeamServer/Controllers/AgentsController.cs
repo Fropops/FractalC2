@@ -22,7 +22,6 @@ namespace TeamServer.Controllers
         private UserContext UserContext => this.HttpContext.Items["User"] as UserContext;
 
         private readonly IAgentService _agentService;
-        private readonly IFileService _fileService;
         private readonly ISocksService _socksService;
         private readonly IChangeTrackingService _changeService;
         private readonly IAuditService _auditService;
@@ -31,10 +30,9 @@ namespace TeamServer.Controllers
         private readonly ITaskService _taskService;
         private readonly ITaskInterceptionService _taskInterceptionService;
 
-        public AgentsController(IAgentService agentService, IFileService fileService, ISocksService socksService, IChangeTrackingService changeService, IAuditService auditService, ITaskResultService agentTaskResultService, IFrameService frameService, ITaskService taskService, ITaskInterceptionService taskInterceptionService)
+        public AgentsController(IAgentService agentService, ISocksService socksService, IChangeTrackingService changeService, IAuditService auditService, ITaskResultService agentTaskResultService, IFrameService frameService, ITaskService taskService, ITaskInterceptionService taskInterceptionService)
         {
             this._agentService = agentService;
-            this._fileService = fileService;
             this._socksService = socksService;
             this._changeService = changeService;
             this._auditService = auditService;
@@ -79,21 +77,7 @@ namespace TeamServer.Controllers
         }
 
 
-        //[HttpGet("{agentId}/tasks")]
-        //public ActionResult GetTaskresults(string agentId, DateTime? from)
-        //{
-        //    var agent = this._agentService.GetAgent(agentId);
-        //    if (agent is null)
-        //        return NotFound("Agent not found");
-
-
-        //    var results = agent.GetTaskResults();
-
-        //    //if (from.HasValue)
-        //    //    results = results.Where(r => r.r)
-
-        //    return Ok(results);
-        //}
+      
 
         [HttpGet("{agentId}/tasks/{taskId}")]
         public ActionResult GetTaskresult(string agentId, string taskId)
@@ -137,17 +121,7 @@ namespace TeamServer.Controllers
             return Created(path, task);
         }
 
-        //[HttpGet("{agentId}/File")]
-        //public ActionResult RequestAgentDowload(string agentId, string fileId)
-        //{
-        //    var agent = this._agentService.GetAgent(agentId);
-        //    if (agent is null)
-        //        return NotFound();
-
-        //    agent.QueueDownload(this._fileService.GetFileChunksForAgent(fileId));
-
-        //    return Ok();
-        //}
+      
 
         [HttpDelete("{agentId}")]
         public ActionResult StopAgent(string agentId)
