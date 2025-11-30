@@ -145,12 +145,12 @@ public class LootService : ILootService
 
     public string GetAgentFilePath(string agentId, string fileName)
     {
-        return Path.Combine(_foldersConfig.WorkingFolder, "Loot", agentId, fileName);
+        return Path.Combine(_foldersConfig.LootFolder, agentId, fileName);
     }
 
     public string GetAgentPath(string agentId)
     {
-        return Path.Combine(_foldersConfig.WorkingFolder, "Loot", agentId);
+        return Path.Combine(_foldersConfig.LootFolder, agentId);
     }
 
     private async Task RefreshCacheIfNeededAsync(string agentId)
