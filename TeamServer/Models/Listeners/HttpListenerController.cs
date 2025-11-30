@@ -31,7 +31,6 @@ namespace TeamServer.Models
         private readonly ITaskResultService _agentTaskResultService;
         private readonly IFrameService _frameService;
         private readonly IServerService _serverService;
-        private readonly IDownloadFileService _downloadFileService;
         private readonly IImplantService _implantService;
         public HttpListenerController(IAgentService agentService,
             IListenerService listenerService,
@@ -43,7 +42,6 @@ namespace TeamServer.Models
             ITaskResultService agentTaskResultService,
             IFrameService frameService,
             IServerService serverService,
-            IDownloadFileService downloadFileService,
             IImplantService implantService)
         {
             this._agentService=agentService;
@@ -56,7 +54,6 @@ namespace TeamServer.Models
             this._agentTaskResultService = agentTaskResultService;
             this._frameService = frameService;
             this._serverService=serverService;
-            this._downloadFileService = downloadFileService;
             this._implantService = implantService;
         }
 

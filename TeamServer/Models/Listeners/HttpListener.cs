@@ -99,7 +99,6 @@ namespace TeamServer.Models
             services.AddSingleton(this._frameService);
             services.AddSingleton(this._serverService);
             services.AddSingleton(this._rportfwdService);
-            services.AddSingleton(this._downloadFileService);
             services.AddSingleton(this._implantService);
         }
 
