@@ -10,6 +10,7 @@ namespace WebCommander.Services.Commands.EndPoint
         public override string Name => "mkdir";
         public override string Description => "Create a folder on the agent.";
         public override CommandId Id => CommandId.MkDir;
+        public override string Category => CommandCategory.System;
 
         protected override void AddCommandParameters(RootCommand command)
         {

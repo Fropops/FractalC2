@@ -10,6 +10,7 @@ namespace WebCommander.Services.Commands
         public override string Name => "cat";
         public override string Description => "Display the content of a file.";
         public override CommandId Id => CommandId.Cat;
+        public override string Category => CommandCategory.System;
 
         protected override void AddCommandParameters(RootCommand command)
         {

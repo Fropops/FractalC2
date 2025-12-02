@@ -4,7 +4,6 @@
 * BOF Loader .Net
 
 # Web Commander
-* rework to Frame Interceptor?
 * Tools powershell & PE
 * ps / ls command reults
 

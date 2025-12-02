@@ -109,6 +109,7 @@
 <ActionToast @ref="toast" />
 <UseToolModal IsVisible="@showModal" 
               ToolName="@selectedTool?.Name" 
+              ToolType="@(selectedTool?.Type ?? ToolType.DotNet)"
               ActiveAgents="@GetActiveAgents()" 
               OnCancel="@HideModal" />
 

@@ -21,6 +21,11 @@ namespace Common.Config
         public string DonutFolder { get; set; }
         public string PythonFolder { get; set; }
 
+        public string NewTempFile()
+        {
+            return Path.Combine(this.WorkingFolder, ShortGuid.NewGuid());
+        }
+
         public void FromSection(IConfigurationSection section, bool verbose = false)
         {
             this.DBFolder = PathHelper.GetAbsolutePath(section.GetValue<string>("DBFolder", "/tmp/DB"));

@@ -26,14 +26,32 @@
                         <label class="form-label">Tool</label>
                         <input type="text" class="form-control" value="@ToolName" readonly />
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Parameters (optional)</label>
-                        <textarea class="form-control" rows="3" @bind="parameters" 
-                                  placeholder="Enter parameters..."></textarea>
-                        <small class="form-text text-muted">
-                            Parameters will be passed to the inline-assembly command
-                        </small>
-                    </div>
+                    
+                    @if (ToolType == ToolType.DotNet)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Execution Method</label>
+                            <select class="form-select" @bind="executionMethod">
+                                <option value="inline-assembly">inline-assembly (default)</option>
+                                <option value="execute-assembly">execute-assembly</option>
+                            </select>
+                            <small class="form-text text-muted">
+                                Choose how the .NET assembly should be executed
+                            </small>
+                        </div>
+                    }
+                    
+                    @if (ToolType != ToolType.Powershell)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Parameters (optional)</label>
+                            <textarea class="form-control" rows="3" @bind="parameters" 
+                                      placeholder="Enter parameters..."></textarea>
+                            <small class="form-text text-muted">
+                                @GetParameterHelpText()
+                            </small>
+                        </div>
+                    }
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
@@ -54,6 +72,9 @@
     public string ToolName { get; set; } = string.Empty;
 
     [Parameter]
+    public ToolType ToolType { get; set; }
+
+    [Parameter]
     public List<Agent> ActiveAgents { get; set; } = new();
 
     [Parameter]
@@ -61,6 +82,7 @@
 
     private string selectedAgentId = string.Empty;
     private string parameters = string.Empty;
+    private string executionMethod = "inline-assembly";
 
     private bool CanSubmit => !string.IsNullOrEmpty(selectedAgentId);
 
@@ -68,7 +90,29 @@
     {
         selectedAgentId = string.Empty;
         parameters = string.Empty;
+        executionMethod = "inline-assembly";
         await OnCancel.InvokeAsync();
+    }
+
+    private string GetParameterHelpText()
+    {
+        return ToolType switch
+        {
+            ToolType.Exe => "Parameters will be passed to the execute-pe command",
+            ToolType.DotNet => $"Parameters will be passed to the {executionMethod} command",
+            _ => "Parameters will be passed to the command"
+        };
+    }
+
+    private string GetCommandName()
+    {
+        return ToolType switch
+        {
+            ToolType.Powershell => "powershell-import",
+            ToolType.Exe => "execute-pe",
+            ToolType.DotNet => executionMethod,
+            _ => "inline-assembly"
+        };
     }
 
     private void Submit()
@@ -76,9 +120,10 @@
         if (string.IsNullOrEmpty(selectedAgentId))
             return;
 
-        // Build the command
-        var command = $"inline-assembly {ToolName}";
-        if (!string.IsNullOrWhiteSpace(parameters))
+        // Build the command based on tool type
+        var commandName = GetCommandName();
+        var command = $"{commandName} {ToolName}";
+        if (!string.IsNullOrWhiteSpace(parameters) && ToolType != ToolType.Powershell)
         {
             command += $" {parameters}";
         }

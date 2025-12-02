@@ -1,6 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using Common.Config;
+using Common.Payload;
+using Microsoft.Extensions.Configuration;
 using Shared;
+using TeamServer.Helper;
+using TeamServer.Models;
+using static Common.Payload.PayloadGenerator;
 
 namespace TeamServer.Services
 {
@@ -8,7 +15,7 @@ namespace TeamServer.Services
     [InjectableService]
     public interface ITaskInterceptionService
     {
-        InterceptionResult Intercept(AgentTask task);
+        InterceptionResult Intercept(AgentTask task, Agent agent);
     }
 
     [InjectableServiceImplementation(typeof(ITaskInterceptionService))]
@@ -16,20 +23,25 @@ namespace TeamServer.Services
     {
         public List<TaskInterceptor> Interceptors { get; set; } = new List<TaskInterceptor>();
 
+        private readonly IConfiguration _configuration;
         private readonly IToolsService _toolsService;
-        public TaskInterceptionService(IToolsService toolService)
+        public TaskInterceptionService(IToolsService toolService, IConfiguration configuration)
         {
             this._toolsService = toolService;
+            this._configuration = configuration;
+
             this.Interceptors.Add(new InlineAssemblyInterceptor(this._toolsService));
+            this.Interceptors.Add(new ExecutePEInterceptor(this._toolsService, this._configuration));
+            this.Interceptors.Add(new PowerShellImportInterceptor(this._toolsService));
         }
 
-        public InterceptionResult Intercept(AgentTask task)
+        public InterceptionResult Intercept(AgentTask task, Agent agent)
         {
             foreach(var interceptor in Interceptors)
             {
                 if(task.CommandId == interceptor.CommandId)
                 {
-                    var result = interceptor.Intercept(task);
+                    var result = interceptor.Intercept(task, agent);
                     if (!result.Success)
                         return result;
                 }
@@ -60,7 +72,7 @@ namespace TeamServer.Services
     public abstract class TaskInterceptor
     {
         public abstract CommandId CommandId { get;}
-        public abstract InterceptionResult Intercept(AgentTask task);
+        public abstract InterceptionResult Intercept(AgentTask task, Agent agent);
 
         public InterceptionResult Failed(string error)
         {
@@ -82,7 +94,7 @@ namespace TeamServer.Services
         }
         public override CommandId CommandId { get => CommandId.Assembly; }
 
-        public override InterceptionResult Intercept(AgentTask task)
+        public override InterceptionResult Intercept(AgentTask task, Agent agent)
         {
             if (!task.HasParameter(ParameterId.Name))
                 return Failed("Missing tool name");
@@ -97,5 +109,74 @@ namespace TeamServer.Services
         }
     }
 
-    
+    public class ExecutePEInterceptor : TaskInterceptor
+    {
+        private readonly IToolsService _toolsService;
+        private readonly IConfiguration _configuration;
+        private FoldersConfig _folderConfig;
+        private SpawnConfig _spawnConfig;
+        public ExecutePEInterceptor(IToolsService toolService, IConfiguration configuration)
+        {
+            _toolsService = toolService;
+            _configuration = configuration;
+
+            this._folderConfig = _configuration.FoldersConfigs();
+            this._spawnConfig = _configuration.SpawnConfigs();
+        }
+        public override CommandId CommandId { get => CommandId.ForkAndRun; }
+
+        public override InterceptionResult Intercept(AgentTask task, Agent agent)
+        {
+            if (!task.HasParameter(ParameterId.Name))
+                return Failed("Missing tool name");
+            var toolName = task.GetParameter<string>(ParameterId.Name);
+            var tool = this._toolsService.GetTool(toolName, true);
+            if (tool is null)
+                return Failed($"Tool {toolName} was not found !");
+            if (tool.Type != Common.APIModels.ToolType.Exe && tool.Type != Common.APIModels.ToolType.DotNet)
+                return Failed($"Tool {toolName} is not a valid Executable !");
+            string tmpFilePath = this._folderConfig.NewTempFile();
+            PayloadGenerator generator = new PayloadGenerator(this._folderConfig, this._spawnConfig);
+            ExecuteResult result = null;
+            if(tool.Type == Common.APIModels.ToolType.Exe)
+                result = generator.GenerateBinForExe(_toolsService.GetToolPath(tool), tmpFilePath, agent.Metadata.Architecture == "x86", task.HasParameter(ParameterId.Parameters) ? task.GetParameter<string>(ParameterId.Parameters) : null);
+            if (tool.Type == Common.APIModels.ToolType.DotNet)
+                result = generator.GenerateBinForAssembly(_toolsService.GetToolPath(tool), tmpFilePath, agent.Metadata.Architecture == "x86", task.HasParameter(ParameterId.Parameters) ? task.GetParameter<string>(ParameterId.Parameters) : null);
+
+
+            if (result.Result < 0)
+                return Failed("Unable to generate ShellCode Data." + Environment.NewLine + result.Out);
+
+            var data = File.ReadAllBytes(tmpFilePath);
+            File.Delete(tmpFilePath);
+            task.Parameters.AddParameter(ParameterId.File, data);
+            return Succeed();
+        }
+    }
+
+    public class PowerShellImportInterceptor : TaskInterceptor
+    {
+        private readonly IToolsService _toolsService;
+        public PowerShellImportInterceptor(IToolsService toolService)
+        {
+            _toolsService = toolService;
+        }
+        public override CommandId CommandId { get => CommandId.PowershellImport; }
+
+        public override InterceptionResult Intercept(AgentTask task, Agent agent)
+        {
+            if (!task.HasParameter(ParameterId.Name))
+                return Failed("Missing tool name");
+            var toolName = task.GetParameter<string>(ParameterId.Name);
+            var tool = this._toolsService.GetTool(toolName, true);
+            if (tool is null)
+                return Failed($"Tool {toolName} was not found !");
+            if (tool.Type != Common.APIModels.ToolType.Powershell)
+                return Failed($"Tool {toolName} is not a valid Powershell script !");
+            task.Parameters.AddParameter(ParameterId.File, tool.Data);
+            return Succeed();
+        }
+    }
+
+
 }

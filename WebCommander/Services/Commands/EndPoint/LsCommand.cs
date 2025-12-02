@@ -11,6 +11,7 @@ namespace WebCommander.Services.Commands
         public override string Description => "List directory contents";
         public override CommandId Id => CommandId.Ls;
         public override string[] Aliases => new[] { "dir" };
+        public override string Category => CommandCategory.System;
 
         protected override void AddCommandParameters(RootCommand command)
         {

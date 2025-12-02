@@ -11,6 +11,7 @@ namespace WebCommander.Services.Commands
         public override string Description => "Change the current working directory.";
         public override CommandId Id => CommandId.Cd;
         public override string[] Aliases => new[] { "chdir" };
+        public override string Category => CommandCategory.System;
 
         protected override void AddCommandParameters(RootCommand command)
         {

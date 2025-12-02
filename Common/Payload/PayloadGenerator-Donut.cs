@@ -62,9 +62,16 @@ namespace Common.Payload
         //    return ret;
         //}
 
-        public ExecuteResult GenerateBin(string inputPath, string outFile, bool x86, string dotNetParams = null)
+        public ExecuteResult GenerateBin(string inputPath, string outFile, bool x86, string parms = null)
         {
-            var cmd = this.FoldersConfig.DonutFolder + "/donut";
+            string executable = "donut";
+            if (OperatingSystem.IsWindows())
+            {
+                executable = "donut.exe";
+            }
+           
+
+            var cmd = Path.Combine(this.FoldersConfig.DonutFolder, executable);
 
            
             List<string> args = new List<string>();
@@ -77,13 +84,89 @@ namespace Common.Payload
                 args.Add("2");
             args.Add($"-o");
             args.Add(outFile);
-            if (!string.IsNullOrEmpty(dotNetParams))
+            if (!string.IsNullOrEmpty(parms))
             {
                 args.Add($"-p");
-                args.Add(dotNetParams);
+                args.Add(parms);
             }
             args.Add("-i");
             args.Add(inputPath);
+
+            //Console.WriteLine(String.Join(' ', args));
+
+            //string args = $"'{inputFile}' -f 1 -a 2 -o '{outFile}' -p '{listener.Ip}:{listener.BindPort}'";
+            var ret = ExecuteCommand(cmd, args, this.FoldersConfig.WorkingFolder);
+            return ret;
+        }
+
+        public ExecuteResult GenerateBinForExe(string inputPath, string outFile, bool x86, string parms = null)
+        {
+            string executable = "donut";
+            if (OperatingSystem.IsWindows())
+            {
+                executable = "donut.exe";
+            }
+
+
+            var cmd = Path.Combine(this.FoldersConfig.DonutFolder, executable);
+
+
+            List<string> args = new List<string>();
+            args.Add("-f");
+            args.Add("1");
+            args.Add("-a");
+            if (x86)
+                args.Add("1");
+            else
+                args.Add("2");
+            args.Add($"-o");
+            args.Add(outFile);
+            if (!string.IsNullOrEmpty(parms))
+            {
+                args.Add($"-p");
+                args.Add(parms);
+            }
+            args.Add("-i");
+            args.Add(inputPath);
+
+            //Console.WriteLine(String.Join(' ', args));
+
+            //string args = $"'{inputFile}' -f 1 -a 2 -o '{outFile}' -p '{listener.Ip}:{listener.BindPort}'";
+            var ret = ExecuteCommand(cmd, args, this.FoldersConfig.WorkingFolder);
+            return ret;
+        }
+
+        public ExecuteResult GenerateBinForAssembly(string inputPath, string outFile, bool x86, string parms = null)
+        {
+            string executable = "donut";
+            if (OperatingSystem.IsWindows())
+            {
+                executable = "donut.exe";
+            }
+
+
+            var cmd = Path.Combine(this.FoldersConfig.DonutFolder, executable);
+
+
+            List<string> args = new List<string>();
+            args.Add("-f");
+            args.Add("1");
+            args.Add("-a");
+            if (x86)
+                args.Add("1");
+            else
+                args.Add("2");
+            args.Add($"-o");
+            args.Add(outFile);
+            if (!string.IsNullOrEmpty(parms))
+            {
+                args.Add($"-p");
+                args.Add(parms);
+            }
+            args.Add("-i");
+            args.Add(inputPath);
+            args.Add("-x");
+            args.Add("2");
 
             //Console.WriteLine(String.Join(' ', args));
 

@@ -10,5 +10,6 @@ namespace WebCommander.Services.Commands.EndPoint
         public override string Name => "shell";
         public override string Description => "Send a command to be executed by the agent shell";
         public override CommandId Id => CommandId.Shell;
+        public override string Category => CommandCategory.Execution;
     }
 }

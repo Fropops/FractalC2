@@ -10,6 +10,7 @@ namespace WebCommander.Services.Commands
         public override string Name => "pwd";
         public override string Description => "Print the current working directory.";
         public override CommandId Id => CommandId.Pwd;
+        public override string Category => CommandCategory.System;
 
         protected override void AddCommandParameters(RootCommand command)
         {

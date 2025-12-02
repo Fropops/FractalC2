@@ -100,7 +100,7 @@ namespace TeamServer.Controllers
             var task = ser.BinaryDeserializeAsync<AgentTask>().Result;
 
 
-            var interceptionResult = this._taskInterceptionService.Intercept(task);
+            var interceptionResult = this._taskInterceptionService.Intercept(task, agent);
             if (!interceptionResult.Success)
                 return Problem(interceptionResult.Error);
           

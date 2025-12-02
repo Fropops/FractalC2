@@ -11,5 +11,6 @@ namespace WebCommander.Services.Commands.EndPoint
         public override string Description => "Send a command to be executed by the agent powershell";
         public override CommandId Id => CommandId.Powershell;
         public override string[] Aliases => new[] { "powerpick", "ps" };
+        public override string Category => CommandCategory.Execution;
     }
 }

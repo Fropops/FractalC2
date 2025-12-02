@@ -19,6 +19,8 @@ namespace TeamServer.Services
         List<Tool> GetTools(ToolType? type = null, string filter = null);
         Tool GetTool(string name, bool withData = false);
         bool AddTool(Tool tool);
+
+        string GetToolPath(Tool tool);
     }
     [InjectableServiceImplementation(typeof(IToolsService))]
     public class ToolService : IToolsService
@@ -40,8 +42,8 @@ namespace TeamServer.Services
             else
                 tools =  _tools.Where(tool => tool.Type == type).ToList();
 
-            if(!string.IsNullOrEmpty(filter))
-                tools = tools.Where(t =>t.Name.ToLower().Contains(filter.ToLower())).ToList();
+            if (!string.IsNullOrEmpty(filter))
+                tools = tools.Where(t => t.Name.ToLower().Contains(filter.ToLower())).ToList();
 
             return tools;
         }
@@ -69,11 +71,16 @@ namespace TeamServer.Services
         {
             var tool = _tools.FirstOrDefault(tool => tool.Name.ToLower() == name.ToLower());
             if (tool != null && withData)
-                tool.Data = Convert.ToBase64String(File.ReadAllBytes(GetToolPath(tool)));
+            {
+                if (tool.Type == ToolType.Powershell)
+                    tool.Data = File.ReadAllText(GetToolPath(tool));
+                else
+                    tool.Data = Convert.ToBase64String(File.ReadAllBytes(GetToolPath(tool)));
+            }
             return tool;
         }
 
-        private string GetToolPath(Tool tool)
+        public string GetToolPath(Tool tool)
         {
             return Path.Combine(Path.Combine(_configuration.FoldersConfigs().ToolsFolder, tool.Type.ToString()), tool.Name);
         }
@@ -114,6 +121,7 @@ namespace TeamServer.Services
             _tools.Add(tool);
             return true;
         }
+
 
         private static bool IsDotNetAssembly(string filePath)
         {
