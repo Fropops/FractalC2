@@ -4,7 +4,6 @@
 * BOF Loader .Net
 
 # Web Commander
-* Tools powershell & PE
 * ps / ls command reults
 
 # Commander 

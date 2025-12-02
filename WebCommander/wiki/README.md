@@ -1,32 +1,32 @@
-# FractalC2 WebCommander - Documentation Utilisateur
+# FractalC2 WebCommander - User Documentation
 
-Bienvenue dans la documentation de **FractalC2 WebCommander**, une interface web pour la gestion de votre infrastructure Command & Control.
+Welcome to the **FractalC2 WebCommander** documentation, a web interface for managing your Command & Control infrastructure.
 
-## Table des Matières
+## Table of Contents
 
-### Modules Principaux
-1. [Listeners](01-listeners.md) - Gestion des listeners HTTP/HTTPS
-2. [Implants](02-implants.md) - Création et configuration des implants
-3. [Agents](03-agents.md) - Gestion des agents connectés
-4. [Terminal](04-terminal.md) - Interface de commande interactive
-5. [Tasks](05-tasks.md) - Historique et gestion des tâches
-6. [Loots](06-loots.md) - Gestion des fichiers récupérés
-7. [Tools](07-tools.md) - Bibliothèque d'outils et scripts
-8. [Hosting](08-hosting.md) - Hébergement de fichiers
+### Main Modules
+1. [Listeners](01-listeners.md) - HTTP/HTTPS listener management
+2. [Implants](02-implants.md) - Implant creation and configuration
+3. [Agents](03-agents.md) - Connected agent management
+4. [Terminal](04-terminal.md) - Interactive command interface
+5. [Tasks](05-tasks.md) - Task history and management
+6. [Loots](06-loots.md) - Retrieved file management
+7. [Tools](07-tools.md) - Tool and script library
+8. [Hosting](08-hosting.md) - File hosting
 
-### Guides Avancés
-- [Commandes Disponibles](commands.md) - Liste complète des commandes
-- [Workflows Courants](workflows.md) - Scénarios d'utilisation typiques
-- [Conseils de Sécurité](security.md) - Bonnes pratiques
+### Advanced Guides
+- [Available Commands](commands.md) - Complete command list
+- [Common Workflows](workflows.md) - Typical usage scenarios
+- [Security Tips](security.md) - Best practices
 
-## Démarrage Rapide
+## Quick Start
 
-1. **Connexion** : Entrez l'URL du TeamServer, votre nom d'utilisateur et votre clé API
-2. **Créer un Listener** : Configurez un listener HTTP/HTTPS pour recevoir les connexions
-3. **Générer un Implant** : Créez un implant configuré pour se connecter à votre listener
-4. **Déployer** : Déployez l'implant sur la cible
-5. **Interagir** : Une fois l'agent connecté, utilisez le terminal pour envoyer des commandes
+1. **Login**: Enter the TeamServer URL, your username, and API key
+2. **Create a Listener**: Configure an HTTP/HTTPS listener to receive connections
+3. **Generate an Implant**: Create an implant configured to connect to your listener
+4. **Deploy**: Deploy the implant on the target
+5. **Interact**: Once the agent is connected, use the terminal to send commands
 
 ## Support
 
-Pour toute question ou problème, consultez la documentation détaillée de chaque module.
+For any questions or issues, consult the detailed documentation for each module.
