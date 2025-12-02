@@ -48,7 +48,7 @@ The table displays all active listeners with the following information:
 
 ### Production Listener
 - Name: `Production`
-- IP: `0.0.0.0`
+- IP: `192.168.0.45`
 - Port: `443`
 - Secured: ✅ Yes
 
