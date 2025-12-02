@@ -7,8 +7,9 @@
 
 @foreach (var toast in toasts)
 {
+    var topPosition = 80 + (toasts.IndexOf(toast) * 90); // Stack toasts vertically
     <div class="toast-notification show" 
-         style="animation-delay: @(toast.Index * 0.1)s">
+         style="top: @(topPosition)px; animation-delay: @(toast.Index * 0.1)s">
         <div class="toast-header @GetHeaderClass(toast.Type)">
             <strong class="me-auto">@toast.Title</strong>
             <button type="button" class="btn-close" @onclick="() => RemoveToast(toast)">×</button>
@@ -28,7 +29,6 @@
 <style>
     .toast-notification {
         position: fixed;
-        top: 80px;
         right: 20px;
         min-width: 300px;
         background-color: white;
@@ -39,7 +39,6 @@
         opacity: 0;
         transform: translateX(400px);
         transition: all 0.3s ease-in-out;
-        margin-bottom: 10px;
     }
 
     .toast-notification.show {
@@ -108,6 +107,7 @@
 
     private void OnShowToast(ToastMessage message)
     {
+        Console.WriteLine($"[NotificationToast] OnShowToast called: {message.Title} - {message.Message}");
         AddToast(message.Title, message.Message, message.Type);
     }
 
@@ -121,6 +121,7 @@
 
     private void AddToast(string title, string message, ToastType type, Agent? agent = null)
     {
+        Console.WriteLine($"[NotificationToast] AddToast called: {title}");
         var toast = new ToastItem
         {
             Title = title,
@@ -131,7 +132,8 @@
         };
 
         toasts.Add(toast);
-        InvokeAsync(StateHasChanged);
+        Console.WriteLine($"[NotificationToast] Total toasts: {toasts.Count}");
+        StateHasChanged();
 
         // Auto-remove after 5 seconds (15 for agents)
         var duration = agent != null ? 15 : 5;

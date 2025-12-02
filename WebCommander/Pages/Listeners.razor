@@ -4,6 +4,7 @@
 @using WebCommander.Components
 @inject TeamServerClient Api
 @inject AgentService AgentService
+@inject ToastService ToastService
 @implements IDisposable
 
 <PageTitle>Listeners</PageTitle>
@@ -110,13 +111,10 @@ else
     </div>
 }
 
-<ActionToast @ref="toast" />
-
 @code {
     private List<Listener> listeners = new();
     private bool showCreateModal = false;
     private StartHttpListenerRequest newListener = new();
-    private ActionToast toast;
 
     protected override void OnInitialized()
     {
@@ -164,11 +162,11 @@ else
         {
             await Api.StartListenerAsync(newListener);
             HideCreateModal();
-            toast.ShowSuccess($"Listener {newListener.Name} created successfully.");
+            ToastService.ShowSuccess($"Listener {newListener.Name} created successfully", "Listener Created");
         }
         catch (Exception ex)
         {
-            toast.ShowError($"Error creating listener {newListener.Name}.", ex.Message);
+            ToastService.ShowError($"Error creating listener: {ex.Message}", "Error");
             Console.WriteLine($"Error creating listener: {ex.Message}");
         }
     }
@@ -180,16 +178,16 @@ else
             var success = await AgentService.StopListenerAsync(id);
             if (success)
             {
-                toast.ShowSuccess($"Listener stopped successfully.");
+                ToastService.ShowSuccess("Listener stopped successfully", "Listener Stopped");
             }
             else
             {
-                toast.ShowError($"Failed to stop listener.");
+                ToastService.ShowError("Failed to stop listener", "Error");
             }
         }
         catch (Exception ex)
         {
-            toast.ShowError($"Error stopping listener.", ex.Message);
+            ToastService.ShowError($"Error stopping listener: {ex.Message}", "Error");
             Console.WriteLine($"Error stopping listener: {ex.Message}");
         }
     }

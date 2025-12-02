@@ -21,20 +21,22 @@
                         @loot.FileName
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-primary me-1" @onclick="() => DownloadFile(loot)" disabled="@isDownloading">
-                            @if (currentDownloadingFile == loot.FileName)
-                            {
-                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            }
-                            else
-                            {
-                                <i class="bi bi-download"></i>
-                            }
-                            Download
-                        </button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteFile(loot)">
-                            <i class="bi bi-trash"></i> Delete
-                        </button>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-primary" @onclick="() => DownloadFile(loot)" disabled="@isDownloading">
+                                @if (currentDownloadingFile == loot.FileName)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-download"></i>
+                                }
+                                Download
+                            </button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteFile(loot)">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </div>
                     </td>
                 </tr>
             }

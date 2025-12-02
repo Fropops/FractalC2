@@ -121,14 +121,51 @@ namespace WebCommander.Services
         public async Task StartListenerAsync(StartHttpListenerRequest request)
         {
             await EnsureConfiguredAsync();
-            await _client.PostAsJsonAsync("/Listeners", request);
+            var response = await _client.PostAsJsonAsync("/Listeners", request);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = response.ReasonPhrase;
+                try
+                {
+                    var errorContent = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                    if (errorContent.TryGetProperty("detail", out var detail))
+                    {
+                        errorMsg = detail.GetString();
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+                throw new Exception(errorMsg);
+            }
         }
 
         public async Task<bool> StopListenerAsync(string id)
         {
             await EnsureConfiguredAsync();
             var response = await _client.DeleteAsync($"/Listeners?id={id}");
-            return response.IsSuccessStatusCode;
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = response.ReasonPhrase;
+                try
+                {
+                    var errorContent = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                    if (errorContent.TryGetProperty("detail", out var detail))
+                    {
+                        errorMsg = detail.GetString();
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+                throw new Exception(errorMsg);
+            }
+            
+            return true;
         }
 
         public async Task StopAgentAsync(string id)

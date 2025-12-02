@@ -69,6 +69,13 @@ namespace TeamServer.Controllers
         [HttpPost]
         public IActionResult StartListener([FromBody] StartHttpListenerRequest request)
         {
+            var existingListeners = _listenerService.GetListeners();
+            if (existingListeners.Any(l => l.Name.ToLower() == request.Name.ToLower()))
+                return Problem("A listener with the same name is already running !");
+
+            if(existingListeners.Any(l => l.BindPort == request.BindPort && l.Secured != request.Secured))
+                return Problem("Not allowed to run a listener on the same port, but not with the same protocol security !");
+
             var listener = new HttpListener(request.Name, request.BindPort, request.Ip, request.Secured);
             var logger = _loggerFactory.CreateLogger($"Listener {request.Name} Start");
             _listenerService.AddListener(listener); // should be added before starting cause it is initialiezd there

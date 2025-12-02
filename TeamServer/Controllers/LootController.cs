@@ -118,7 +118,7 @@ namespace TeamServer.Controllers
         /// <param name="agentId">ID de l'agent</param>
         /// <param name="fileName">Nom du fichier à supprimer</param>
         /// <returns>Confirmation de la suppression</returns>
-        [HttpDelete("lott/{agentId}/{fileName}")]
+        [HttpDelete("loot/{agentId}/{fileName}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteFile(string agentId, string fileName)
