@@ -1,6 +1,15 @@
-* Gérer les payloads côté serveur
-* Utils repos
-* Défault action on start (commander?, teamserver?)
+# Agent
 * Pivot ?!
 * RunAsLoggedOn https://github.com/antonioCoco/RunasCs/blob/master/RunasCs.cs
 * BOF Loader .Net
+
+# Web Commander
+* rework to Frame Interceptor?
+* Tools powershell & PE
+* ps / ls command reults
+
+# Commander 
+* Big rework
+
+# Install
+Script

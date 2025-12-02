@@ -134,11 +134,35 @@ else
 
     private async Task AddToLoot(string taskId)
     {
+        var task = tasks.FirstOrDefault(t => t.Id == taskId);
         var result = AgentService.GetTaskResult(taskId);
-        if (result == null || string.IsNullOrEmpty(result.Output)) return;
+        if (result == null || string.IsNullOrEmpty(result.Output) || task == null) return;
+
+        // Build file content with metadata header
+        var header = new System.Text.StringBuilder();
+        header.AppendLine("=".PadRight(80, '='));
+        header.AppendLine("TASK OUTPUT");
+        header.AppendLine("=".PadRight(80, '='));
+        header.AppendLine();
+        header.AppendLine($"Agent ID:        {agent?.Metadata?.ImplantId ?? "Unknown"}");
+        header.AppendLine($"Hostname:        {agent?.Metadata?.Hostname ?? "Unknown"}");
+        header.AppendLine($"User:            {agent?.Metadata?.UserName ?? "Unknown"}");
+        header.AppendLine($"IP Address:      {AgentHelper.IpAsString(agent?.Metadata?.Address)}");
+        header.AppendLine($"Process:         {agent?.Metadata?.ProcessName ?? "Unknown"} (PID: {agent?.Metadata?.ProcessId})");
+        header.AppendLine();
+        header.AppendLine($"Task ID:         {taskId}");
+        header.AppendLine($"Command:         {task.Command}");
+        header.AppendLine($"Execution Date:  {task.RequestDate.ToLocalTime():yyyy-MM-dd HH:mm:ss}");
+        header.AppendLine($"Status:          {result.Status}");
+        header.AppendLine();
+        header.AppendLine("=".PadRight(80, '='));
+        header.AppendLine("OUTPUT");
+        header.AppendLine("=".PadRight(80, '='));
+        header.AppendLine();
+        header.Append(result.Output);
 
         var fileName = $"task_{taskId}.txt";
-        var fileContent = System.Text.Encoding.UTF8.GetBytes(result.Output);
+        var fileContent = System.Text.Encoding.UTF8.GetBytes(header.ToString());
         var base64Data = Convert.ToBase64String(fileContent);
 
         var loot = new Loot

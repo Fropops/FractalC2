@@ -34,7 +34,7 @@ namespace WebCommander.Services.Commands
                     parms.AddParameter(ParameterId.Parameters, actualCmdLine);
                 parms.AddParameter(ParameterId.Output, true);
                 
-                var taskId = await this._client.TaskAgent(Name, this._agentId, Id, parms);
+                var taskId = await this._client.TaskAgent(this.CommandLine, this._agentId, Id, parms);
                 return cmdResult.Succeed($"Command {this.Name} tasked to agent {this._agentId}.", taskId);
             }
             catch (Exception ex)
