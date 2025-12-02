@@ -100,21 +100,10 @@
     }
 </style>
 
+@using WebCommander.Models.ResultObjects
+@using WebCommander.Helpers
+
 @code {
-    public enum TerminalLineType
-    {
-        Normal,
-        Error,
-        Warning,
-        Info
-    }
-
-    public class TerminalLine
-    {
-        public string Text { get; set; } = string.Empty;
-        public TerminalLineType Type { get; set; } = TerminalLineType.Normal;
-    }
-
     [Parameter]
     public string AgentId { get; set; } = string.Empty;
 
@@ -125,7 +114,7 @@
     private AgentTaskResult? result;
     private List<TerminalLine> outputLines = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         task = AgentService.GetTasks().FirstOrDefault(t => t.Id == TaskId);
         result = AgentService.GetTaskResult(TaskId);
@@ -143,11 +132,37 @@
             AddInfo($"Request Date: {task.RequestDate.ToLocalTime()}");
             AddNormal("");
             
-            // Display result
-            if (!string.IsNullOrEmpty(result.Output))
+            // Check if this is an ls command with Objects data
+            if ((task.Command.StartsWith("ls") || task.Command.StartsWith("dir")) && result.Objects != null && result.Objects.Length > 0)
+            {
+                try
+                {
+                    var listResults = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
+                    if (listResults.Count > 0)
+                    {
+                        // Add table output
+                        AddLsTable(listResults);
+                    }
+                    else if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[TaskResultViewer] Error deserializing ls results: {ex.Message}");
+                    // Fallback to normal output
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+            }
+            else if (!string.IsNullOrEmpty(result.Output))
             {
                 AddNormal(result.Output);
             }
+
             if (!string.IsNullOrEmpty(result.Error))
             {
                 AddError(result.Error);
@@ -156,6 +171,23 @@
             {
                 AddInfo(result.Info);
             }
+        }
+    }
+
+    private void AddLsTable(List<ListDirectoryResult> items)
+    {
+        // Add table header
+        var header = string.Format("{0,-10} {1,-15} {2}", "Type", "Size", "Name");
+        AddInfo(header);
+        AddInfo(new string('-', 80));
+        
+        // Add each item
+        foreach (var item in items)
+        {
+            var type = item.IsFile ? "[FILE]" : "[DIR] ";
+            var size = item.IsFile ? ResultObjectHelper.FormatFileSize(item.Length) : "";
+            var line = string.Format("{0,-10} {1,-15} {2}", type, size, item.Name);
+            AddNormal(line);
         }
     }
 

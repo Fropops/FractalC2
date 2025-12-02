@@ -1,8 +1,10 @@
 @page "/terminal/{AgentId}"
 @using WebCommander.Models
+@using WebCommander.Models.ResultObjects
 @using WebCommander.Services
 @using WebCommander.Helpers
 @using WebCommander.Components
+@using System.Collections.Generic
 @inject AgentService AgentService
 @inject NavigationManager NavigationManager
 @inject CommandService CommandService
@@ -23,12 +25,13 @@
         </div>
         
         <div class="terminal-container">
-            <div class="terminal-output" @ref="terminalOutput">
-                @foreach (var line in outputLines)
-                {
-                    <div class="terminal-line @GetLineClass(line.Type)">@line.Text</div>
-                }
-            </div>
+            <TerminalOutput @ref="terminalOutputComponent" 
+                            Lines="@outputLines" 
+                            OnDownloadFile="DownloadFile"
+                            OnDeleteFile="DeleteFile"
+                            OnDeleteDirectory="DeleteDirectory"
+                            OnListDirectory="ListDirectory"
+                            OnEnterDirectory="EnterDirectory" />
             
             <div class="terminal-input-container">
                 <span class="terminal-prompt">@(agent.Metadata?.ImplantId ?? "Unknown") &gt;</span>
@@ -152,7 +155,7 @@
     private List<TerminalLine> outputLines = new();
     private HashSet<string> sentTaskIds = new();
     private Dictionary<string, string> taskCommands = new();
-    private ElementReference terminalOutput;
+    private TerminalOutput terminalOutputComponent;
     private ElementReference inputElement;
     
     // Command history
@@ -242,18 +245,9 @@
         _ = ScrollToBottom();
     }
 
-    private string GetLineClass(TerminalLineType type)
-    {
-        return type switch
-        {
-            TerminalLineType.Error => "error",
-            TerminalLineType.Warning => "warning",
-            TerminalLineType.Info => "info",
-            _ => "normal"
-        };
-    }
 
-    private void HandleAgentResult(AgentTaskResult result)
+
+    private async void HandleAgentResult(AgentTaskResult result)
     {
         Console.WriteLine($"[Terminal] Received result for task {result.Id}, Status: {result.Status}");
         
@@ -285,10 +279,37 @@
                 AddInfo("-------------------------------------------");
             }
             
-            if (!string.IsNullOrEmpty(result.Output))
+            // Check if this is an ls command with Objects data
+            if ((commandName == "ls" || commandName == "dir") && result.Objects != null && result.Objects.Length > 0)
+            {
+                try
+                {
+                    var listResults = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
+                    if (listResults.Count > 0)
+                    {
+                        // Add table output
+                        AddLsTable(listResults);
+                    }
+                    else if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Terminal] Error deserializing ls results: {ex.Message}");
+                    // Fallback to normal output
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+            }
+            else if (!string.IsNullOrEmpty(result.Output))
             {
                 AddNormal(result.Output);
             }
+            
             if (!string.IsNullOrEmpty(result.Error))
             {
                 AddError(result.Error);
@@ -301,6 +322,115 @@
         {
             Console.WriteLine($"[Terminal] Unhandled status: {result.Status}");
         }
+    }
+
+    private void AddLsTable(List<ListDirectoryResult> items)
+    {
+        // Add table header with Action column
+        var headerLine = new TerminalLine
+        {
+            Text = string.Format("{0,-10} {1,-15} {2}", "Type", "Size", "Name"),
+            Type = TerminalLineType.Info,
+            Metadata = new Dictionary<string, string>
+            {
+                { "IsLsHeader", "true" }
+            }
+        };
+        outputLines.Add(headerLine);
+        
+        var separatorLine = new TerminalLine
+        {
+            Text = new string('-', 80),
+            Type = TerminalLineType.Info,
+            Metadata = new Dictionary<string, string>
+            {
+                { "IsLsHeader", "true" }
+            }
+        };
+        outputLines.Add(separatorLine);
+        
+        // Add each item
+        foreach (var item in items)
+        {
+            var type = item.IsFile ? "[FILE]" : "[DIR] ";
+            var size = item.IsFile ? ResultObjectHelper.FormatFileSize(item.Length) : "";
+            var lineText = string.Format("{0,-10} {1,-15} {2}", type, size, item.Name);
+            
+            var line = new TerminalLine 
+            { 
+                Text = lineText, 
+                Type = TerminalLineType.Normal,
+                Metadata = new Dictionary<string, string>
+                {
+                    { "IsLsRow", "true" },
+                    { "IsFile", item.IsFile.ToString().ToLower() },
+                    { "Name", item.Name }
+                }
+            };
+
+            if (item.IsFile)
+            {
+                line.Metadata["FileSize"] = item.Length.ToString();
+            }
+
+            outputLines.Add(line);
+        }
+        
+        _ = SaveHistory();
+        _ = ScrollToBottom();
+    }
+
+    private async Task DownloadFile(Dictionary<string, string> metadata)
+    {
+        if (metadata == null || !metadata.TryGetValue("Name", out var fileName))
+            return;
+        
+        var command = $"download \"{fileName}\"";
+        await ExecuteCommand(command);
+    }
+
+    private async Task DeleteFile(Dictionary<string, string> metadata)
+    {
+        if (metadata == null || !metadata.TryGetValue("Name", out var fileName))
+            return;
+
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the file '{fileName}'?");
+        if (!confirmed)
+            return;
+
+        var command = $"del \"{fileName}\"";
+        await ExecuteCommand(command);
+    }
+
+    private async Task DeleteDirectory(Dictionary<string, string> metadata)
+    {
+        if (metadata == null || !metadata.TryGetValue("Name", out var dirName))
+            return;
+
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the directory '{dirName}'?");
+        if (!confirmed)
+            return;
+
+        var command = $"rmdir \"{dirName}\"";
+        await ExecuteCommand(command);
+    }
+
+    private async Task ListDirectory(Dictionary<string, string> metadata)
+    {
+        if (metadata == null || !metadata.TryGetValue("Name", out var dirName))
+            return;
+
+        var command = $"ls \"{dirName}\"";
+        await ExecuteCommand(command);
+    }
+
+    private async Task EnterDirectory(Dictionary<string, string> metadata)
+    {
+        if (metadata == null || !metadata.TryGetValue("Name", out var dirName))
+            return;
+
+        var command = $"cd \"{dirName}\"";
+        await ExecuteCommand(command);
     }
 
     private bool shouldScrollToBottom = false;
@@ -413,15 +543,9 @@
 
     private async Task ScrollToBottom()
     {
-        try
+        if (terminalOutputComponent != null)
         {
-            await Task.Delay(10);
-            await JSRuntime.InvokeVoidAsync("eval", 
-                "document.querySelector('.terminal-output').scrollTop = document.querySelector('.terminal-output').scrollHeight");
-        }
-        catch
-        {
-            // Ignore errors if element not found
+            await terminalOutputComponent.ScrollToBottom(JSRuntime);
         }
     }
 

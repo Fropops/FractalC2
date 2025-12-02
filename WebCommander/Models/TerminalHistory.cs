@@ -12,6 +12,7 @@ namespace WebCommander.Models
     {
         public string Text { get; set; } = string.Empty;
         public TerminalLineType Type { get; set; } = TerminalLineType.Normal;
+        public Dictionary<string, string>? Metadata { get; set; }
     }
 
     public class TerminalHistory

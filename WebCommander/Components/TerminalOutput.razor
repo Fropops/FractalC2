@@ -1,0 +1,204 @@
+@using WebCommander.Models
+@using WebCommander.Helpers
+
+<style>
+    .ls-action-btn {
+        background: transparent;
+        border: 1px solid #6c757d;
+        color: #adb5bd;
+        font-size: 12px;
+        padding: 0;
+        width: 50px;
+        height: 18px;
+        line-height: 16px;
+        text-align: center;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: all 0.2s;
+    }
+    
+    .ls-action-btn:hover {
+        background: #495057;
+        border-color: #adb5bd;
+    }
+    
+    .ls-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: #2d2d30;
+        border: 1px solid #3e3e42;
+        border-radius: 4px;
+        min-width: 130px;
+        margin-top: 2px;
+        z-index: 2000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        padding: 2px 0;
+    }
+    
+    .ls-dropdown-item {
+        display: block;
+        padding: 3px 10px;
+        color: #d4d4d4;
+        text-decoration: none;
+        font-size: 12px;
+        line-height: 16px;
+        cursor: pointer;
+        transition: background 0.15s;
+        white-space: nowrap;
+    }
+    
+    .ls-dropdown-item:hover {
+        background: #3e3e42;
+    }
+    
+    .ls-dropdown-item.danger {
+        color: #f48771;
+    }
+    
+    .ls-dropdown-divider {
+        height: 1px;
+        background: #3e3e42;
+        margin: 2px 0;
+    }
+</style>
+
+<div class="terminal-output" @ref="terminalOutput">
+    @foreach (var line in Lines)
+    {
+        <div class="terminal-line @GetLineClass(line.Type)">
+            @if (line.Metadata != null && line.Metadata.ContainsKey("IsLsHeader") && line.Metadata["IsLsHeader"] == "true")
+            {
+                <div class="d-flex align-items-center">
+                    <div style="width: 50px; margin-right: 8px;">
+                        <strong>Action</strong>
+                    </div>
+                    <span>@line.Text</span>
+                </div>
+            }
+            else if (line.Metadata != null && line.Metadata.ContainsKey("IsLsRow") && line.Metadata["IsLsRow"] == "true")
+            {
+                <div class="d-flex align-items-center">
+                    <div style="position: relative; width: 50px; margin-right: 8px;">
+                        <button class="ls-action-btn" @onclick="() => ToggleDropdown(line)">▼</button>
+                        @if (openDropdownLine == line)
+                        {
+                            <div class="ls-dropdown" @onclick:stopPropagation="true">
+                                @if (line.Metadata.ContainsKey("IsFile") && line.Metadata["IsFile"] == "true")
+                                {
+                                    <a class="ls-dropdown-item" href="#" @onclick="async () => { await OnDownloadFile.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                        <i class="bi bi-download me-2"></i>Download
+                                    </a>
+                                    <div class="ls-dropdown-divider"></div>
+                                    <a class="ls-dropdown-item danger" href="#" @onclick="async () => { await OnDeleteFile.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                        <i class="bi bi-trash me-2"></i>Delete
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a class="ls-dropdown-item" href="#" @onclick="async () => { await OnListDirectory.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                        <i class="bi bi-list-ul me-2"></i>List
+                                    </a>
+                                    <a class="ls-dropdown-item" href="#" @onclick="async () => { await OnEnterDirectory.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                        <i class="bi bi-arrow-return-right me-2"></i>Enter
+                                    </a>
+                                    <div class="ls-dropdown-divider"></div>
+                                    <a class="ls-dropdown-item danger" href="#" @onclick="async () => { await OnDeleteDirectory.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                        <i class="bi bi-trash me-2"></i>Delete
+                                    </a>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <span>@line.Text</span>
+                </div>
+            }
+            else
+            {
+                @line.Text
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<TerminalLine> Lines { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Dictionary<string, string>> OnDownloadFile { get; set; }
+
+    [Parameter]
+    public EventCallback<Dictionary<string, string>> OnDeleteFile { get; set; }
+
+    [Parameter]
+    public EventCallback<Dictionary<string, string>> OnDeleteDirectory { get; set; }
+
+    [Parameter]
+    public EventCallback<Dictionary<string, string>> OnListDirectory { get; set; }
+
+    [Parameter]
+    public EventCallback<Dictionary<string, string>> OnEnterDirectory { get; set; }
+
+    private ElementReference terminalOutput;
+    private int _lastCount = 0;
+    private TerminalLine? openDropdownLine = null;
+
+    protected override bool ShouldRender()
+    {
+        // Always render if dropdown state changed
+        // Otherwise, only render if the number of lines has changed
+        if (Lines.Count != _lastCount)
+        {
+            _lastCount = Lines.Count;
+            return true;
+        }
+        
+        // Allow render for dropdown state changes
+        return true;
+    }
+
+    private void ToggleDropdown(TerminalLine line)
+    {
+        if (openDropdownLine == line)
+        {
+            openDropdownLine = null;
+        }
+        else
+        {
+            openDropdownLine = line;
+        }
+        StateHasChanged();
+    }
+
+    private void CloseDropdown()
+    {
+        openDropdownLine = null;
+        StateHasChanged();
+    }
+
+    private string GetLineClass(TerminalLineType type)
+    {
+        return type switch
+        {
+            TerminalLineType.Error => "error",
+            TerminalLineType.Warning => "warning",
+            TerminalLineType.Info => "info",
+            _ => "normal"
+        };
+    }
+    
+    public async Task ScrollToBottom(IJSRuntime jsRuntime)
+    {
+        try
+        {
+            await Task.Delay(10);
+            await jsRuntime.InvokeVoidAsync("eval", 
+                "document.querySelector('.terminal-output').scrollTop = document.querySelector('.terminal-output').scrollHeight");
+        }
+        catch
+        {
+            // Ignore errors if element not found
+        }
+    }
+}

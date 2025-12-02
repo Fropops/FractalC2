@@ -1,0 +1,39 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using BinarySerializer;
+using MiscUtil.IO;
+using WebCommander.Models.ResultObjects;
+
+namespace WebCommander.Helpers
+{
+    public static class ResultObjectHelper
+    {
+        public static async Task<List<ListDirectoryResult>> DeserializeListDirectoryResults(byte[] data)
+        {
+            if (data == null || data.Length == 0)
+                return new List<ListDirectoryResult>();
+
+            try 
+            {
+                return await data.BinaryDeserializeAsync<List<ListDirectoryResult>>();
+            }
+            catch
+            {
+                return new List<ListDirectoryResult>();
+            }
+        }
+
+        public static string FormatFileSize(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            double len = bytes;
+            int order = 0;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len = len / 1024;
+            }
+            return $"{len:0.##} {sizes[order]}";
+        }
+    }
+}
