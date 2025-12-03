@@ -113,6 +113,32 @@
                     <span>@line.Text</span>
                 </div>
             }
+            else if (line.Metadata != null && line.Metadata.ContainsKey("IsPsHeader") && line.Metadata["IsPsHeader"] == "true")
+            {
+                <div class="d-flex align-items-center">
+                    <div style="width: 50px; margin-right: 8px;">
+                        <strong>Action</strong>
+                    </div>
+                    <span>@line.Text</span>
+                </div>
+            }
+            else if (line.Metadata != null && line.Metadata.ContainsKey("IsPsRow") && line.Metadata["IsPsRow"] == "true")
+            {
+                <div class="d-flex align-items-center">
+                    <div style="position: relative; width: 50px; margin-right: 8px;">
+                        <button class="ls-action-btn" @onclick="() => ToggleDropdown(line)">▼</button>
+                        @if (openDropdownLine == line)
+                        {
+                            <div class="ls-dropdown" @onclick:stopPropagation="true">
+                                <a class="ls-dropdown-item" href="#" @onclick="async () => { await OnMigrateProcess.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                    <i class="bi bi-arrow-right-circle me-2"></i>Migrate here
+                                </a>
+                            </div>
+                        }
+                    </div>
+                    <span style="@(line.Metadata.ContainsKey("IsCurrentProcess") && line.Metadata["IsCurrentProcess"] == "true" ? "color: #dcdcaa;" : "")">@line.Text</span>
+                </div>
+            }
             else
             {
                 @line.Text
@@ -139,6 +165,9 @@
 
     [Parameter]
     public EventCallback<Dictionary<string, string>> OnEnterDirectory { get; set; }
+
+    [Parameter]
+    public EventCallback<Dictionary<string, string>> OnMigrateProcess { get; set; }
 
     private ElementReference terminalOutput;
     private int _lastCount = 0;

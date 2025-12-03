@@ -158,6 +158,33 @@
                     }
                 }
             }
+
+            // Check if this is a ps command with Objects data
+            else if ((task.Command.StartsWith("ps") || task.Command.StartsWith("powerpick")) && result.Objects != null && result.Objects.Length > 0)
+            {
+                try
+                {
+                    var processResults = await ResultObjectHelper.DeserializeListProcessResults(result.Objects);
+                    if (processResults.Count > 0)
+                    {
+                        // Add process tree output
+                        AddPsTable(processResults);
+                    }
+                    else if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[TaskResultViewer] Error deserializing ps results: {ex.Message}");
+                    // Fallback to normal output
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+            }
             else if (!string.IsNullOrEmpty(result.Output))
             {
                 AddNormal(result.Output);
@@ -188,6 +215,53 @@
             var size = item.IsFile ? ResultObjectHelper.FormatFileSize(item.Length) : "";
             var line = string.Format("{0,-10} {1,-15} {2}", type, size, item.Name);
             AddNormal(line);
+        }
+    }
+
+    private void AddPsTable(List<ListProcessResult> processes)
+    {
+        // Add table header
+        var header = string.Format("{0,-6} {1,-6} {2,-30} {3,-10} {4,-20} {5}", "PID", "PPID", "Name", "Arch", "Owner", "Session");
+        AddInfo(header);
+        AddInfo(new string('-', 100));
+        
+        // Build process tree
+        var processDict = processes.ToDictionary(p => p.Id, p => p);
+        var rootProcesses = processes.Where(p => !processDict.ContainsKey(p.ParentId)).OrderBy(p => p.Id).ToList();
+        
+        // Render tree
+        foreach (var rootProcess in rootProcesses)
+        {
+            AddProcessTreeNode(rootProcess, processDict, 0);
+        }
+    }
+
+    private void AddProcessTreeNode(ListProcessResult process, Dictionary<int, ListProcessResult> processDict, int depth)
+    {
+        var indent = new string(' ', depth * 2);
+        var maxNameLength = 30;
+        var indentedName = indent + process.Name;
+        
+        if (indentedName.Length > maxNameLength)
+        {
+            indentedName = indentedName.Substring(0, maxNameLength);
+        }
+
+        var lineText = string.Format("{0,-6} {1,-6} {2,-30} {3,-10} {4,-20} {5}", 
+            process.Id, 
+            process.ParentId, 
+            indentedName,
+            process.Arch ?? "",
+            process.Owner ?? "",
+            process.SessionId);
+        
+        AddNormal(lineText);
+
+        // Add children
+        var children = processDict.Values.Where(p => p.ParentId == process.Id).OrderBy(p => p.Id).ToList();
+        foreach (var child in children)
+        {
+            AddProcessTreeNode(child, processDict, depth + 1);
         }
     }
 

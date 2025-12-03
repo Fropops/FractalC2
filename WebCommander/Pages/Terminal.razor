@@ -31,7 +31,8 @@
                             OnDeleteFile="DeleteFile"
                             OnDeleteDirectory="DeleteDirectory"
                             OnListDirectory="ListDirectory"
-                            OnEnterDirectory="EnterDirectory" />
+                            OnEnterDirectory="EnterDirectory"
+                            OnMigrateProcess="MigrateProcess" />
             
             <div class="terminal-input-container">
                 <span class="terminal-prompt">@(agent.Metadata?.ImplantId ?? "Unknown") &gt;</span>
@@ -305,6 +306,32 @@
                     }
                 }
             }
+            // Check if this is a ps command with Objects data
+            else if (commandName == "ps" && result.Objects != null && result.Objects.Length > 0)
+            {
+                try
+                {
+                    var processResults = await ResultObjectHelper.DeserializeListProcessResults(result.Objects);
+                    if (processResults.Count > 0)
+                    {
+                        // Add process tree output
+                        AddPsTable(processResults);
+                    }
+                    else if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Terminal] Error deserializing ps results: {ex.Message}");
+                    // Fallback to normal output
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+            }
             else if (!string.IsNullOrEmpty(result.Output))
             {
                 AddNormal(result.Output);
@@ -344,7 +371,7 @@
             Type = TerminalLineType.Info,
             Metadata = new Dictionary<string, string>
             {
-                { "IsLsHeader", "true" }
+                { "IsLsHeader", "false" }
             }
         };
         outputLines.Add(separatorLine);
@@ -378,6 +405,91 @@
         
         _ = SaveHistory();
         _ = ScrollToBottom();
+    }
+
+    private void AddPsTable(List<ListProcessResult> processes)
+    {
+        // Add table header with Action column
+        var headerLine = new TerminalLine
+        {
+            Text = string.Format("{0,-6} {1,-6} {2,-30} {3,-10} {4,-20} {5}", "PID", "PPID", "Name", "Arch", "Owner", "Session"),
+            Type = TerminalLineType.Info,
+            Metadata = new Dictionary<string, string>
+            {
+                { "IsPsHeader", "true" }
+            }
+        };
+        outputLines.Add(headerLine);
+        
+        var separatorLine = new TerminalLine
+        {
+            Text = new string('-', 100),
+            Type = TerminalLineType.Info,
+            Metadata = new Dictionary<string, string>
+            {
+                { "IsPsHeader", "false" }
+            }
+        };
+        outputLines.Add(separatorLine);
+        
+        // Build process tree
+        var processDict = processes.ToDictionary(p => p.Id, p => p);
+        var rootProcesses = processes.Where(p => !processDict.ContainsKey(p.ParentId)).OrderBy(p => p.Id).ToList();
+        
+        // Render tree
+        foreach (var rootProcess in rootProcesses)
+        {
+            AddProcessTreeNode(rootProcess, processDict, 0);
+        }
+        
+        _ = SaveHistory();
+        _ = ScrollToBottom();
+    }
+
+    private void AddProcessTreeNode(ListProcessResult process, Dictionary<int, ListProcessResult> processDict, int depth)
+    {
+        var indent = new string(' ', depth * 2);
+        var maxNameLength = 30;
+        var indentedName = indent + process.Name;
+        
+        if (indentedName.Length > maxNameLength)
+        {
+            indentedName = indentedName.Substring(0, maxNameLength);
+        }
+
+        var lineText = string.Format("{0,-6} {1,-6} {2,-30} {3,-10} {4,-20} {5}", 
+            process.Id, 
+            process.ParentId, 
+            indentedName,
+            process.Arch ?? "",
+            process.Owner ?? "",
+            process.SessionId);
+        
+        var line = new TerminalLine
+        {
+            Text = lineText,
+            Type = TerminalLineType.Normal,
+            Metadata = new Dictionary<string, string>
+            {
+                { "IsPsRow", "true" },
+                { "ProcessId", process.Id.ToString() },
+                { "ProcessName", process.Name }
+            }
+        };
+
+        if (agent != null && agent.Metadata != null && agent.Metadata.ProcessId == process.Id)
+        {
+            line.Metadata["IsCurrentProcess"] = "true";
+        }
+
+        outputLines.Add(line);
+
+        // Add children
+        var children = processDict.Values.Where(p => p.ParentId == process.Id).OrderBy(p => p.Id).ToList();
+        foreach (var child in children)
+        {
+            AddProcessTreeNode(child, processDict, depth + 1);
+        }
     }
 
     private async Task DownloadFile(Dictionary<string, string> metadata)
@@ -432,6 +544,18 @@
         var command = $"cd \"{dirName}\"";
         await ExecuteCommand(command);
     }
+
+    private async Task MigrateProcess(Dictionary<string, string> metadata)
+    {
+        if (metadata == null || !metadata.TryGetValue("ProcessId", out var processId))
+            return;
+
+        // TODO: Implement process migration
+        AddInfo($"Migrate to process {processId} - Not yet implemented");
+        await Task.CompletedTask;
+    }
+
+
 
     private bool shouldScrollToBottom = false;
 
@@ -496,6 +620,17 @@
             commandHistory.Insert(0, commandToSend);
             historyIndex = -1; // Reset history navigation
             
+            // Clear input
+            currentCommand = string.Empty;
+
+            // Handle client-side commands
+            if (commandToSend.Trim().ToLower() == "clear" || commandToSend.Trim().ToLower() == "cls")
+            {
+                await ClearTerminal();
+                StateHasChanged();
+                return;
+            }
+            
             // Add command to output
             AddNormal($"{agent?.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
             
@@ -515,15 +650,28 @@
                 taskCommands[taskId] = cmdName;
             }
             
-            // Clear input
-            currentCommand = string.Empty;
-            
             StateHasChanged();
             
             // Scroll to bottom
             await ScrollToBottom();
             await SaveHistory();
         }
+    }
+
+    private async Task ClearTerminal()
+    {
+        outputLines.Clear();
+        
+        if (agent != null)
+        {
+            AddInfo($"Connected to agent {agent.Metadata?.ImplantId ?? "Unknown"}");
+            AddInfo($"User: {agent.Metadata?.Desc}");
+            AddInfo($"Architecture: {agent.Metadata?.Architecture}");
+            AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
+            AddNormal("");
+        }
+        
+        await SaveHistory();
     }
 
     private async Task SaveHistory()

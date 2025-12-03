@@ -23,6 +23,21 @@ namespace WebCommander.Helpers
             }
         }
 
+        public static async Task<List<ListProcessResult>> DeserializeListProcessResults(byte[] data)
+        {
+            if (data == null || data.Length == 0)
+                return new List<ListProcessResult>();
+
+            try 
+            {
+                return await data.BinaryDeserializeAsync<List<ListProcessResult>>();
+            }
+            catch
+            {
+                return new List<ListProcessResult>();
+            }
+        }
+
         public static string FormatFileSize(long bytes)
         {
             string[] sizes = { "B", "KB", "MB", "GB", "TB" };
