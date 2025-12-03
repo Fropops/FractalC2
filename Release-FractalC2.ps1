@@ -99,7 +99,7 @@ function Update-ProjectVersion {
 
 function Release-FractalC2 {
     param(
-        [ValidateSet("All","TeamServer","Commander","Agent", "DebugAgent")]
+        [ValidateSet("All","TeamServer","Commander","Agent", "DebugAgent", "WebCommander")]
         [string]$Target = "All",
         [ValidateSet("major","minor","patch","revision")]
         [string]$IncrementPart = "patch"
@@ -230,7 +230,7 @@ function Release-FractalC2 {
             /p:WebPublishMethod=FileSystem `
             /p:PublishProvider=FileSystem `
             /p:PublishDir="$baseDir\Release\TeamServer" `
-            /p:TargetFramework=net7.0
+            /p:TargetFramework=net8.0
 
         Remove-Item "$baseDir\Release\TeamServer\appsettings.*" -Force -ErrorAction SilentlyContinue
         Copy-Item "$baseDir\TeamServer\appsettings.release.json" "$baseDir\Release\TeamServer\appsettings.json" -Force
@@ -238,7 +238,7 @@ function Release-FractalC2 {
     }
 
     # --- Partie Commander ---
-    if ($Target -in @("All","Commander")) {
+    if ($Target -in @("Commander")) {
         Write-Host "Mise à jour de la version de Commander..."
         Update-ProjectVersion -ProjectPath "$baseDir\Commander\Commander.csproj" -IncrementPart $IncrementPart
 
@@ -252,13 +252,37 @@ function Release-FractalC2 {
             /p:PublishProtocol=FileSystem `
             /p:PublishProvider=FileSystem `
             /p:PublishDir="$baseDir\Release\Commander" `
-            /p:TargetFramework=net7.0 `
+            /p:TargetFramework=net8.0 `
             /p:PublishSingleFile=false `
             /p:PublishTrimmed=false
 
         Remove-Item "$baseDir\Release\Commander\appsettings.*" -Force -ErrorAction SilentlyContinue
         Copy-Item "$baseDir\Commander\appsettings.release.json" "$baseDir\Release\Commander\appsettings.json" -Force
         Zip-Target -targetName "Commander" -sourceDir "$baseDir\Release\Commander"
+    }
+	
+	# --- Partie Commander ---
+    if ($Target -in @("All","WebCommander")) {
+        Write-Host "Mise à jour de la version de Commander..."
+        Update-ProjectVersion -ProjectPath "$baseDir\WebCommander\WebCommander.csproj" -IncrementPart $IncrementPart
+
+        Write-Host "Building WebCommander..."
+        Remove-Item "$baseDir\Release\WebCommander" -Force -Recurse -ErrorAction SilentlyContinue
+        dotnet publish "$baseDir\WebCommander\WebCommander.csproj" `
+            -c Release `
+            -r linux-x64 `
+            --self-contained false `
+            /p:Platform="Any CPU" `
+            /p:PublishProtocol=FileSystem `
+            /p:PublishProvider=FileSystem `
+            /p:PublishDir="$baseDir\Release\WebCommander" `
+            /p:TargetFramework=net8.0 `
+            /p:PublishSingleFile=false `
+            /p:PublishTrimmed=false
+
+        #Remove-Item "$baseDir\Release\WebCommander\appsettings.*" -Force -ErrorAction SilentlyContinue
+        #Copy-Item "$baseDir\WebCommander\appsettings.release.json" "$baseDir\Release\WebCommander\appsettings.json" -Force
+        Zip-Target -targetName "WebCommander" -sourceDir "$baseDir\Release\WebCommander"
     }
 
 	if (Test-Path $buildDir) {

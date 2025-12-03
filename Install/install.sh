@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Usage: ./install-c3po.sh [All|TeamServer|Commander]
+# Usage: ./install-FractalC2.sh [All|TeamServer|Commander]
 INSTALL_PART=${1:-All}  # Par défaut tout installer
 NO_TOOLS=${2:-""}             # Si "noTools", ne pas télécharger Tools.zip
 NO_RUN=${3:-""}   # Si "noRun", ne pas lancer le TeamServer à la fin
 
-BASE_DIR="$PWD/C3PO"
+BASE_DIR="$PWD/FractalC2"
 mkdir -p "$BASE_DIR" && cd "$BASE_DIR"
 
 # Génération d'une clé API aléatoire de 64 caractères
@@ -26,12 +26,15 @@ install_part() {
 install_TeamServer() {
 	# Installer dotnet runtime si nécessaire
 	sudo apt-get update
-	sudo apt-get install -y aspnetcore-runtime-7.0
+	sudo apt-get install -y aspnetcore-runtime-8.0
 	
 	
-	install_part "TeamServer" "https://github.com/Fropops/C3PO/raw/refs/heads/master/Install/TeamServer.zip"
+	install_part "TeamServer" "https://github.com/Fropops/FractalC2/raw/refs/heads/master/Install/TeamServer.zip"
     chmod +x "$BASE_DIR/TeamServer/TeamServer"
 	
+	#install python
+	python3 -m venv pyenv
+	pyenv/bin/pip install lief
 	
 	# Mise à jour du appsettings.json
 	TEAMSERVER_APPSETTINGS="TeamServer/appsettings.json"
@@ -42,6 +45,17 @@ install_TeamServer() {
 	rm "$TEAMSERVER_APPSETTINGS.tmp2"
 }
 
+
+install_WebCommander() {
+	# Installer dotnet runtime si nécessaire
+	sudo apt-get update
+	sudo apt-get install -y aspnetcore-runtime-8.0
+	
+	
+	install_part "WebCommander" "https://github.com/Fropops/FractalC2/raw/refs/heads/master/Install/WebCommander.zip"
+    chmod +x "$BASE_DIR/WebCommander/WebCommander"
+}
+
 install_Tools() {
     echo "Installing Tools..."
 
@@ -50,7 +64,7 @@ install_Tools() {
 
     # Clone uniquement le dossier Install/Tools du repo (sparse checkout)
     git clone --depth 1 --filter=blob:none \
-        --sparse https://github.com/Fropops/C3PO.git temp_tools_repo
+        --sparse https://github.com/Fropops/FractalC2.git temp_tools_repo
 
     cd temp_tools_repo
     git sparse-checkout set Install/Tools
@@ -70,10 +84,10 @@ install_Commander() {
 	sudo apt-get install -y dotnet-runtime-7.0
 	
 	
-	install_part "Commander"  "https://github.com/Fropops/C3PO/raw/refs/heads/master/Install/Commander.zip"
+	install_part "Commander"  "https://github.com/Fropops/FractalC2/raw/refs/heads/master/Install/Commander.zip"
 	chmod +x "$BASE_DIR/Commander/Commander"
 	
-	install_part "PayloadTemplates"  "https://github.com/Fropops/C3PO/raw/refs/heads/master/Install/Agent.zip"
+	install_part "PayloadTemplates"  "https://github.com/Fropops/FractalC2/raw/refs/heads/master/Install/Agent.zip"
 	
 	if [[ "$NO_TOOLS" != "noTools" ]]; then
         echo "Installing Tools..."
@@ -109,7 +123,10 @@ case "$INSTALL_PART" in
     TeamServer)
         install_TeamServer
         ;;
-    Commander)
+    WebCommander)
+        install_WebCommander
+		
+	Commander)
         install_Commander
         ;;
     *)
@@ -128,6 +145,16 @@ if [[ "$NO_RUN" != "noRun" ]]; then
     fi
 else
     echo "Skipping TeamServer run (noRun flag detected)"
+fi
+
+if [[ "$NO_RUN" != "noRun" ]]; then
+    if [ -f "$BASE_DIR/WebCommander/WebCommander" ]; then
+        cd "$BASE_DIR/WebCommander"
+        sudo ./WebCommander &
+        echo "WebCommander started."
+    fi
+else
+    echo "Skipping WebCommander run (noRun flag detected)"
 fi
 
 
