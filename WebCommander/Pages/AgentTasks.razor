@@ -1,5 +1,6 @@
 @page "/agent-tasks/{AgentId}"
 @using WebCommander.Models
+@using WebCommander.Models.ResultObjects
 @using WebCommander.Services
 @using WebCommander.Helpers
 @using WebCommander.Components
@@ -72,7 +73,7 @@ else
                                         @if (status == AgentResultStatus.Completed || status == AgentResultStatus.Error)
                                         {
                                             <button class="btn btn-sm btn-secondary me-1" @onclick="() => ViewTaskResult(task.Id)">View Result</button>
-                                            @if (result != null && !string.IsNullOrEmpty(result.Output))
+                                            @if (result != null && (!string.IsNullOrEmpty(result.Output) || (result.Objects != null && result.Objects.Length > 0)))
                                             {
                                                 <button class="btn btn-sm btn-warning" @onclick="() => AddToLoot(task.Id)">
                                                     <i class="bi bi-folder-plus"></i> Add to Loot
@@ -136,7 +137,7 @@ else
     {
         var task = tasks.FirstOrDefault(t => t.Id == taskId);
         var result = AgentService.GetTaskResult(taskId);
-        if (result == null || string.IsNullOrEmpty(result.Output) || task == null) return;
+        if (result == null || task == null) return;
 
         // Build file content with metadata header
         var header = new System.Text.StringBuilder();
@@ -159,7 +160,66 @@ else
         header.AppendLine("OUTPUT");
         header.AppendLine("=".PadRight(80, '='));
         header.AppendLine();
-        header.Append(result.Output);
+
+        // Check if we need to format Objects data
+        string outputContent = result.Output;
+        
+        if (string.IsNullOrEmpty(outputContent) && result.Objects != null && result.Objects.Length > 0)
+        {
+            // Try to deserialize as ps command
+            if (task.Command.StartsWith("ps"))
+            {
+                try
+                {
+                    var processResults = await ResultObjectHelper.DeserializeListProcessResults(result.Objects);
+                    if (processResults.Count > 0)
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        sb.AppendLine(string.Format("{0,-6} {1,-6} {2,-30} {3,-10} {4,-20} {5}", "PID", "PPID", "Name", "Arch", "Owner", "Session"));
+                        sb.AppendLine(new string('-', 100));
+                        
+                        var processDict = processResults.ToDictionary(p => p.Id, p => p);
+                        var rootProcesses = processResults.Where(p => !processDict.ContainsKey(p.ParentId)).OrderBy(p => p.Id).ToList();
+                        
+                        foreach (var rootProcess in rootProcesses)
+                        {
+                            AppendProcessTreeToLoot(sb, rootProcess, processDict, 0);
+                        }
+                        
+                        outputContent = sb.ToString();
+                    }
+                }
+                catch { }
+            }
+            // Try to deserialize as ls command
+            else if (task.Command.StartsWith("ls") || task.Command.StartsWith("dir"))
+            {
+                try
+                {
+                    var listResult = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
+                    if (listResult != null && listResult.Lines.Count > 0)
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        sb.AppendLine($"Directory: {listResult.Directory}");
+                        sb.AppendLine();
+                        sb.AppendLine(string.Format("{0,-10} {1,-15} {2}", "Type", "Size", "Name"));
+                        sb.AppendLine(new string('-', 80));
+                        
+                        foreach (var item in listResult.Lines)
+                        {
+                            var type = item.IsFile ? "[FILE]" : "[DIR] ";
+                            var size = item.IsFile ? ResultObjectHelper.FormatFileSize(item.Length) : "";
+                            sb.AppendLine(string.Format("{0,-10} {1,-15} {2}", type, size, item.Name));
+                        }
+                        
+                        outputContent = sb.ToString();
+                    }
+                }
+                catch { }
+            }
+        }
+
+        header.Append(outputContent);
 
         var fileName = $"task_{taskId}.txt";
         var fileContent = System.Text.Encoding.UTF8.GetBytes(header.ToString());
@@ -188,6 +248,33 @@ else
         catch (Exception ex)
         {
             ToastService.ShowError($"Error adding loot: {ex.Message}", "Error");
+        }
+    }
+
+    private void AppendProcessTreeToLoot(System.Text.StringBuilder sb, ListProcessResult process, Dictionary<int, ListProcessResult> processDict, int depth)
+    {
+        var indent = new string(' ', depth * 2);
+        var maxNameLength = 30;
+        var indentedName = indent + process.Name;
+        
+        if (indentedName.Length > maxNameLength)
+        {
+            indentedName = indentedName.Substring(0, maxNameLength);
+        }
+
+        sb.AppendLine(string.Format("{0,-6} {1,-6} {2,-30} {3,-10} {4,-20} {5}", 
+            process.Id, 
+            process.ParentId, 
+            indentedName,
+            process.Arch ?? "",
+            process.Owner ?? "",
+            process.SessionId));
+
+        // Add children
+        var children = processDict.Values.Where(p => p.ParentId == process.Id).OrderBy(p => p.Id).ToList();
+        foreach (var child in children)
+        {
+            AppendProcessTreeToLoot(sb, child, processDict, depth + 1);
         }
     }
 
