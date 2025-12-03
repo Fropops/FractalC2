@@ -114,6 +114,9 @@
     <Compile Include="..\Shared\ParameterId.cs">
       <Link>Shared\ParameterId.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\ResultObjects\ListDirectoryResult.cs">
+      <Link>Shared\ResultObjects\ListDirectoryResult.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\ReversePortForward.cs">
       <Link>Shared\ReversePortForward.cs</Link>
     </Compile>
@@ -209,7 +212,6 @@
     <Compile Include="Service\RunningService\RunningService.cs" />
     <Compile Include="Service\ServiceProvider.cs" />
     <Compile Include="Service\WebHostService.cs" />
-    <Compile Include="Shared\ResultObjects\ListDirectoryResult.cs" />
     <Compile Include="Shared\ResultObjects\ListProcessResult.cs" />
     <Compile Include="Shared\ResultObjects\ReversePortForwarResult.cs" />
     <Compile Include="WinAPI\APIWrapper.cs" />

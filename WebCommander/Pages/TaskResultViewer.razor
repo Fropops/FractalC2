@@ -137,11 +137,11 @@
             {
                 try
                 {
-                    var listResults = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
-                    if (listResults.Count > 0)
+                    var listResult = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
+                    if (listResult != null && listResult.Lines.Count > 0)
                     {
                         // Add table output
-                        AddLsTable(listResults);
+                        AddLsTable(listResult);
                     }
                     else if (!string.IsNullOrEmpty(result.Output))
                     {
@@ -201,7 +201,7 @@
         }
     }
 
-    private void AddLsTable(List<ListDirectoryResult> items)
+    private void AddLsTable(ListDirectoryResult result)
     {
         // Add table header
         var header = string.Format("{0,-10} {1,-15} {2}", "Type", "Size", "Name");
@@ -209,7 +209,7 @@
         AddInfo(new string('-', 80));
         
         // Add each item
-        foreach (var item in items)
+        foreach (var item in result.Lines)
         {
             var type = item.IsFile ? "[FILE]" : "[DIR] ";
             var size = item.IsFile ? ResultObjectHelper.FormatFileSize(item.Length) : "";

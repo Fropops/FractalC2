@@ -285,11 +285,11 @@
             {
                 try
                 {
-                    var listResults = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
-                    if (listResults.Count > 0)
+                    var listResult = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
+                    if (listResult != null && listResult.Lines.Count > 0)
                     {
                         // Add table output
-                        AddLsTable(listResults);
+                        AddLsTable(listResult);
                     }
                     else if (!string.IsNullOrEmpty(result.Output))
                     {
@@ -351,23 +351,13 @@
         }
     }
 
-    private void AddLsTable(List<ListDirectoryResult> items)
+    private void AddLsTable(ListDirectoryResult result)
     {
-        // Add table header with Action column
-        var headerLine = new TerminalLine
-        {
-            Text = string.Format("{0,-10} {1,-15} {2}", "Type", "Size", "Name"),
-            Type = TerminalLineType.Info,
-            Metadata = new Dictionary<string, string>
-            {
-                { "IsLsHeader", "true" }
-            }
-        };
-        outputLines.Add(headerLine);
-        
+        // Add table header
+        var header = string.Format("{0,-10} {1,-15} {2}", "Type", "Size", "Name");
         var separatorLine = new TerminalLine
         {
-            Text = new string('-', 80),
+            Text = header,
             Type = TerminalLineType.Info,
             Metadata = new Dictionary<string, string>
             {
@@ -375,36 +365,32 @@
             }
         };
         outputLines.Add(separatorLine);
+        AddInfo(new string('-', 80));
         
         // Add each item
-        foreach (var item in items)
+        foreach (var item in result.Lines)
         {
             var type = item.IsFile ? "[FILE]" : "[DIR] ";
             var size = item.IsFile ? ResultObjectHelper.FormatFileSize(item.Length) : "";
             var lineText = string.Format("{0,-10} {1,-15} {2}", type, size, item.Name);
             
-            var line = new TerminalLine 
-            { 
-                Text = lineText, 
+            // Force Windows-style path separator
+            var directory = result.Directory.TrimEnd('\\', '/');
+            var fullPath = $"{directory}\\{item.Name}";
+            
+            var line = new TerminalLine
+            {
+                Text = lineText,
                 Type = TerminalLineType.Normal,
                 Metadata = new Dictionary<string, string>
                 {
                     { "IsLsRow", "true" },
-                    { "IsFile", item.IsFile.ToString().ToLower() },
-                    { "Name", item.Name }
+                    { "Name", fullPath }, // Use full path here
+                    { "IsFile", item.IsFile.ToString().ToLower() }
                 }
             };
-
-            if (item.IsFile)
-            {
-                line.Metadata["FileSize"] = item.Length.ToString();
-            }
-
             outputLines.Add(line);
         }
-        
-        _ = SaveHistory();
-        _ = ScrollToBottom();
     }
 
     private void AddPsTable(List<ListProcessResult> processes)

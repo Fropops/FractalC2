@@ -8,18 +8,18 @@ namespace WebCommander.Helpers
 {
     public static class ResultObjectHelper
     {
-        public static async Task<List<ListDirectoryResult>> DeserializeListDirectoryResults(byte[] data)
+        public static async Task<ListDirectoryResult?> DeserializeListDirectoryResults(byte[] data)
         {
             if (data == null || data.Length == 0)
-                return new List<ListDirectoryResult>();
+                return null;
 
             try 
             {
-                return await data.BinaryDeserializeAsync<List<ListDirectoryResult>>();
+                return await data.BinaryDeserializeAsync<ListDirectoryResult>();
             }
             catch
             {
-                return new List<ListDirectoryResult>();
+                return null;
             }
         }
 

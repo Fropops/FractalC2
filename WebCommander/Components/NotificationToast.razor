@@ -19,7 +19,7 @@
             @if (toast.Agent != null)
             {
                 <div class="mt-2 text-center">
-                    <button class="btn btn-sm btn-primary" @onclick="() => InteractWithAgent(toast.Agent)">Interact</button>
+                    <button class="btn btn-sm btn-primary" @onclick="() => InteractWithAgent(toast)">Interact</button>
                 </div>
             }
         </div>
@@ -158,9 +158,13 @@
         return type.ToString().ToLower();
     }
 
-    private void InteractWithAgent(Agent agent)
+    private void InteractWithAgent(ToastItem toast)
     {
-        NavigationManager.NavigateTo($"/terminal/{agent.Id}");
+        if (toast.Agent != null)
+        {
+            NavigationManager.NavigateTo($"/terminal/{toast.Agent.Id}");
+            RemoveToast(toast);
+        }
     }
 
     public void Dispose()

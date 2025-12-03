@@ -81,14 +81,14 @@ namespace Commander.Helper
 
         private static void PrintLs(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
         {
-            var list = result.Objects.BinaryDeserializeAsync<List<ListDirectoryResult>>().Result;
+            var list = result.Objects.BinaryDeserializeAsync<ListDirectoryResult>().Result;
             var table = new Table();
             table.Border(TableBorder.Rounded);
             // Add some columns
             table.AddColumn(new TableColumn("Name").LeftAligned());
             table.AddColumn(new TableColumn("Type").LeftAligned());
             table.AddColumn(new TableColumn("Length").LeftAligned());
-            foreach (var item in list)
+            foreach (var item in list.Lines)
             {
                 table.AddRow(item.Name, item.IsFile ? "File" : "Dir", StringHelper.FileLengthToString(item.Length));
             }
