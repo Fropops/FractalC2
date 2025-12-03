@@ -20,13 +20,13 @@ namespace WebCommander.Services.Commands
         }
 
         protected TeamServerClient _client {get; set;}
-        protected string _agentId {get;set;}
+        protected Agent _agent {get; set;}
         protected CommandService _commandService {get;set;}
 
-        public virtual void Initialize(TeamServerClient client, string agentId = null, CommandService commandService = null)
+        public virtual void Initialize(TeamServerClient client, Agent agent = null, CommandService commandService = null)
         {
             this._client = client;
-            this._agentId = agentId;
+            this._agent = agent;
             this._commandService = commandService;
         }
 

@@ -536,9 +536,8 @@
         if (metadata == null || !metadata.TryGetValue("ProcessId", out var processId))
             return;
 
-        // TODO: Implement process migration
-        AddInfo($"Migrate to process {processId} - Not yet implemented");
-        await Task.CompletedTask;
+        var command = $"migrate {processId}";
+        await ExecuteCommand(command);
     }
 
 
@@ -621,7 +620,7 @@
             AddNormal($"{agent?.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
             
             // Send command
-            var (message, error, taskId) = await CommandService.ParseAndSendAsync(commandToSend, AgentId);
+            var (message, error, taskId) = await CommandService.ParseAndSendAsync(commandToSend, agent);
             if(!string.IsNullOrEmpty(error))
                 AddError(error);
             if(!string.IsNullOrEmpty(message))
@@ -696,7 +695,7 @@
         AddNormal($"{agent.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
 
         // Send command
-        var (message, error, taskId) = await CommandService.ParseAndSendAsync(commandToSend, AgentId);
+        var (message, error, taskId) = await CommandService.ParseAndSendAsync(commandToSend, agent);
         if (!string.IsNullOrEmpty(error))
             AddError(error);
         if (!string.IsNullOrEmpty(message))

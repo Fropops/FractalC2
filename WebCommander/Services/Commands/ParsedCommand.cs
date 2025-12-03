@@ -7,7 +7,7 @@ namespace WebCommander.Services.Commands
     {
         public RootCommand Command { get; private set;}
 
-        public abstract Task<CommandResult> ExecuteAsync(ParseResult result, TeamServerClient client, string agentId);
+        public abstract Task<CommandResult> ExecuteAsync(ParseResult result, TeamServerClient client, Agent agent);
 
         public ParseResult Parse(string input)
         {
@@ -15,13 +15,13 @@ namespace WebCommander.Services.Commands
             return this.Command.Parse(input);
         }
 
-        public override void Initialize(TeamServerClient client, string agentId = null, CommandService commandService = null)
+        public override void Initialize(TeamServerClient client, Agent agent = null, CommandService commandService = null)
         {
-            base.Initialize(client, agentId, commandService);
-            this.CreateCommand(client, agentId);
+            base.Initialize(client, agent, commandService);
+            this.CreateCommand(client, agent);
         }
 
-        protected virtual RootCommand CreateCommand(TeamServerClient client, string agentId) 
+        protected virtual RootCommand CreateCommand(TeamServerClient client, Agent agent) 
         {
             this.Command = new RootCommand(Description);
             this.Command.Add(new Argument<string>(this.Name)
@@ -31,7 +31,7 @@ namespace WebCommander.Services.Commands
 
             this.Command.SetAction(async (parseResult, cancellationToken) =>
             {
-              this.Result = await this.ExecuteAsync(parseResult, client, agentId);
+              this.Result = await this.ExecuteAsync(parseResult, client, agent);
             });
 
             this.AddCommandParameters(this.Command);

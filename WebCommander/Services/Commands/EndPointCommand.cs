@@ -7,7 +7,7 @@ namespace WebCommander.Services.Commands
 {
     public abstract class EndPointCommand : ParsedCommand
     {
-        public override async Task<CommandResult> ExecuteAsync(ParseResult parseResult, TeamServerClient client, string agentId)
+        public override async Task<CommandResult> ExecuteAsync(ParseResult parseResult, TeamServerClient client, Agent agent)
         {
             CommandResult cmdResult = new CommandResult();
             try
@@ -15,8 +15,8 @@ namespace WebCommander.Services.Commands
                 var parms = new ParameterDictionary();
                 await FillParametersAsync(parseResult, parms);
             
-                var taskId = await client.TaskAgent(this.CommandLine, agentId, this.Id, parms);
-                return cmdResult.Succeed($"Command {this.Name} tasked to agent {agentId}.", taskId);
+                var taskId = await client.TaskAgent(this.CommandLine, agent.Id, this.Id, parms);
+                return cmdResult.Succeed($"Command {this.Name} tasked to agent {agent.Id}.", taskId);
             }
             catch (Exception ex)
             {

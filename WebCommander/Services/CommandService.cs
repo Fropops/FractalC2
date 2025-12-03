@@ -45,21 +45,21 @@ namespace WebCommander.Services
             }
         }
 
-        public CommandBase GetCommand(string cmdName, string agentId = null)
+        public CommandBase GetCommand(string cmdName, Agent agent = null)
         {
             if (_commandMap.TryGetValue(cmdName, out var commandType))
             {
-                return CreateCommand(commandType, agentId);
+                return CreateCommand(commandType, agent);
             }
             Console.WriteLine($"Command {cmdName} not found");
             return null;
         }
 
-        public CommandBase CreateCommand(Type type, string agentId = null)
+        public CommandBase CreateCommand(Type type, Agent agent = null)
         {
             if (Activator.CreateInstance(type) is CommandBase commandBase)
             {
-                commandBase.Initialize(_client, agentId, this);
+                commandBase.Initialize(_client, agent, this);
                 return commandBase;
             }
             Console.WriteLine($"Command {type.Name} not created");
@@ -71,7 +71,7 @@ namespace WebCommander.Services
             return _commands;
         }
 
-        public async Task<(string? message, string? error, string? taskId)> ParseAndSendAsync(string rawInput, string agentId)
+        public async Task<(string? message, string? error, string? taskId)> ParseAndSendAsync(string rawInput, Agent agent)
         {
             if (string.IsNullOrWhiteSpace(rawInput))
                 return (null, null, null);
@@ -81,7 +81,7 @@ namespace WebCommander.Services
             string cmdName = parseResult.Tokens.FirstOrDefault().Value;
 
             Console.WriteLine($"Command: {cmdName}");
-            var commandBase = GetCommand(cmdName, agentId);
+            var commandBase = GetCommand(cmdName, agent);
             if (commandBase != null)
             {
                 Console.WriteLine($"Command: {commandBase.Name} created");

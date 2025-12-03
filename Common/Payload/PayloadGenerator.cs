@@ -32,7 +32,7 @@ public partial class PayloadGenerator
 
     private string Source(string fileName, ImplantArchitecture arch, bool debug)
     {
-        if(debug)
+        if (debug)
             return Path.Combine(this.FoldersConfig.ImplantTemplatesFolder, "debug", fileName);
         return Path.Combine(this.FoldersConfig.ImplantTemplatesFolder, arch.ToString(), fileName);
     }
@@ -46,7 +46,7 @@ public partial class PayloadGenerator
     {
 
         var path = Path.Combine(this.FoldersConfig.WorkingFolder, "Debug", implantName);
-        
+
         if (!Directory.Exists(path))
             Directory.CreateDirectory(path);
 
@@ -70,7 +70,7 @@ public partial class PayloadGenerator
         {
             case ImplantType.Executable: return this.ExecutableEncapsulation(options, agentbytes);
             case ImplantType.PowerShell: return this.PowershellEncapsulation(options, agentbytes);
-            case ImplantType.Library: return this.LibraryEncapsulation(options,agentbytes);
+            case ImplantType.Library: return this.LibraryEncapsulation(options, agentbytes);
             case ImplantType.ReflectiveLibrary: return this.ReflectiveLibraryEncapsulation(options, agentbytes);
             case ImplantType.Service: return agentbytes;
             case ImplantType.Shellcode: return this.BinaryEncapsulation(options, agentbytes);
@@ -110,7 +110,7 @@ public partial class PayloadGenerator
             return null;
 
         byte[] bytes = File.ReadAllBytes(outPath);
-        
+
         File.Delete(outPath);
 
         return bytes;
@@ -139,7 +139,7 @@ public partial class PayloadGenerator
             else
                 this.MessageSent?.Invoke(this, "Build failed.");
 
-        
+
         File.Delete(agentPath);
         if (executionResult.Result != 0)
             return null;
@@ -188,6 +188,13 @@ public partial class PayloadGenerator
 
     public byte[] ReflectiveLibraryEncapsulation(ImplantConfig options, byte[] agent)
     {
+        if (options.Architecture == ImplantArchitecture.x86)
+        {
+            if (options.IsVerbose)
+                this.MessageSent?.Invoke(this, "x86 is not implemented yet!");
+            return null;
+        }
+
         var agentPath = this.Working("tmp" + ShortGuid.NewGuid() + ".exe");
         File.WriteAllBytes(agentPath, agent);
 
@@ -267,7 +274,7 @@ public partial class PayloadGenerator
             { "Implant", options.ImplantName ?? String.Empty }
         });
 
-        if(options.IsDebug)
+        if (options.IsDebug)
             File.WriteAllBytes(this.Debug(options.ImplantName, "BaseAgent.exe"), agent);
 
 
@@ -365,7 +372,7 @@ public partial class PayloadGenerator
         var injDll = LoadAssembly(this.Source(InjectSrcFile, options.Architecture, options.IsDebug));
 
         string process = options.Architecture == ImplantArchitecture.x64 ? this.SpawnConfig.SpawnToX64 : this.SpawnConfig.SpawnToX86;
-        if(!string.IsNullOrEmpty(options.InjectionProcess))
+        if (!string.IsNullOrEmpty(options.InjectionProcess))
             process = options.InjectionProcess;
 
         injDll = AssemblyEditor.ReplaceRessources(injDll, new Dictionary<string, object>()

