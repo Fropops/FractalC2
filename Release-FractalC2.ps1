@@ -263,7 +263,7 @@ function Release-FractalC2 {
 	
 	# --- Partie Commander ---
     if ($Target -in @("All","WebCommander")) {
-        Write-Host "Mise à jour de la version de Commander..."
+        Write-Host "Mise à jour de la version de WebCommander..."
         Update-ProjectVersion -ProjectPath "$baseDir\WebCommander\WebCommander.csproj" -IncrementPart $IncrementPart
 
         Write-Host "Building WebCommander..."
@@ -279,10 +279,23 @@ function Release-FractalC2 {
             /p:TargetFramework=net8.0 `
             /p:PublishSingleFile=false `
             /p:PublishTrimmed=false
+			
+		Write-Host "Building WebCommanderHost..."
+		Remove-Item "$baseDir\Release\WebCommanderHost" -Force -Recurse -ErrorAction SilentlyContinue
+        dotnet publish "$baseDir\WebCommanderHost\WebCommanderHost.csproj" `
+            -c Release `
+            -r linux-x64 `
+            --self-contained false `
+            /p:Platform="Any CPU" `
+            /p:DeleteExistingFiles=true `
+            /p:ExcludeApp_Data=false `
+            /p:WebPublishMethod=FileSystem `
+            /p:PublishProvider=FileSystem `
+            /p:PublishDir="$baseDir\Release\WebCommanderHost" `
+            /p:TargetFramework=net8.0
 
-        #Remove-Item "$baseDir\Release\WebCommander\appsettings.*" -Force -ErrorAction SilentlyContinue
-        #Copy-Item "$baseDir\WebCommander\appsettings.release.json" "$baseDir\Release\WebCommander\appsettings.json" -Force
-        Zip-Target -targetName "WebCommander" -sourceDir "$baseDir\Release\WebCommander"
+		Copy-Item "$baseDir\Release\WebCommander\*" "$baseDir\Release\WebCommanderHost\" -Force -Recurse
+        Zip-Target -targetName "WebCommander" -sourceDir "$baseDir\Release\WebCommanderHost"
     }
 
 	if (Test-Path $buildDir) {
