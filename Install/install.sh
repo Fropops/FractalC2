@@ -122,16 +122,16 @@ case "$INSTALL_PART" in
 esac
 
 
-run_TeamServerCommander() {
+run_TeamServer() {
 	cd "$BASE_DIR/TeamServer"
 	sudo ./TeamServer &
 	echo "TeamServer started."
 }
 
 run_WebCommander() {
-	cd "$BASE_DIR/TeamServer"
-	sudo ./TeamServer &
-	echo "TeamServer started."
+	cd "$BASE_DIR/WebCommander"
+	sudo ./WebCommanderHost &
+	echo "WebCommander started."
 }
 
 # Lancer TeamServer si présent et si noRun n'est pas précisé
