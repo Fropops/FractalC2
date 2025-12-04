@@ -66,18 +66,22 @@ public partial class PayloadGenerator
             agentbytes = PrepareAgent(options, options.Type == ImplantType.Service);
         }
 
+        byte[] implantData = null;
         switch (options.Type)
         {
-            case ImplantType.Executable: return this.ExecutableEncapsulation(options, agentbytes);
-            case ImplantType.PowerShell: return this.PowershellEncapsulation(options, agentbytes);
-            case ImplantType.Library: return this.LibraryEncapsulation(options, agentbytes);
-            case ImplantType.ReflectiveLibrary: return this.ReflectiveLibraryEncapsulation(options, agentbytes);
-            case ImplantType.Service: return agentbytes;
-            case ImplantType.Shellcode: return this.BinaryEncapsulation(options, agentbytes);
+            case ImplantType.Executable: implantData = this.ExecutableEncapsulation(options, agentbytes); break;
+            case ImplantType.PowerShell: implantData = this.PowershellEncapsulation(options, agentbytes); break;
+            case ImplantType.Library: implantData = this.LibraryEncapsulation(options, agentbytes); break;
+            case ImplantType.ReflectiveLibrary: implantData = this.ReflectiveLibraryEncapsulation(options, agentbytes); break;
+            case ImplantType.Service: implantData = agentbytes; break;
+            case ImplantType.Shellcode: implantData = this.BinaryEncapsulation(options, agentbytes); break;
             default:
                 throw new NotImplementedException();
 
         }
+
+        File.WriteAllBytes(GetOutputFilePath(options), implantData);
+        return implantData;
     }
 
     public byte[] ExecutableEncapsulation(ImplantConfig options, byte[] agent)
@@ -459,4 +463,34 @@ public partial class PayloadGenerator
         byte[] decryptedBytes = rijndael.CreateDecryptor().TransformFinalBlock(src, 0, src.Length);
         return decryptedBytes;
     }
+
+    private string GetOutputFilePath(ImplantConfig options)
+    {
+        var outFile = options.ImplantName;
+        switch (options.Type)
+        {
+            case ImplantType.Executable:
+            case ImplantType.Service:
+                if (!Path.GetExtension(outFile).Equals(".exe", StringComparison.OrdinalIgnoreCase))
+                    outFile += ".exe";
+                break;
+            case ImplantType.Library:
+                if (!Path.GetExtension(outFile).Equals(".dll", StringComparison.OrdinalIgnoreCase))
+                    outFile += ".dll";
+                break;
+            case ImplantType.PowerShell:
+                if (!Path.GetExtension(outFile).Equals(".ps1", StringComparison.OrdinalIgnoreCase))
+                    outFile += ".ps1";
+                break;
+            case ImplantType.Shellcode:
+                if (!Path.GetExtension(outFile).Equals(".bin", StringComparison.OrdinalIgnoreCase))
+                    outFile += ".bin";
+                break;
+        }
+
+        string outPath = Path.Combine(this.FoldersConfig.ImplantsFolder, outFile);
+        return outPath;
+    }
 }
+
+
