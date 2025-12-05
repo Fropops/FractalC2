@@ -72,7 +72,7 @@ namespace TeamServer.Services
             var tool = _tools.FirstOrDefault(tool => tool.Name.ToLower() == name.ToLower());
             if (tool != null && withData)
             {
-                if (tool.Type == ToolType.Powershell)
+                if (tool.Type == ToolType.PowerShell)
                     tool.Data = File.ReadAllText(GetToolPath(tool));
                 else
                     tool.Data = Convert.ToBase64String(File.ReadAllBytes(GetToolPath(tool)));
@@ -104,7 +104,7 @@ namespace TeamServer.Services
 
 
             if (ext == ".ps1")
-                tool.Type = ToolType.Powershell;
+                tool.Type = ToolType.PowerShell;
             else
             {
                 var tmpPath = Path.Combine(_configuration.FoldersConfigs().ToolsFolder, "tmpTool.exe");

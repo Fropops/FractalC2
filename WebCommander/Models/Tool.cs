@@ -4,7 +4,7 @@ namespace WebCommander.Models
     {
         Exe = 0,
         DotNet,
-        Powershell
+        PowerShell
     }
 
     public class Tool

@@ -10,7 +10,7 @@ namespace Common.APIModels
     {
         Exe = 0,
         DotNet,
-        Powershell
+        PowerShell
     }
     public class Tool
     {

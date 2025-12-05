@@ -172,7 +172,7 @@ namespace TeamServer.Services
             var tool = this._toolsService.GetTool(toolName, true);
             if (tool is null)
                 return Failed($"Tool {toolName} was not found !");
-            if (tool.Type != Common.APIModels.ToolType.Powershell)
+            if (tool.Type != Common.APIModels.ToolType.PowerShell)
                 return Failed($"Tool {toolName} is not a valid Powershell script !");
             task.Parameters.AddParameter(ParameterId.File, tool.Data);
             return Succeed();

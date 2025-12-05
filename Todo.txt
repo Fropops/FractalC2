@@ -1,4 +1,5 @@
 # Agent
+* Migrate not working (debug is ok)?
 * Pivot ?!
 * RunAsLoggedOn https://github.com/antonioCoco/RunasCs/blob/master/RunasCs.cs
 * BOF Loader .Net
