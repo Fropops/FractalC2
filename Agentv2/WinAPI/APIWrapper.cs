@@ -12,7 +12,7 @@ namespace WinAPI
 {
     public class APIWrapperConfig
     {
-        public APIAccessType PreferedAccessType { get; set; } = APIAccessType.PInvoke;
+        public APIAccessType PreferedAccessType { get; set; } = APIAccessType.DInvoke;
         public InjectionMethod PreferedInjectionMethod { get; set; } = InjectionMethod.CreateRemoteThread;
     }
 

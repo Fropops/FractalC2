@@ -46,7 +46,7 @@ namespace Agent.Commands
 
             if (hProcess == IntPtr.Zero)
             {
-                context.Error($"Failed to open process with sufficient rights. Error: {Marshal.GetLastWin32Error()}");
+                context.Error($"Failed to open process with sufficient rights.");
                 return;
             }
 
