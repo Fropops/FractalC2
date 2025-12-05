@@ -41,7 +41,7 @@
                         </div>
                     }
                     
-                    @if (ToolType != ToolType.Powershell)
+                    @if (ToolType != ToolType.PowerShell)
                     {
                         <div class="mb-3">
                             <label class="form-label">Parameters (optional)</label>
@@ -108,7 +108,7 @@
     {
         return ToolType switch
         {
-            ToolType.Powershell => "powershell-import",
+            ToolType.PowerShell => "powershell-import",
             ToolType.Exe => "execute-pe",
             ToolType.DotNet => executionMethod,
             _ => "inline-assembly"
@@ -123,7 +123,7 @@
         // Build the command based on tool type
         var commandName = GetCommandName();
         var command = $"{commandName} {ToolName}";
-        if (!string.IsNullOrWhiteSpace(parameters) && ToolType != ToolType.Powershell)
+        if (!string.IsNullOrWhiteSpace(parameters) && ToolType != ToolType.PowerShell)
         {
             command += $" {parameters}";
         }

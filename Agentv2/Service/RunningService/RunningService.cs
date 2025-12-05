@@ -24,6 +24,7 @@ namespace Agent.Service
     public abstract class RunningService : IRunningService
     {
         protected virtual JobType? JobType { get { return null; } }
+        public int? JobId { get; protected set; }
         public abstract string ServiceName { get; }
         public enum RunningStatus
         {
@@ -45,7 +46,7 @@ namespace Agent.Service
                 this.Status = RunningStatus.Running;
                 if(this.JobType.HasValue)
                 {
-                    ServiceProvider.GetService<IJobService>().RegisterJob(this.JobType.Value, _tokenSource, this.ServiceName);
+                    this.JobId = ServiceProvider.GetService<IJobService>().RegisterJob(this.JobType.Value, _tokenSource, this.ServiceName).Id;
                 }
 
                 while (!_tokenSource.IsCancellationRequested)
@@ -69,6 +70,10 @@ namespace Agent.Service
         {
             if (this.Status != RunningStatus.Running)
                 return;
+            if(this.JobId.HasValue)
+            {
+                ServiceProvider.GetService<IJobService>().RemoveJob(this.JobId.Value);
+            }
 
             this._tokenSource.Cancel();
         }
