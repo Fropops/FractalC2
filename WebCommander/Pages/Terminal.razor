@@ -203,6 +203,52 @@
         }
     }
 
+    private string? previousAgentId = null;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Check if AgentId has changed (e.g., when clicking Interact on a different agent while already on terminal page)
+        if (previousAgentId != null && previousAgentId != AgentId)
+        {
+            // Agent has changed, reload terminal for new agent
+            agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
+            
+            if (agent != null)
+            {
+                // Clear current terminal
+                outputLines.Clear();
+                commandHistory.Clear();
+                sentTaskIds.Clear();
+                taskCommands.Clear();
+                historyIndex = -1;
+                
+                // Load history for new agent
+                var history = await TerminalHistoryService.LoadHistoryAsync(AgentId);
+                if (history != null && history.OutputLines.Any())
+                {
+                    outputLines = history.OutputLines;
+                    commandHistory = history.CommandHistory;
+                    sentTaskIds = history.SentTaskIds;
+                    taskCommands = history.TaskCommands;
+                    shouldScrollToBottom = true;
+                }
+                else
+                {
+                    // Show agent info
+                    AddInfo($"Connected to agent {agent.Metadata?.ImplantId ?? "Unknown"}");
+                    AddInfo($"User: {agent.Metadata?.Desc}");
+                    AddInfo($"Architecture: {agent.Metadata?.Architecture}");
+                    AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
+                    AddNormal("");
+                }
+                
+                StateHasChanged();
+            }
+        }
+        
+        previousAgentId = AgentId;
+    }
+
     private void RefreshAgent()
     {
         var updatedAgent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
