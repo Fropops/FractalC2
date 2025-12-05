@@ -54,7 +54,7 @@ namespace EntryPoint
             //connUrl = "https://192.168.48.134:443";
             //connUrl = "http://192.168.48.134:2000";
             //connUrl = "pipe://127.0.0.1:Fractal";
-            //connUrl = "http://127.0.0.1:2000";
+            connUrl = "http://127.0.0.1:2000";
             //connUrl = "tcp://*:4444";
 
             //connUrl = "https://127.0.0.1:3000";

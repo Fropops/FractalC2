@@ -32,7 +32,8 @@
                             OnDeleteDirectory="DeleteDirectory"
                             OnListDirectory="ListDirectory"
                             OnEnterDirectory="EnterDirectory"
-                            OnMigrateProcess="MigrateProcess" />
+                            OnMigrateProcess="MigrateProcess"
+                            OnKillJob="KillJob" />
             
             <div class="terminal-input-container">
                 <span class="terminal-prompt">@(agent.Metadata?.ImplantId ?? "Unknown") &gt;</span>
@@ -332,6 +333,32 @@
                     }
                 }
             }
+            // Check if this is a job command with Objects data
+            else if (commandName == "job" && result.Objects != null && result.Objects.Length > 0)
+            {
+                try
+                {
+                    var jobResults = await ResultObjectHelper.DeserializeJobResults(result.Objects);
+                    if (jobResults.Count > 0)
+                    {
+                        // Add job table output
+                        AddJobTable(jobResults);
+                    }
+                    else if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Terminal] Error deserializing job results: {ex.Message}");
+                    // Fallback to normal output
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+            }
             else if (!string.IsNullOrEmpty(result.Output))
             {
                 AddNormal(result.Output);
@@ -478,6 +505,61 @@
         }
     }
 
+    private void AddJobTable(List<Job> jobs)
+    {
+        // Add table header
+        var headerLine = new TerminalLine
+        {
+            Text = string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}", "ID", "Type", "Name", "PID", "TaskID"),
+            Type = TerminalLineType.Info,
+            Metadata = new Dictionary<string, string>
+            {
+                { "IsJobHeader", "true" }
+            }
+        };
+        outputLines.Add(headerLine);
+        
+        var separatorLine = new TerminalLine
+        {
+            Text = new string('-', 80),
+            Type = TerminalLineType.Info,
+            Metadata = new Dictionary<string, string>
+            {
+                { "IsJobHeader", "false" }
+            }
+        };
+        outputLines.Add(separatorLine);
+        
+        // Add each job
+        foreach (var job in jobs)
+        {
+            var jobTypeStr = job.JobType.ToString().Length > 15 ? job.JobType.ToString().Substring(0, 15) : job.JobType.ToString();
+            var pidStr = job.ProcessId.HasValue ? job.ProcessId.Value.ToString() : "-";
+            var lineText = string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}", 
+                job.Id, 
+                jobTypeStr, 
+                job.Name.Length > 20 ? job.Name.Substring(0, 17) + "..." : job.Name,
+                pidStr,
+                job.TaskId);
+            
+            var line = new TerminalLine
+            {
+                Text = lineText,
+                Type = TerminalLineType.Normal,
+                Metadata = new Dictionary<string, string>
+                {
+                    { "IsJobRow", "true" },
+                    { "JobId", job.Id.ToString() },
+                    { "JobName", job.Name }
+                }
+            };
+            outputLines.Add(line);
+        }
+        
+        _ = SaveHistory();
+        _ = ScrollToBottom();
+    }
+
     private async Task DownloadFile(Dictionary<string, string> metadata)
     {
         if (metadata == null || !metadata.TryGetValue("Name", out var fileName))
@@ -537,6 +619,15 @@
             return;
 
         var command = $"migrate {processId}";
+        await ExecuteCommand(command);
+    }
+
+    private async Task KillJob(Dictionary<string, string> metadata)
+    {
+        if (metadata == null || !metadata.TryGetValue("JobId", out var jobId))
+            return;
+
+        var command = $"job kill -i {jobId}";
         await ExecuteCommand(command);
     }
 

@@ -38,6 +38,21 @@ namespace WebCommander.Helpers
             }
         }
 
+        public static async Task<List<Job>> DeserializeJobResults(byte[] data)
+        {
+            if (data == null || data.Length == 0)
+                return new List<Job>();
+
+            try 
+            {
+                return await data.BinaryDeserializeAsync<List<Job>>();
+            }
+            catch
+            {
+                return new List<Job>();
+            }
+        }
+
         public static string FormatFileSize(long bytes)
         {
             string[] sizes = { "B", "KB", "MB", "GB", "TB" };

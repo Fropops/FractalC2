@@ -23,7 +23,7 @@ namespace WebCommander.Services.Commands
                     var sbCmd = new StringBuilder();
                     sbCmd.AppendLine($"Command: {cmd.Name}");
                     sbCmd.AppendLine($"Description: {cmd.Description}");
-                    sbCmd.AppendLine($"Usage: {cmd.GetUsage()}");
+                    sbCmd.AppendLine(cmd.GetUsage());
                     if (cmd.Aliases.Any())
                     {
                         sbCmd.AppendLine($"Aliases: {string.Join(", ", cmd.Aliases)}");

@@ -217,6 +217,35 @@ else
                 }
                 catch { }
             }
+            // Try to deserialize as job command
+            else if (task.Command.StartsWith("job"))
+            {
+                try
+                {
+                    var jobResults = await ResultObjectHelper.DeserializeJobResults(result.Objects);
+                    if (jobResults.Count > 0)
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        sb.AppendLine(string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}", "ID", "Type", "Name", "PID", "TaskID"));
+                        sb.AppendLine(new string('-', 80));
+                        
+                        foreach (var job in jobResults)
+                        {
+                            var jobTypeStr = job.JobType.ToString().Length > 15 ? job.JobType.ToString().Substring(0, 15) : job.JobType.ToString();
+                            var pidStr = job.ProcessId.HasValue ? job.ProcessId.Value.ToString() : "-";
+                            sb.AppendLine(string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}", 
+                                job.Id, 
+                                jobTypeStr, 
+                                job.Name.Length > 20 ? job.Name.Substring(0, 17) + "..." : job.Name,
+                                pidStr,
+                                job.TaskId));
+                        }
+                        
+                        outputContent = sb.ToString();
+                    }
+                }
+                catch { }
+            }
         }
 
         header.Append(outputContent);

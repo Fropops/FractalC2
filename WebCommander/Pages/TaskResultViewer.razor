@@ -185,6 +185,32 @@
                     }
                 }
             }
+            // Check if this is a job command with Objects data
+            else if (task.Command.StartsWith("job") && result.Objects != null && result.Objects.Length > 0)
+            {
+                try
+                {
+                    var jobResults = await ResultObjectHelper.DeserializeJobResults(result.Objects);
+                    if (jobResults.Count > 0)
+                    {
+                        // Add job table output
+                        AddJobTable(jobResults);
+                    }
+                    else if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[TaskResultViewer] Error deserializing job results: {ex.Message}");
+                    // Fallback to normal output
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+            }
             else if (!string.IsNullOrEmpty(result.Output))
             {
                 AddNormal(result.Output);
@@ -262,6 +288,28 @@
         foreach (var child in children)
         {
             AddProcessTreeNode(child, processDict, depth + 1);
+        }
+    }
+
+    private void AddJobTable(List<Job> jobs)
+    {
+        // Add table header
+        var header = string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}", "ID", "Type", "Name", "PID", "TaskID");
+        AddInfo(header);
+        AddInfo(new string('-', 80));
+        
+        // Add each job
+        foreach (var job in jobs)
+        {
+            var jobTypeStr = job.JobType == JobType.ForkAndRun ? "Fork&Run" : "InlineAsm";
+            var pidStr = job.ProcessId.HasValue ? job.ProcessId.Value.ToString() : "-";
+            var line = string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}", 
+                job.Id, 
+                jobTypeStr, 
+                job.Name.Length > 20 ? job.Name.Substring(0, 17) + "..." : job.Name,
+                pidStr,
+                job.TaskId);
+            AddNormal(line);
         }
     }
 

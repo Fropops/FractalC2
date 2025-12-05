@@ -143,6 +143,32 @@
                     <span style="@(line.Metadata.ContainsKey("IsCurrentProcess") && line.Metadata["IsCurrentProcess"] == "true" ? "color: #dcdcaa;" : "")">@line.Text</span>
                 </div>
             }
+            else if (line.Metadata != null && line.Metadata.ContainsKey("IsJobHeader") && line.Metadata["IsJobHeader"] == "true")
+            {
+                <div class="d-flex align-items-center">
+                    <div style="width: 50px; margin-right: 8px;">
+                        <strong>Action</strong>
+                    </div>
+                    <span>@line.Text</span>
+                </div>
+            }
+            else if (line.Metadata != null && line.Metadata.ContainsKey("IsJobRow") && line.Metadata["IsJobRow"] == "true")
+            {
+                <div class="d-flex align-items-center">
+                    <div style="position: relative; width: 50px; margin-right: 8px;">
+                        <button class="ls-action-btn" @onclick="() => ToggleDropdown(line)">▼</button>
+                        @if (openDropdownLine == line)
+                        {
+                            <div class="ls-dropdown" @onclick:stopPropagation="true">
+                                <a class="ls-dropdown-item" href="#" @onclick="async () => { await OnKillJob.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                    <i class="bi bi-x-circle me-2"></i>Kill Job
+                                </a>
+                            </div>
+                        }
+                    </div>
+                    <span>@line.Text</span>
+                </div>
+            }
             else
             {
                 @line.Text
@@ -172,6 +198,9 @@
 
     [Parameter]
     public EventCallback<Dictionary<string, string>> OnMigrateProcess { get; set; }
+
+    [Parameter]
+    public EventCallback<Dictionary<string, string>> OnKillJob { get; set; }
 
     private ElementReference terminalOutput;
     private int _lastCount = 0;

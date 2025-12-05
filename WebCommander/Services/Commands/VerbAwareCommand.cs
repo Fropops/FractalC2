@@ -44,5 +44,12 @@ namespace WebCommander.Services.Commands
             
             return char.ToUpper(texte[0]) + texte.Substring(1).ToLower();
         }
+
+         public override string GetUsage()
+        {
+            string usage = base.GetUsage() + Environment.NewLine;
+            usage += "Verb is required. Valid values are: " + string.Join(", ", AllowedVerbs);
+            return usage;
+        }
     }
 }

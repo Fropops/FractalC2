@@ -10,8 +10,10 @@ namespace Shared
 {
     public enum JobType : byte
     {
-        ForkAndRun,
-        InlineAssembly
+        ForkAndRun = 0,
+        InlineAssembly,
+        Shell,
+        KeyLog
     }
 
     public class Job
@@ -30,18 +32,18 @@ namespace Shared
         public CancellationTokenSource CancellationToken { get; set; }
 
 
-        public Job(int id, int processId, string name, string taskId)
+        public Job(JobType type, int id, int processId, string name, string taskId)
         {
-            this.JobType = JobType.ForkAndRun;
+            this.JobType = type;
             this.Id = id;
             this.Name = name;
             this.ProcessId = processId;
             this.TaskId = taskId;
         }
 
-        public Job(int id, CancellationTokenSource token, string name, string taskId)
+        public Job(JobType type, int id, CancellationTokenSource token, string name, string taskId)
         {
-            this.JobType = JobType.InlineAssembly;
+            this.JobType = type;
             this.Id = id;
             this.Name = name;
             this.CancellationToken = token;

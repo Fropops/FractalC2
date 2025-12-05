@@ -74,8 +74,13 @@ namespace Agent.Commands
                     APIWrapper.ReadPipeToEnd(procResult.OutPipeHandle, output => context.AppendResult(output, false));
             }
 
-            if(job.CancellationToken != null)
+            if (job.CancellationToken != null)
+            {
                 job.CancellationToken.Cancel();
+                context.AppendResult($"Job {id} cancellation requested.");
+            }
+
+            this.Service.RemoveJob(id);
 
             return;
         }
