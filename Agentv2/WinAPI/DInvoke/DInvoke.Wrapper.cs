@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using WinAPI.Data.AdvApi;
 using WinAPI.Data.Kernel32;
 using WinAPI.Wrapper;
+using static WinAPI.DInvoke.Data.Native;
 
 namespace WinAPI.DInvoke
 {
@@ -260,6 +261,12 @@ namespace WinAPI.DInvoke
             IntPtr.Zero);
 
             _ = Native.NtResumeThread(threadHandle);
+        }
+
+
+        public static IntPtr OpenProcess(uint processId, ProcessAccessFlags desiredAccess)
+        {
+            return Native.NtOpenProcess(processId, desiredAccess);
         }
     }
 }

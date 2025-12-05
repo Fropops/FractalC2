@@ -4,6 +4,9 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using WinAPI.Data.Kernel32;
+using static WinAPI.DInvoke.Data.Native;
+using static WinAPI.DInvoke.Kernel32;
 
 namespace WinAPI.PInvoke
 {
@@ -44,5 +47,14 @@ namespace WinAPI.PInvoke
         public static extern UInt32 NtResumeThread(
                IntPtr ThreadHandle,
                ref UInt32 PreviousSuspendCount);
+
+
+        [DllImport("ntdll.dll")]
+        public static extern UInt32 NtOpenProcess(
+               out IntPtr ProcessHandle,
+               ProcessAccessFlags DesiredAccess,
+               ref OBJECT_ATTRIBUTES ObjectAttributes,
+               ref CLIENT_ID ClientId
+           );
     }
 }

@@ -122,4 +122,48 @@ namespace WinAPI.Data.Kernel32
         NoCacheModifierflag = 0x200,
         WriteCombineModifierflag = 0x400
     }
+
+
+    [Flags]
+    public enum ProcessAccessFlags : uint
+    {
+        PROCESS_TERMINATE = 0x00000001,
+        PROCESS_CREATE_THREAD = 0x00000002,
+        PROCESS_SET_SESSIONID = 0x00000004,
+        PROCESS_VM_OPERATION = 0x00000008,
+        PROCESS_VM_READ = 0x00000010,
+        PROCESS_VM_WRITE = 0x00000020,
+        PROCESS_DUP_HANDLE = 0x00000040,
+        PROCESS_CREATE_PROCESS = 0x00000080,
+        PROCESS_SET_QUOTA = 0x00000100,
+        PROCESS_SET_INFORMATION = 0x00000200,
+        PROCESS_QUERY_INFORMATION = 0x00000400,
+        PROCESS_SUSPEND_RESUME = 0x00000800,
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x00001000,
+        PROCESS_SET_LIMITED_INFORMATION = 0x00002000,
+
+        DELETE = 0x00010000,
+        READ_CONTROL = 0x00020000,
+        WRITE_DAC = 0x00040000,
+        WRITE_OWNER = 0x00080000,
+        SYNCHRONIZE = 0x00100000,
+
+        PROCESS_ALL_ACCESS = 0x001FFFFF,
+
+        STANDARD_RIGHTS_REQUIRED = 0x000F0000,
+        STANDARD_RIGHTS_READ = READ_CONTROL,
+        STANDARD_RIGHTS_WRITE = READ_CONTROL,
+        STANDARD_RIGHTS_EXECUTE = READ_CONTROL,
+        STANDARD_RIGHTS_ALL = 0x001F0000,
+
+        SPECIFIC_RIGHTS_ALL = 0x0000FFFF
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CLIENT_ID
+    {
+        public IntPtr UniqueProcess;
+        public IntPtr UniqueThread;
+    }
+
 }

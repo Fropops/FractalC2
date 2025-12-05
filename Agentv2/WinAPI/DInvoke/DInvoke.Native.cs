@@ -4,6 +4,9 @@
 
 using System;
 using System.Runtime.InteropServices;
+using WinAPI.Data.Kernel32;
+using static WinAPI.DInvoke.Data.Native;
+using static WinAPI.DInvoke.Kernel32;
 
 namespace WinAPI.DInvoke
 {
@@ -467,6 +470,14 @@ namespace WinAPI.DInvoke
             public delegate UInt32 NtResumeThread(
                 IntPtr ThreadHandle,
                 ref UInt32 PreviousSuspendCount);
+
+            [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+            public delegate uint NtOpenProcess(
+               out IntPtr ProcessHandle,
+               ProcessAccessFlags DesiredAccess,
+               ref OBJECT_ATTRIBUTES ObjectAttributes,
+               ref CLIENT_ID ClientId
+           );
         }
 
 
@@ -481,6 +492,29 @@ namespace WinAPI.DInvoke
             var suspendCount = (uint)0;
             object[] parameters = { ThreadHandle, suspendCount };
             return (uint)Generic.DynamicApiInvoke(@"ntdll.dll", @"NtResumeThread", typeof(Delegates.NtResumeThread), ref parameters);
+        }
+
+        public static IntPtr NtOpenProcess(uint processId, ProcessAccessFlags desiredAccess)
+        {
+            IntPtr hProcess = IntPtr.Zero;
+            OBJECT_ATTRIBUTES oa = new OBJECT_ATTRIBUTES();
+            CLIENT_ID clientId = new CLIENT_ID { UniqueProcess = (IntPtr)processId };
+
+            object[] parameters = { hProcess, desiredAccess, oa, clientId };
+
+            var ntStatus = (uint)Generic.DynamicApiInvoke(
+                @"ntdll.dll",
+                @"NtOpenProcess",
+                typeof(Delegates.NtOpenProcess),
+                ref parameters
+            );
+
+            if (ntStatus == 0)
+            {
+                hProcess = (IntPtr)parameters[0];
+            }
+
+            return hProcess;
         }
 
     }
