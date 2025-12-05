@@ -34,7 +34,7 @@ namespace Agent.Service
 
         public RunningStatus Status { get; set; } = RunningStatus.Stoped;
 
-        public int MinimumDelay { get; set; } = 10;
+        public virtual int MinimumDelay { get; } = 10;
 
         protected CancellationTokenSource _tokenSource;
 
