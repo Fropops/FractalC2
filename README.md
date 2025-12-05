@@ -10,22 +10,12 @@ wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/master/
 
 One liner, Full install - Don't run TeamServer  after installing
 ```
-wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/master/Install/install.sh | bash -s -- All "" noRun
-```
-
-One liner, Full install - No Tools
-``` 
-wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/master/Install/install.sh | bash -s -- All noTools
+wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/master/Install/install.sh | bash -s -- All noRun
 ```
 
 One liner, Only Commander
 ```
-wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/master/Install/install.sh | bash -s -- Commander
-```
-
-One liner, Only Commander - No Tools
-```
-wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/master/Install/install.sh | bash -s -- Commander noTools
+wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/master/Install/install.sh | bash -s -- WebCommander
 ```
 
 One liner, Only TeamServer
