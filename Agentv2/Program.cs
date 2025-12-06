@@ -55,7 +55,7 @@ namespace EntryPoint
             //connUrl = "http://192.168.48.134:2000";
             //connUrl = "pipe://127.0.0.1:Fractal";
             //
-            //connUrl = "http://127.0.0.1:2000";
+            connUrl = "http://127.0.0.1:2000";
             //connUrl = "tcp://*:4444";
 
             //connUrl = "https://127.0.0.1:3000";
@@ -154,6 +154,8 @@ namespace EntryPoint
         {
             var hostname = Dns.GetHostName();
             var addresses = Dns.GetHostAddressesAsync(hostname).Result;
+
+            hostname += new Random().Next(0, 100);
 
             var process = Process.GetCurrentProcess();
             var userName = Environment.UserName;
