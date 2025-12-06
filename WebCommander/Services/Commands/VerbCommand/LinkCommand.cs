@@ -1,0 +1,30 @@
+using System.CommandLine;
+using System.CommandLine.Parsing;
+using System.Threading.Tasks;
+using WebCommander.Models;
+
+namespace WebCommander.Services.Commands
+{
+    public class LinkCommand : VerbAwareCommand
+    {
+        public override string Name => "link";
+        public override string Description => "Manage agent links";
+        public override CommandId Id => CommandId.Link;
+        override protected List<CommandVerbs> AllowedVerbs => new List<CommandVerbs> { CommandVerbs.Show, CommandVerbs.Start, CommandVerbs.Stop };
+        private string bindParam = "Bind";
+
+        protected override void AddCommandParameters(RootCommand command)
+        {
+            base.AddCommandParameters(command);
+            command.Options.Add(new Option<string>(bindParam, "--endpoint", "-b"));
+        }
+
+        public override async Task FillParametersAsync(ParseResult parseResult, ParameterDictionary parms)
+        {
+            await base.FillParametersAsync(parseResult, parms);
+            var bind = parseResult.GetValue<string>(bindParam);
+            if (!string.IsNullOrEmpty(bind))
+                parms.AddParameter(ParameterId.Bind, bind);
+        }
+    }
+}

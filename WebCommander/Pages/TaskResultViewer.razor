@@ -211,6 +211,32 @@
                     }
                 }
             }
+            // Check if this is a link command with Objects data
+            else if (task.Command.StartsWith("link") && result.Objects != null && result.Objects.Length > 0)
+            {
+                try
+                {
+                    var linkResults = await ResultObjectHelper.DeserializeLinkInfoResults(result.Objects);
+                    if (linkResults.Count > 0)
+                    {
+                        // Add link table output
+                        AddLinkTable(linkResults);
+                    }
+                    else if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[TaskResultViewer] Error deserializing link results: {ex.Message}");
+                    // Fallback to normal output
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+            }
             else if (!string.IsNullOrEmpty(result.Output))
             {
                 AddNormal(result.Output);
@@ -301,7 +327,7 @@
         // Add each job
         foreach (var job in jobs)
         {
-            var jobTypeStr = job.JobType == JobType.ForkAndRun ? "Fork&Run" : "InlineAsm";
+            var jobTypeStr = job.JobType.ToString().Length > 15 ? job.JobType.ToString().Substring(0, 15) : job.JobType.ToString();
             var pidStr = job.ProcessId.HasValue ? job.ProcessId.Value.ToString() : "-";
             var line = string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}", 
                 job.Id, 
@@ -309,6 +335,25 @@
                 job.Name.Length > 20 ? job.Name.Substring(0, 17) + "..." : job.Name,
                 pidStr,
                 job.TaskId);
+            AddNormal(line);
+        }
+    }
+
+    private void AddLinkTable(List<LinkInfo> links)
+    {
+        // Add table header
+        var header = string.Format("{0,-20} {1,-20} {2,-20} {3}", "TaskID", "ParentID", "ChildID", "Binding");
+        AddInfo(header);
+        AddInfo(new string('-', 100));
+        
+        // Add each link
+        foreach (var link in links)
+        {
+            var line = string.Format("{0,-20} {1,-20} {2,-20} {3}", 
+                link.TaskId, 
+                link.ParentId, 
+                link.ChildId,
+                link.Binding);
             AddNormal(line);
         }
     }

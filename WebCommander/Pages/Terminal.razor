@@ -33,7 +33,8 @@
                             OnListDirectory="ListDirectory"
                             OnEnterDirectory="EnterDirectory"
                             OnMigrateProcess="MigrateProcess"
-                            OnKillJob="KillJob" />
+                            OnKillJob="KillJob"
+                            OnUnlinkAgent="UnlinkAgent" />
             
             <div class="terminal-input-container">
                 <span class="terminal-prompt">@(agent.Metadata?.ImplantId ?? "Unknown") &gt;</span>
@@ -405,6 +406,32 @@
                     }
                 }
             }
+            // Check if this is a link command with Objects data
+            else if (commandName == "link" && result.Objects != null && result.Objects.Length > 0)
+            {
+                try
+                {
+                    var linkResults = await ResultObjectHelper.DeserializeLinkInfoResults(result.Objects);
+                    if (linkResults.Count > 0)
+                    {
+                        // Add link table output
+                        AddLinkTable(linkResults);
+                    }
+                    else if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Terminal] Error deserializing link results: {ex.Message}");
+                    // Fallback to normal output
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+            }
             else if (!string.IsNullOrEmpty(result.Output))
             {
                 AddNormal(result.Output);
@@ -606,6 +633,57 @@
         _ = ScrollToBottom();
     }
 
+    private void AddLinkTable(List<LinkInfo> links)
+    {
+        // Add table header
+        var headerLine = new TerminalLine
+        {
+            Text = string.Format("{0,-20} {1,-20} {2,-20} {3}", "TaskID", "ParentID", "ChildID", "Binding"),
+            Type = TerminalLineType.Info,
+            Metadata = new Dictionary<string, string>
+            {
+                { "IsLinkHeader", "true" }
+            }
+        };
+        outputLines.Add(headerLine);
+        
+        var separatorLine = new TerminalLine
+        {
+            Text = new string('-', 100),
+            Type = TerminalLineType.Info,
+            Metadata = new Dictionary<string, string>
+            {
+                { "IsLinkHeader", "false" }
+            }
+        };
+        outputLines.Add(separatorLine);
+        
+        // Add each link
+        foreach (var link in links)
+        {
+            var lineText = string.Format("{0,-20} {1,-20} {2,-20} {3}", 
+                link.TaskId, 
+                link.ParentId, 
+                link.ChildId,
+                link.Binding);
+            
+            var line = new TerminalLine
+            {
+                Text = lineText,
+                Type = TerminalLineType.Normal,
+                Metadata = new Dictionary<string, string>
+                {
+                    { "IsLinkRow", "true" },
+                    { "ChildId", link.ChildId }
+                }
+            };
+            outputLines.Add(line);
+        }
+        
+        _ = SaveHistory();
+        _ = ScrollToBottom();
+    }
+
     private async Task DownloadFile(Dictionary<string, string> metadata)
     {
         if (metadata == null || !metadata.TryGetValue("Name", out var fileName))
@@ -674,6 +752,15 @@
             return;
 
         var command = $"job kill -i {jobId}";
+        await ExecuteCommand(command);
+    }
+
+    private async Task UnlinkAgent(Dictionary<string, string> metadata)
+    {
+        if (metadata == null || !metadata.TryGetValue("ChildId", out var childId))
+            return;
+
+        var command = $"unlink {childId}";
         await ExecuteCommand(command);
     }
 

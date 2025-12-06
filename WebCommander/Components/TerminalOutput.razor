@@ -169,6 +169,32 @@
                     <span>@line.Text</span>
                 </div>
             }
+            else if (line.Metadata != null && line.Metadata.ContainsKey("IsLinkHeader") && line.Metadata["IsLinkHeader"] == "true")
+            {
+                <div class="d-flex align-items-center">
+                    <div style="width: 50px; margin-right: 8px;">
+                        <strong>Action</strong>
+                    </div>
+                    <span>@line.Text</span>
+                </div>
+            }
+            else if (line.Metadata != null && line.Metadata.ContainsKey("IsLinkRow") && line.Metadata["IsLinkRow"] == "true")
+            {
+                <div class="d-flex align-items-center">
+                    <div style="position: relative; width: 50px; margin-right: 8px;">
+                        <button class="ls-action-btn" @onclick="() => ToggleDropdown(line)">▼</button>
+                        @if (openDropdownLine == line)
+                        {
+                            <div class="ls-dropdown" @onclick:stopPropagation="true">
+                                <a class="ls-dropdown-item danger" href="#" @onclick="async () => { CloseDropdown(); await OnUnlinkAgent.InvokeAsync(line.Metadata); }" @onclick:preventDefault>
+                                    <i class="bi bi-link-45deg me-2"></i>Unlink
+                                </a>
+                            </div>
+                        }
+                    </div>
+                    <span>@line.Text</span>
+                </div>
+            }
             else
             {
                 @line.Text
@@ -201,6 +227,9 @@
 
     [Parameter]
     public EventCallback<Dictionary<string, string>> OnKillJob { get; set; }
+
+    [Parameter]
+    public EventCallback<Dictionary<string, string>> OnUnlinkAgent { get; set; }
 
     private ElementReference terminalOutput;
     private int _lastCount = 0;

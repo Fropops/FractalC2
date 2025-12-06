@@ -54,6 +54,6 @@ namespace WebCommander.Models
         Del = 0x37,
         Reg = 0x38,
 
-        Capture = 0x39
+        Capture = 0x39,
     }
 }

@@ -53,6 +53,21 @@ namespace WebCommander.Helpers
             }
         }
 
+        public static async Task<List<LinkInfo>> DeserializeLinkInfoResults(byte[] data)
+        {
+            if (data == null || data.Length == 0)
+                return new List<LinkInfo>();
+
+            try 
+            {
+                return await data.BinaryDeserializeAsync<List<LinkInfo>>();
+            }
+            catch
+            {
+                return new List<LinkInfo>();
+            }
+        }
+
         public static string FormatFileSize(long bytes)
         {
             string[] sizes = { "B", "KB", "MB", "GB", "TB" };

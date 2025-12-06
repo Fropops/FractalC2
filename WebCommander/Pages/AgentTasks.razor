@@ -246,6 +246,32 @@ else
                 }
                 catch { }
             }
+            // Try to deserialize as link command
+            else if (task.Command.StartsWith("link"))
+            {
+                try
+                {
+                    var linkResults = await ResultObjectHelper.DeserializeLinkInfoResults(result.Objects);
+                    if (linkResults.Count > 0)
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        sb.AppendLine(string.Format("{0,-20} {1,-20} {2,-20} {3}", "TaskID", "ParentID", "ChildID", "Binding"));
+                        sb.AppendLine(new string('-', 100));
+                        
+                        foreach (var link in linkResults)
+                        {
+                            sb.AppendLine(string.Format("{0,-20} {1,-20} {2,-20} {3}", 
+                                link.TaskId, 
+                                link.ParentId, 
+                                link.ChildId,
+                                link.Binding));
+                        }
+                        
+                        outputContent = sb.ToString();
+                    }
+                }
+                catch { }
+            }
         }
 
         header.Append(outputContent);
