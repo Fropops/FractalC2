@@ -36,13 +36,11 @@ namespace Agent.Commands
                 return;
             }
 
-            if (connexion.Protocol != ConnexionType.ReverseNamedPipe && connexion.Protocol != ConnexionType.ReverseTcp)
+            if (connexion.Protocol == ConnexionType.Http || connexion.Mode == ConnexionMode.Listener)
             {
                 context.Error($"{connexion.Protocol} is not a valid link protocol");
                 return;
             }
-
-            //connexion.Protocol = ConnexionType.ReverseNamedPipe;
 
             bool started = false;
             var commModule = CommunicationFactory.CreateCommunicator(connexion) as P2PCommunicator;
@@ -74,7 +72,7 @@ namespace Agent.Commands
                 return;
             }
 
-            if (connexion.Protocol != ConnexionType.ReverseNamedPipe && connexion.Protocol != ConnexionType.ReverseTcp)
+            if (connexion.Protocol == ConnexionType.Http || connexion.Mode == ConnexionMode.Listener)
             {
                 context.Error($"{connexion.Protocol} is not a valid link protocol");
                 return;

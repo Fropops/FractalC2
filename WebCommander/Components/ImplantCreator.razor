@@ -139,7 +139,7 @@
     private bool isSecure = false;
     private string errorMessage = string.Empty;
 
-    private bool IsNamedPipe => selectedProtocol == ConnexionType.NamedPipe || selectedProtocol == ConnexionType.ReverseNamedPipe;
+    private bool IsNamedPipe => selectedProtocol == ConnexionType.NamedPipe;
 
     protected override void OnInitialized()
     {
@@ -181,21 +181,19 @@
         {
             if (IsNamedPipe)
             {
-                var protocol = selectedProtocol == ConnexionType.NamedPipe ? "pipe" : "rpipe";
-                return $"{protocol}://{endpointAddress}:{endpointPort}";
+                return $"pipe://{endpointAddress}:{endpointPort}";
             }
-            else
+            else if (selectedProtocol == ConnexionType.Http)
             {
-                var protocol = selectedProtocol.ToString().ToLower();
-                if (selectedProtocol == ConnexionType.Http && isSecure)
-                    protocol = "https";
-                else if (selectedProtocol == ConnexionType.Http)
-                    protocol = "http";
-                else if (selectedProtocol == ConnexionType.ReverseTcp)
-                    protocol = "rtcp";
-
+                var protocol = isSecure ? "https" : "http";
                 return $"{protocol}://{endpointAddress}:{endpointPort}";
             }
+            else if (selectedProtocol == ConnexionType.Tcp)
+            {
+                return $"tcp://{endpointAddress}:{endpointPort}";
+            }
+
+            return "Invalid protocol";
         }
         catch
         {

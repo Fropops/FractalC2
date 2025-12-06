@@ -28,18 +28,10 @@ namespace Agent.Models
 
         public TcpCommModule(ConnexionUrl conn) : base(conn)
         {
-            if (conn.Protocol == ConnexionType.Tcp)
-            {
-                CommunicationMode = CommunicationModuleMode.Server;
-                return;
-            }
-            if (conn.Protocol == ConnexionType.ReverseTcp)
-            {
-                CommunicationMode = CommunicationModuleMode.Client;
-                return;
-            }
+            if (conn.Protocol != ConnexionType.Tcp)
+                throw new ArgumentException($"{conn.Protocol} is not a valid protocol.");
 
-            throw new ArgumentException($"{conn.Protocol} is not a valid protocol.");
+            CommunicationMode = conn.Mode == ConnexionMode.Listener ? CommunicationModuleMode.Server : CommunicationModuleMode.Client;
         }
 
         private TcpListener _listener;
@@ -112,7 +104,7 @@ namespace Agent.Models
 
         public override async Task Run()
         {
-         
+
             while (!_tokenSource.IsCancellationRequested)
             {
                 try
@@ -135,7 +127,7 @@ namespace Agent.Models
                         //                        Debug.WriteLine($"Tcp : Received Frame(s) : {base64}");
                         Debug.WriteLine($"Tcp : Received Frame(s) : {frame.FrameType}");
 #endif
-                        
+
                         await this.FrameReceived?.Invoke(frame);
 
                     }
@@ -180,9 +172,9 @@ namespace Agent.Models
         {
             lock (writeLock)
             {
-//#if DEBUG
-//                Debug.WriteLine($"Pipe : Send Length : {data.Length}");
-//#endif
+                //#if DEBUG
+                //                Debug.WriteLine($"Pipe : Send Length : {data.Length}");
+                //#endif
                 // format data as [length][value]
                 var lengthBuf = new BigEndianBitConverter().GetBytes(data.Length);
                 stream.Write(lengthBuf, 0, lengthBuf.Length);
@@ -196,9 +188,9 @@ namespace Agent.Models
                     do
                     {
                         var lengthToSend = bytesRemaining < 1024 ? bytesRemaining : 1024;
-//#if DEBUG
-//                        Debug.WriteLine($"Pipe : Write : {lengthToSend} / {bytesRemaining} / {data.Length}");
-//#endif
+                        //#if DEBUG
+                        //                        Debug.WriteLine($"Pipe : Write : {lengthToSend} / {bytesRemaining} / {data.Length}");
+                        //#endif
                         var buf = new byte[lengthToSend];
 
                         var read = ms.Read(buf, 0, lengthToSend);
@@ -226,9 +218,9 @@ namespace Agent.Models
 
             var length = new BigEndianBitConverter().ToInt32(lengthBuf, 0);
 
-//#if DEBUG
-//            Debug.WriteLine($"Pipe : Received Length : {length}");
-//#endif
+            //#if DEBUG
+            //            Debug.WriteLine($"Pipe : Received Length : {length}");
+            //#endif
 
             // read rest of data
             using (var ms = new MemoryStream())
@@ -240,9 +232,9 @@ namespace Agent.Models
                     try
                     {
                         var buf = length - totalRead >= 1024 ? new byte[1024] : new byte[length - totalRead];
-//#if DEBUG
-//                        Debug.WriteLine($"Pipe : Read : {buf.Length} / {totalRead} / {length}");
-//#endif
+                        //#if DEBUG
+                        //                        Debug.WriteLine($"Pipe : Read : {buf.Length} / {totalRead} / {length}");
+                        //#endif
 
 
                         read = await stream.ReadAsync(buf, 0, buf.Length);

@@ -23,18 +23,10 @@ namespace Agent.Models
     {
         public PipeCommModule(ConnexionUrl conn) : base(conn)
         {
-            if (conn.Protocol == ConnexionType.NamedPipe)
-            {
-                CommunicationMode = CommunicationModuleMode.Server;
-                return;
-            }
-            if (conn.Protocol == ConnexionType.ReverseNamedPipe)
-            {
-                CommunicationMode = CommunicationModuleMode.Client;
-                return;
-            }
+            if (conn.Protocol != ConnexionType.NamedPipe)
+                throw new ArgumentException($"{conn.Protocol} is not a valid protocol.");
 
-            throw new ArgumentException($"{conn.Protocol} is not a valid protocol.");
+            CommunicationMode = conn.Mode == ConnexionMode.Listener ? CommunicationModuleMode.Server : CommunicationModuleMode.Client;
         }
 
         private NamedPipeServerStream _pipeServer;

@@ -53,7 +53,19 @@ else
                     <td>@agent.Metadata?.Integrity</td>
                     <td>@agent.Metadata?.ProcessName (@agent.Metadata?.ProcessId)</td>
                     <td>@agent.Metadata?.Architecture</td>
-                    <td>@agent.Metadata?.EndPoint</td>
+                    <td>
+                        @{
+                            var endpoint = agent.Metadata?.EndPoint ?? "";
+                            var connexion = ConnexionUrl.FromString(endpoint);
+                            var modeIcon = connexion.IsValid && connexion.Mode == ConnexionMode.Listener 
+                                ? "bi-arrow-left-circle text-success" 
+                                : "bi-arrow-right-circle text-primary";
+                            var modeTitle = connexion.IsValid && connexion.Mode == ConnexionMode.Listener 
+                                ? "Listener" 
+                                : "Client";
+                        }
+                        <i class="bi @modeIcon me-1" title="@modeTitle"></i>@endpoint
+                    </td>
                     <td>@AgentHelper.FormatElapsedTime((DateTime.UtcNow - agent.LastSeen).TotalSeconds)</td>
                     <td>
                         <button class="btn btn-sm btn-info me-1" @onclick="() => ShowInfo(agent)">

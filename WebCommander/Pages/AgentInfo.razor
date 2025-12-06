@@ -102,7 +102,19 @@ else
                             <tbody>
                                 <tr>
                                     <td class="fw-bold" style="width: 150px;">Endpoint:</td>
-                                    <td>@agent.Metadata?.EndPoint</td>
+                                    <td>
+                                        @{
+                                            var endpoint = agent.Metadata?.EndPoint ?? "";
+                                            var connexion = ConnexionUrl.FromString(endpoint);
+                                            var modeIcon = connexion.IsValid && connexion.Mode == ConnexionMode.Listener 
+                                                ? "bi-arrow-left-circle text-success" 
+                                                : "bi-arrow-right-circle text-primary";
+                                            var modeTitle = connexion.IsValid && connexion.Mode == ConnexionMode.Listener 
+                                                ? "Listener" 
+                                                : "Client";
+                                        }
+                                        <i class="bi @modeIcon me-1" title="@modeTitle"></i>@endpoint
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td class="fw-bold">Sleep Interval:</td>
