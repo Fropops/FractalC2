@@ -5,9 +5,9 @@
 @implements IDisposable
 
 <div class="topology-container">
-    <svg width="100%" height="600" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid meet">
+    <svg width="@svgWidth" height="@svgHeight" viewBox="0 0 @svgWidth @svgHeight" style="min-width: @(svgWidth)px;">
         <!-- TeamServer Node -->
-        <g transform="translate(600, 50)">
+        <g transform="translate(@(svgWidth / 2), 50)">
             <!-- Server Rack Icon -->
             <rect x="-20" y="-20" width="40" height="40" rx="4" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
             <line x1="-15" y1="-8" x2="15" y2="-8" stroke="#334155" stroke-width="2"/>
@@ -28,7 +28,7 @@
             
             <!-- Host Box -->
             <g transform="translate(@hostX, @hostY)">
-                <rect x="-100" y="-60" width="200" height="@(60 + host.Agents.Count * 35)" 
+                <rect x="@(-(host.Width / 2))" y="-60" width="@host.Width" height="@(60 + host.Agents.Count * 35)" 
                       rx="8" fill="#1f2937" stroke="#374151" stroke-width="2"/>
                 
                 <!-- Host Icon and Name -->
@@ -47,11 +47,23 @@
                     var agentIcon = "⚙️";
                     
                     <g transform="translate(-70, @agentY)" class="agent-node" data-agent-id="@agent.Id" @onclick="@((MouseEventArgs e) => ShowAgentMenu(agent.Id, e))" @onclick:stopPropagation="true">
+                        <!-- Tooltip -->
+                        <title>@($"ID: {agent.Id}\nName: {agent.Name}\nUser: {agent.UserName}\nProcess: {agent.ProcessName} ({agent.ProcessId})\nIntegrity: {agent.Integrity}\nArch: {agent.Architecture}\nEndPoint: {agent.EndPoint}\nLast Seen: {agent.LastSeen:yyyy-MM-dd HH:mm:ss}")</title>
+                        
                         <!-- Status badge (left of icon) -->
                         <circle cx="-6" cy="0" r="6" fill="@badgeColor" stroke="#1f2937" stroke-width="1.5"/>
+                        
                         <!-- Agent icon (gear) -->
                         <text x="0" y="5" font-size="16" fill="@agentColor">@agentIcon</text>
-                        <text x="20" y="4" fill="#e5e7eb" font-size="10">@agentLabel</text>
+                        
+                        <!-- Agent Label and Integrity Icon -->
+                        <text x="20" y="4" fill="#e5e7eb" font-size="10">
+                            @agentLabel
+                            @if (agent.Integrity == IntegrityLevel.High || agent.Integrity == IntegrityLevel.System)
+                            {
+                                <tspan dx="5" font-size="12">🛡️</tspan>
+                            }
+                        </text>
                     </g>
                 }
             </g>
@@ -69,7 +81,7 @@
                     var isListener = conn.IsValid && conn.Mode == ConnexionMode.Listener;
                     
                     // Target position (TeamServer)
-                    var targetX = 600.0;
+                    var targetX = (double)(svgWidth / 2);
                     var targetY = 72.0;
                     
                     // Agent position
@@ -130,8 +142,6 @@
                 }
             }
         }
-        }
-        
         
         @foreach (var link in agentLinks)
         {
@@ -210,7 +220,13 @@
         border-radius: 12px;
         padding: 1rem;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        position: relative;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow: auto;
+        box-sizing: border-box;
     }
 
     .agent-node {
@@ -253,6 +269,8 @@
     private bool selectedAgentIsAlive = false;
     private string menuX = "0px";
     private string menuY = "0px";
+    private int svgWidth = 1200;
+    private int svgHeight = 600;
 
     [Inject]
     private NavigationManager Navigation { get; set; } = default!;
@@ -278,24 +296,24 @@
         hosts.Clear();
         agentLinks.Clear();
         
-        // Calculate positions for hosts in a grid
-        int hostsPerRow = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(hostGroups.Count)));
-        int spacing = 1200 / (hostsPerRow + 1);
+        // First pass: Create hosts and calculate their required widths
+        int maxHostWidth = 200;
         
         for (int i = 0; i < hostGroups.Count; i++)
         {
             var group = hostGroups[i];
-            int row = i / hostsPerRow;
-            int col = i % hostsPerRow;
             
             var hostNode = new HostNode
             {
                 Hostname = group.Key,
-                X = (col + 1) * spacing,
-                Y = 200 + row * 200,
                 Agents = new List<AgentNode>()
             };
             
+            // Calculate width based on Hostname
+            int requiredHalfWidth = 100; // Minimum default
+            int nameWidth = (int)(hostNode.Hostname.Length * 8); // Approx 8px per char
+            requiredHalfWidth = Math.Max(requiredHalfWidth, nameWidth / 2 + 20);
+
             // Sort agents: direct TeamServer connections first, then relayed agents
             var sortedAgents = group.OrderBy(a => string.IsNullOrEmpty(a.RelayId) ? 0 : 1).ToList();
             
@@ -308,12 +326,62 @@
                     Name = agent.Metadata?.ImplantId ?? "Unknown",
                     IsAlive = AgentHelper.IsAgentAlive(agent, agents) ?? false,
                     EndPoint = agent.Metadata?.EndPoint ?? "",
-                    RelayId = agent.RelayId
+                    RelayId = agent.RelayId,
+                    Integrity = agent.Metadata?.Integrity ?? IntegrityLevel.Medium,
+                    UserName = agent.Metadata?.UserName ?? "",
+                    ProcessName = agent.Metadata?.ProcessName ?? "",
+                    ProcessId = agent.Metadata?.ProcessId ?? 0,
+                    Architecture = agent.Metadata?.Architecture ?? "",
+                    LastSeen = agent.LastSeen
                 };
                 hostNode.Agents.Add(agentNode);
+                
+                // Calculate width based on Agent Name + ShortId + Shield
+                string label = $"{agentNode.Name} ({agentNode.ShortId})";
+                int labelWidth = (int)(label.Length * 7); // Approx 7px per char for smaller font
+                if (agentNode.Integrity == IntegrityLevel.High || agentNode.Integrity == IntegrityLevel.System)
+                {
+                    labelWidth += 25; // Space for shield
+                }
+                
+                // Text starts at -50 relative to center (icon at -70, text at +20 from icon)
+                // We need to cover from -100 (or less) to (-50 + labelWidth)
+                // So half width needs to be at least (-50 + labelWidth + padding)
+                requiredHalfWidth = Math.Max(requiredHalfWidth, -50 + labelWidth + 20);
             }
             
+            hostNode.Width = requiredHalfWidth * 2;
+            maxHostWidth = Math.Max(maxHostWidth, hostNode.Width);
+            
             hosts.Add(hostNode);
+        }
+
+        // Calculate positions for hosts in a grid
+        int hostsPerRow = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(hostGroups.Count)));
+        // Ensure minimum width per host based on calculated max width
+        int minSpacing = maxHostWidth + 20; // Reduced gap between hosts
+        // Use a smaller base width for calculation to allow for more compact layout
+        int spacing = Math.Max(minSpacing, 600 / (hostsPerRow + 1));
+        
+        // Calculate dynamic width
+        svgWidth = Math.Max(600, (hostsPerRow + 1) * spacing);
+        
+        // Calculate dynamic height based on max agents in a host
+        int maxAgents = hostGroups.Any() ? hostGroups.Max(g => g.Count()) : 0;
+        int rows = (int)Math.Ceiling((double)hostGroups.Count / hostsPerRow);
+        svgHeight = Math.Max(600, 200 + rows * (60 + maxAgents * 35 + 100)); // Add padding between rows
+
+        // Recalculate spacing based on actual width if needed
+        spacing = svgWidth / (hostsPerRow + 1);
+
+        for (int i = 0; i < hosts.Count; i++)
+        {
+            var hostNode = hosts[i];
+            int row = i / hostsPerRow;
+            int col = i % hostsPerRow;
+            
+            hostNode.X = (col + 1) * spacing;
+            hostNode.Y = 200 + row * (200 + (maxAgents > 5 ? (maxAgents - 5) * 35 : 0));
         }
         
         // Build agent-to-agent links using RelayId
@@ -407,6 +475,7 @@
         public string Hostname { get; set; } = "";
         public int X { get; set; }
         public int Y { get; set; }
+        public int Width { get; set; } = 200;
         public List<AgentNode> Agents { get; set; } = new();
     }
 
@@ -418,6 +487,12 @@
         public bool IsAlive { get; set; }
         public string EndPoint { get; set; } = "";
         public string? RelayId { get; set; }
+        public IntegrityLevel Integrity { get; set; }
+        public string UserName { get; set; } = "";
+        public string ProcessName { get; set; } = "";
+        public int ProcessId { get; set; }
+        public string Architecture { get; set; } = "";
+        public DateTime LastSeen { get; set; }
     }
 
     private class AgentLink
