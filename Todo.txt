@@ -1,13 +1,12 @@
 # Agent
-* Pivot ?!
 * RunAsLoggedOn https://github.com/antonioCoco/RunasCs/blob/master/RunasCs.cs
 * BOF Loader .Net
 
 # Web Commander
-* Verb commands
+Implant UI Creation > adapt new url
+proxy page
 
 # Commander 
 * Big rework
 
 # Install
-Script

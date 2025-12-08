@@ -400,6 +400,46 @@ namespace WebCommander.Services
             }
         }
 
+        public async Task StartReversePortForwardAsync(string agentId, int port, string destHost, int destPort)
+        {
+            await EnsureConfiguredAsync();
+            var response = await _client.GetAsync($"/Agents/{agentId}/rportfwd/start?port={port}&destHost={Uri.EscapeDataString(destHost)}&destPort={destPort}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = response.ReasonPhrase;
+                try
+                {
+                    errorMsg = await response.Content.ReadAsStringAsync();
+                }
+                catch
+                {
+                    // ignore
+                }
+                throw new Exception($"Failed to start reverse port forward: {response.StatusCode} {errorMsg}");
+            }
+        }
+
+        public async Task StopReversePortForwardAsync(string agentId, int port)
+        {
+            await EnsureConfiguredAsync();
+            var response = await _client.GetAsync($"/Agents/{agentId}/rportfwd/stop?port={port}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = response.ReasonPhrase;
+                try
+                {
+                    errorMsg = await response.Content.ReadAsStringAsync();
+                }
+                catch
+                {
+                    // ignore
+                }
+                throw new Exception($"Failed to stop reverse port forward: {response.StatusCode} {errorMsg}");
+            }
+        }
+
         public async Task<List<ProxyInfo>> GetProxiesAsync()
         {
             await EnsureConfiguredAsync();
