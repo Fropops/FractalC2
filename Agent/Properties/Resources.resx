@@ -118,7 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="EndPoint" xml:space="preserve">
-    <value>https://127.0.0.1</value>
+    <value>http://127.0.0.1:443</value>
+  </data>
+  <data name="Implant" xml:space="preserve">
+    <value>Unknown-Animal</value>
   </data>
   <data name="Key" xml:space="preserve">
     <value>MXlPZEVWWGVmN2xqbnpyUg==</value>

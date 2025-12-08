@@ -61,11 +61,20 @@ namespace Agent.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to https://127.0.0.1.
+        ///   Looks up a localized string similar to http://127.0.0.1:443.
         /// </summary>
         internal static string EndPoint {
             get {
                 return ResourceManager.GetString("EndPoint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unknown-Animal.
+        /// </summary>
+        internal static string Implant {
+            get {
+                return ResourceManager.GetString("Implant", resourceCulture);
             }
         }
         

@@ -46,7 +46,7 @@
                     var agentLabel = $"{agent.Name} ({agent.ShortId})";
                     var agentIcon = "⚙️";
                     
-                    <g transform="translate(-70, @agentY)" class="agent-node" data-agent-id="@agent.Id" @onclick="@((MouseEventArgs e) => ShowAgentMenu(agent.Id, e))" @onclick:stopPropagation="true">
+                    <g transform="translate(@host.AgentStartX, @agentY)" class="agent-node" data-agent-id="@agent.Id" @onclick="@((MouseEventArgs e) => ShowAgentMenu(agent.Id, e))" @onclick:stopPropagation="true">
                         <!-- Tooltip -->
                         <title>@($"ID: {agent.Id}\nName: {agent.Name}\nUser: {agent.UserName}\nProcess: {agent.ProcessName} ({agent.ProcessId})\nIntegrity: {agent.Integrity}\nArch: {agent.Architecture}\nEndPoint: {agent.EndPoint}\nLast Seen: {agent.LastSeen:yyyy-MM-dd HH:mm:ss}")</title>
                         
@@ -85,7 +85,7 @@
                     var targetY = 72.0;
                     
                     // Agent position
-                    var agentX = (double)(hostX - 62);
+                    var agentX = (double)(hostX + host.AgentStartX + 8);
                     var agentYDouble = (double)agentY;
                     
                     // Calculate vector and length
@@ -145,9 +145,9 @@
         
         @foreach (var link in agentLinks)
         {
-            var startX = link.ParentX - 62;
+            var startX = link.ParentX;
             var startY = link.ParentY;
-            var endX = link.ChildX - 62;
+            var endX = link.ChildX;
             var endY = link.ChildY;
             
             <line x1="@startX" y1="@startY" x2="@endX" y2="@endY" 
@@ -310,9 +310,8 @@
             };
             
             // Calculate width based on Hostname
-            int requiredHalfWidth = 100; // Minimum default
             int nameWidth = (int)(hostNode.Hostname.Length * 8); // Approx 8px per char
-            requiredHalfWidth = Math.Max(requiredHalfWidth, nameWidth / 2 + 20);
+            int maxLabelWidth = 0;
 
             // Sort agents: direct TeamServer connections first, then relayed agents
             var sortedAgents = group.OrderBy(a => string.IsNullOrEmpty(a.RelayId) ? 0 : 1).ToList();
@@ -344,13 +343,21 @@
                     labelWidth += 25; // Space for shield
                 }
                 
-                // Text starts at -50 relative to center (icon at -70, text at +20 from icon)
-                // We need to cover from -100 (or less) to (-50 + labelWidth)
-                // So half width needs to be at least (-50 + labelWidth + padding)
-                requiredHalfWidth = Math.Max(requiredHalfWidth, -50 + labelWidth + 20);
+                if (labelWidth > maxLabelWidth)
+                {
+                    maxLabelWidth = labelWidth;
+                }
             }
             
-            hostNode.Width = requiredHalfWidth * 2;
+            // Calculate AgentStartX to center the longest agent line
+            // Line structure: [Badge(-6)] [Icon(0)] [Text(20)]
+            // Left edge (Badge left): AgentStartX - 12
+            // Right edge (Text right): AgentStartX + 20 + maxLabelWidth
+            // Centering: AgentStartX = -4 - maxLabelWidth/2
+            hostNode.AgentStartX = -4 - (maxLabelWidth / 2);
+            
+            int contentWidth = Math.Max(nameWidth, 32 + maxLabelWidth);
+            hostNode.Width = contentWidth + 60; // Exact 30px padding on each side
             maxHostWidth = Math.Max(maxHostWidth, hostNode.Width);
             
             hosts.Add(hostNode);
@@ -421,9 +428,9 @@
                         
                         agentLinks.Add(new AgentLink
                         {
-                            ParentX = parentHost.X,
+                            ParentX = parentHost.X + parentHost.AgentStartX + 8,
                             ParentY = parentHost.Y + parentIndex * 35 + 10,
-                            ChildX = host.X,
+                            ChildX = host.X + host.AgentStartX + 8,
                             ChildY = host.Y + i * 35 + 10,
                             Protocol = conn.ProtocolString,
                             IsListener = conn.IsValid && conn.Mode == ConnexionMode.Listener
@@ -476,6 +483,7 @@
         public int X { get; set; }
         public int Y { get; set; }
         public int Width { get; set; } = 200;
+        public int AgentStartX { get; set; }
         public List<AgentNode> Agents { get; set; } = new();
     }
 

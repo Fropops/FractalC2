@@ -5,12 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Shared;
 using static Agent.Service.RunningService;
 
 namespace Agent.Service
 {
     public interface IRunningService
     {
+
         string ServiceName { get; }
 
         RunningStatus Status { get; set; }
@@ -21,6 +23,8 @@ namespace Agent.Service
     }
     public abstract class RunningService : IRunningService
     {
+        protected virtual JobType? JobType { get { return null; } }
+        public int? JobId { get; protected set; }
         public abstract string ServiceName { get; }
         public enum RunningStatus
         {
@@ -30,7 +34,7 @@ namespace Agent.Service
 
         public RunningStatus Status { get; set; } = RunningStatus.Stoped;
 
-        public int MinimumDelay { get; set; } = 10;
+        public virtual int MinimumDelay { get; } = 10;
 
         protected CancellationTokenSource _tokenSource;
 
@@ -40,6 +44,11 @@ namespace Agent.Service
             {
                 _tokenSource = new CancellationTokenSource();
                 this.Status = RunningStatus.Running;
+                if(this.JobType.HasValue)
+                {
+                    this.JobId = ServiceProvider.GetService<IJobService>().RegisterJob(this.JobType.Value, _tokenSource, this.ServiceName).Id;
+                }
+
                 while (!_tokenSource.IsCancellationRequested)
                 {
                     await this.Process();
@@ -61,6 +70,10 @@ namespace Agent.Service
         {
             if (this.Status != RunningStatus.Running)
                 return;
+            if(this.JobId.HasValue)
+            {
+                ServiceProvider.GetService<IJobService>().RemoveJob(this.JobId.Value);
+            }
 
             this._tokenSource.Cancel();
         }

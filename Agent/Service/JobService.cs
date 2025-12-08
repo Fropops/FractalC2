@@ -11,9 +11,9 @@ namespace Agent.Service
 {
     internal interface IJobService
     {
-        Job RegisterJob(int processId, string name, string taskId);
+        Job RegisterJob(JobType type, int processId, string name, string taskId = null);
 
-        Job RegisterJob(CancellationTokenSource token, string name, string taskId);
+        Job RegisterJob(JobType type, CancellationTokenSource token, string name, string taskId = null);
         bool RemoveJob(int id);
         Job GetJob(int id);
         List<Job> GetJobs();
@@ -23,16 +23,16 @@ namespace Agent.Service
         private int NextId = 0;
         private ConcurrentDictionary<int, Job> Jobs = new ConcurrentDictionary<int, Job>();
 
-        public Job RegisterJob(int processId, string name, string taskId)
+        public Job RegisterJob(JobType type, int processId, string name, string taskId = null)
         {
-            var job = new Job(this.NextId++, processId, name, taskId);
+            var job = new Job(type, this.NextId++, processId, name, taskId);
             this.Jobs.AddOrUpdate(job.Id, job, (key, value) => value);
             return job;
         }
 
-        public Job RegisterJob(CancellationTokenSource token, string name, string taskId)
+        public Job RegisterJob(JobType type, CancellationTokenSource token, string name, string taskId = null)
         {
-            var job = new Job(this.NextId++, token, name, taskId);
+            var job = new Job(type, this.NextId++, token, name, taskId);
             this.Jobs.AddOrUpdate(job.Id, job, (key, value) => value);
             return job;
         }

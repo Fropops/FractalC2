@@ -169,7 +169,7 @@ function Release-FractalC2 {
 		$platforms = @("x86","x64","ReleaseButDebug")
 	
         Write-Host "Building Agent..."
-        Build-And-Copy -proj "$baseDir\Agentv2\Agentv2.csproj" -outputName "Agent.exe" -platforms $platforms -destDirs $destDirs
+        Build-And-Copy -proj "$baseDir\Agent\Agent.csproj" -outputName "Agent.exe" -platforms $platforms -destDirs $destDirs
 		Build-And-Copy -proj "$baseDir\Payload\PatcherDll\PatcherDll.csproj" -outputName "Patcher.dll" -platforms $platforms -destDirs $destDirs
 		Build-And-Copy -proj "$baseDir\Payload\InjectDll\InjectDll.csproj" -outputName "Inject.dll" -platforms $platforms -destDirs $destDirs
 		Build-And-Copy -proj "$baseDir\Payload\Starter\Starter.csproj" -outputName "Starter.exe" -platforms $platforms -destDirs $destDirs
@@ -191,10 +191,10 @@ function Release-FractalC2 {
 		$platforms = @("x86","x64","ReleaseButDebug")
 	
         Write-Host "Mise à jour de la version de l'Agent..."
-        Update-ProjectVersion -ProjectPath "$baseDir\Agentv2\Agentv2.csproj" -IncrementPart $IncrementPart
+        Update-ProjectVersion -ProjectPath "$baseDir\Agent\Agent.csproj" -IncrementPart $IncrementPart
 
         Write-Host "Building Agent..."
-        Build-And-Copy -proj "$baseDir\Agentv2\Agentv2.csproj" -outputName "Agent.exe" -platforms $platforms -destDirs $destDirs
+        Build-And-Copy -proj "$baseDir\Agent\Agent.csproj" -outputName "Agent.exe" -platforms $platforms -destDirs $destDirs
 		Build-And-Copy -proj "$baseDir\Payload\PatcherDll\PatcherDll.csproj" -outputName "Patcher.dll" -platforms $platforms -destDirs $destDirs
 		Build-And-Copy -proj "$baseDir\Payload\InjectDll\InjectDll.csproj" -outputName "Inject.dll" -platforms $platforms -destDirs $destDirs
 		Build-And-Copy -proj "$baseDir\Payload\Starter\Starter.csproj" -outputName "Starter.exe" -platforms $platforms -destDirs $destDirs

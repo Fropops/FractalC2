@@ -10,6 +10,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +22,9 @@ namespace Agent.Communication
         private HttpClient _client;
         public HttpCommmunicator(ConnexionUrl conn) : base(conn)
         {
+            if (conn.Protocol != ConnexionType.Http)
+                throw new ArgumentException($"{conn.Protocol} is not a valid protocol.");
+
             ServicePointManager.Expect100Continue = true;
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             ServicePointManager.ServerCertificateValidationCallback = new

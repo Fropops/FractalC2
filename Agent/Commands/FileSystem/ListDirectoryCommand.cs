@@ -26,12 +26,12 @@ namespace Agent.Commands
             else
                 path = task.GetParameter<string>(ParameterId.Path);
 
-            var list = new List<ListDirectoryResult>();
+            var list = new List<ListDirectoryResultLine>();
             var directories = Directory.GetDirectories(path);
             foreach (var dir in directories)
             {
                 var dirInfo = new DirectoryInfo(dir);
-                list.Add(new ListDirectoryResult()
+                list.Add(new ListDirectoryResultLine()
                 {
                     Name = dirInfo.Name,
                     Length = 0,
@@ -43,7 +43,7 @@ namespace Agent.Commands
             foreach (var file in files)
             {
                 var fileInfo = new FileInfo(file);
-                list.Add(new ListDirectoryResult()
+                list.Add(new ListDirectoryResultLine()
                 {
                     Name = Path.GetFileName(fileInfo.FullName),
                     Length = fileInfo.Length,
@@ -52,7 +52,7 @@ namespace Agent.Commands
             }
 
             context.AppendResult($"Listing of {path}");
-            context.Objects(list);
+            context.Objects(new ListDirectoryResult() { Directory = path, Lines = list});
         }
     }
 }

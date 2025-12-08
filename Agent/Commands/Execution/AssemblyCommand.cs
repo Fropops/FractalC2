@@ -65,7 +65,7 @@ namespace Agent.Commands
 
                     //register as Job
                     var jobService = ServiceProvider.GetService<IJobService>();
-                    this.JobId = jobService.RegisterJob(context.TokenSource, task.GetParameter<string>(ParameterId.Name), task.Id).Id;
+                    this.JobId = jobService.RegisterJob(JobType.InlineAssembly, context.TokenSource, task.GetParameter<string>(ParameterId.Name), task.Id).Id;
 
                     // whilst assembly is executing
                     // keep looping and reading stream

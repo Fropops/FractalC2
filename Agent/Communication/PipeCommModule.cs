@@ -23,18 +23,10 @@ namespace Agent.Models
     {
         public PipeCommModule(ConnexionUrl conn) : base(conn)
         {
-            if (conn.Protocol == ConnexionType.NamedPipe)
-            {
-                CommunicationMode = CommunicationModuleMode.Server;
-                return;
-            }
-            if (conn.Protocol == ConnexionType.ReverseNamedPipe)
-            {
-                CommunicationMode = CommunicationModuleMode.Client;
-                return;
-            }
+            if (conn.Protocol != ConnexionType.NamedPipe)
+                throw new ArgumentException($"{conn.Protocol} is not a valid protocol.");
 
-            throw new ArgumentException($"{conn.Protocol} is not a valid protocol.");
+            CommunicationMode = conn.Mode == ConnexionMode.Listener ? CommunicationModuleMode.Server : CommunicationModuleMode.Client;
         }
 
         private NamedPipeServerStream _pipeServer;
@@ -84,7 +76,8 @@ namespace Agent.Models
             {
                 case CommunicationModuleMode.Server:
                     {
-                        await _pipeServer.WaitForConnectionAsync();
+                        await Task.Run(() => _pipeServer.WaitForConnection());
+                        //await _pipeServer.WaitForConnectionAsync();
 #if DEBUG
                         Debug.WriteLine("Pipe : Comm connected (server mode)");
 #endif
@@ -94,7 +87,9 @@ namespace Agent.Models
                 case CommunicationModuleMode.Client:
                     {
                         var timeout = new CancellationTokenSource(new TimeSpan(0, 0, 30));
-                        await _pipeClient.ConnectAsync(timeout.Token);
+
+                        await Task.Run(() => _pipeClient.Connect());
+                        //await _pipeClient.ConnectAsync(timeout.Token);
 
                         _pipeClient.ReadMode = PipeTransmissionMode.Byte;
 #if DEBUG

