@@ -8,7 +8,7 @@ namespace WebCommander.Services.Commands
         public abstract string Name { get; }
         public abstract string Description { get; }
         public abstract CommandId Id { get; }
-        public virtual string Category { get; } = CommandCategory.Core;
+        public virtual string Category { get; } = CommandCategory.Agent;
         public virtual string[] Aliases { get; } = Array.Empty<string>();
 
         public string CommandLine { get; protected set;}

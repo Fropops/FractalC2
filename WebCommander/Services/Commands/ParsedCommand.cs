@@ -84,12 +84,13 @@ namespace WebCommander.Services.Commands
             // Options
             foreach (var opt in cmd.Options)
             {
-                if (opt.Name == "--version")
+                if (opt.Name == "--version" || opt.Name == "--help")
                     continue;
+                string aliases = string.Join(',', opt.Aliases);
                 string syntax = opt.Arity.MinimumNumberOfValues > 0
-                    ? $"<{opt.Name}>"
-                    : $"[{opt.Name}]";
-
+                    ? $"<{opt.Name} ({aliases})>"
+                    : $"[{opt.Name} ({aliases})]";
+                
                 parts.Add(syntax);
             }
 

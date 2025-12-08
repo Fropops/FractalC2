@@ -9,7 +9,7 @@ namespace WebCommander.Services.Commands.EndPoint
         public override string Name => "revert-self";
         public override string Description => "Remove Token Impersonation";
         public override CommandId Id => CommandId.RevertSelf;
-        public override string Category => CommandCategory.System;
+        public override string Category => CommandCategory.Token;
 
         protected override void AddCommandParameters(RootCommand command)
         {

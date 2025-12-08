@@ -10,6 +10,7 @@ namespace WebCommander.Services.Commands
         public override string Name => "capture";
         public override string Description => "Capture current screen(s).";
         public override CommandId Id => CommandId.Capture;
+        public override string Category => CommandCategory.Media;
 
         protected override void AddCommandParameters(RootCommand command)
         {

@@ -9,7 +9,7 @@ namespace WebCommander.Services.Commands.EndPoint
         public override string Name => "sleep";
         public override string Description => "Display or Change agent response time";
         public override CommandId Id => CommandId.Sleep;
-        public override string Category => CommandCategory.Core;
+        public override string Category => CommandCategory.Agent;
 
         protected override void AddCommandParameters(RootCommand command)
         {

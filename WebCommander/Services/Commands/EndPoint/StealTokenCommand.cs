@@ -9,7 +9,7 @@ namespace WebCommander.Services.Commands.EndPoint
         public override string Name => "steal-token";
         public override string Description => "Steal the token from a process";
         public override CommandId Id => CommandId.StealToken;
-        public override string Category => CommandCategory.System;
+        public override string Category => CommandCategory.Token;
 
         protected override void AddCommandParameters(RootCommand command)
         {

@@ -8,7 +8,7 @@ namespace WebCommander.Services.Commands
         public override string Name => "help";
         public override string Description => "List all available commands";
         public override CommandId Id => CommandId.None;
-        public override string Category => CommandCategory.Commander;
+        public override string Category => CommandCategory.UI;
 
         public override async Task<CommandResult> ExecuteAsync(string cmdLine)
         {

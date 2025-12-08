@@ -9,7 +9,7 @@ namespace WebCommander.Services.Commands.EndPoint
         public override string Name => "make-token";
         public override string Description => "Make token for a specified user";
         public override CommandId Id => CommandId.MakeToken;
-        public override string Category => CommandCategory.System;
+        public override string Category => CommandCategory.Token;
 
         protected override void AddCommandParameters(RootCommand command)
         {
