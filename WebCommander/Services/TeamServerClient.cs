@@ -358,5 +358,60 @@ namespace WebCommander.Services
             var response = await _client.DeleteAsync($"/loot/{agentId}/{Uri.EscapeDataString(fileName)}");
             return response.IsSuccessStatusCode;
         }
+
+        // Proxy methods
+        public async Task StartProxyAsync(string agentId, int port)
+        {
+            await EnsureConfiguredAsync();
+            var response = await _client.GetAsync($"/Agents/{agentId}/startproxy?port={port}");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = response.ReasonPhrase;
+                try
+                {
+                    errorMsg = await response.Content.ReadAsStringAsync();
+                }
+                catch
+                {
+                    // ignore
+                }
+                throw new Exception($"Failed to start proxy: {response.StatusCode} {errorMsg}");
+            }
+        }
+
+        public async Task StopProxyAsync(string agentId)
+        {
+            await EnsureConfiguredAsync();
+            var response = await _client.GetAsync($"/Agents/{agentId}/stopproxy");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = response.ReasonPhrase;
+                try
+                {
+                    errorMsg = await response.Content.ReadAsStringAsync();
+                }
+                catch
+                {
+                    // ignore
+                }
+                throw new Exception($"Failed to stop proxy: {response.StatusCode} {errorMsg}");
+            }
+        }
+
+        public async Task<List<ProxyInfo>> GetProxiesAsync()
+        {
+            await EnsureConfiguredAsync();
+            var response = await _client.GetAsync("/Agents/proxy");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"Failed to get proxies: {response.StatusCode}");
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<List<ProxyInfo>>();
+            return result ?? new List<ProxyInfo>();
+        }
     }
 }
