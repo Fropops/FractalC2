@@ -76,35 +76,7 @@ else
                     <button type="button" class="btn-close" @onclick="HideCreateModal"></button>
                 </div>
                 <div class="modal-body">
-                    <EditForm Model="newListener" OnValidSubmit="CreateListener">
-                        <DataAnnotationsValidator />
-                        <ValidationSummary />
-
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Name</label>
-                            <InputText id="name" class="form-control" @bind-Value="newListener.Name" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="ip" class="form-label">IP Address</label>
-                            <InputText id="ip" class="form-control" @bind-Value="newListener.Ip" placeholder="0.0.0.0" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="port" class="form-label">Port</label>
-                            <InputNumber id="port" class="form-control" @bind-Value="newListener.BindPort" />
-                        </div>
-
-                        <div class="mb-3 form-check">
-                            <InputCheckbox id="secured" class="form-check-input" @bind-Value="newListener.Secured" />
-                            <label for="secured" class="form-check-label">Secured (HTTPS)</label>
-                        </div>
-
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" @onclick="HideCreateModal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Create</button>
-                        </div>
-                    </EditForm>
+                    <ListenerCreator OnCreated="HandleListenerCreated" OnCancel="HideCreateModal" />
                 </div>
             </div>
         </div>
@@ -114,7 +86,6 @@ else
 @code {
     private List<Listener> listeners = new();
     private bool showCreateModal = false;
-    private StartHttpListenerRequest newListener = new();
 
     protected override void OnInitialized()
     {
@@ -124,8 +95,8 @@ else
         // Get initial listeners
         listeners = AgentService.GetListeners();
         
-        // Initialize new listener with defaults
-        ResetNewListener();
+        // Get initial listeners
+        listeners = AgentService.GetListeners();
     }
 
     private void OnListenersUpdated()
@@ -136,7 +107,6 @@ else
 
     private void ShowCreateModal()
     {
-        ResetNewListener();
         showCreateModal = true;
     }
 
@@ -145,30 +115,10 @@ else
         showCreateModal = false;
     }
 
-    private void ResetNewListener()
+    private void HandleListenerCreated()
     {
-        newListener = new StartHttpListenerRequest
-        {
-            Name = "Local",
-            Ip = "127.0.0.1",
-            BindPort = 443,
-            Secured = true  // Secured by default
-        };
-    }
-
-    private async Task CreateListener()
-    {
-        try
-        {
-            await Api.StartListenerAsync(newListener);
-            HideCreateModal();
-            ToastService.ShowSuccess($"Listener {newListener.Name} created successfully", "Listener Created");
-        }
-        catch (Exception ex)
-        {
-            ToastService.ShowError($"Error creating listener: {ex.Message}", "Error");
-            Console.WriteLine($"Error creating listener: {ex.Message}");
-        }
+        HideCreateModal();
+        ToastService.ShowSuccess("Listener created successfully", "Listener Created");
     }
 
     private async Task StopListener(string id)

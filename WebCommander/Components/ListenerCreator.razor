@@ -1,19 +1,29 @@
 @using WebCommander.Models
 @using WebCommander.Services
 @inject TeamServerClient Api
+@inject ToastService ToastService
 
-<div class="card">
-    <div class="card-header">
-        Nouveau Listener
-    </div>
-    <div class="card-body">
         <EditForm Model="@request" OnValidSubmit="HandleValidSubmit">
             <DataAnnotationsValidator />
             <ValidationSummary />
 
             <div class="mb-3">
-                <label for="name" class="form-label">Nom</label>
+                <label for="name" class="form-label">Name</label>
                 <InputText id="name" class="form-control" @bind-Value="request.Name" />
+            </div>
+
+             <div class="mb-3">
+                <label for="listeningAddress" class="form-label">Listening Address</label>
+                <input id="listeningAddress" class="form-control" value="0.0.0.0" disabled />
+            </div>
+
+             <div class="mb-3">
+                <label for="publicAddress" class="form-label">Public Address</label>
+                <InputText id="publicAddress" class="form-control" @bind-Value="request.Ip" />
+                <div class="form-text">
+                    <i class="bi bi-info-circle me-1"></i>
+                    This address is used as the connection endpoint when generating an implant.
+                </div>
             </div>
 
             <div class="mb-3">
@@ -22,25 +32,79 @@
             </div>
 
             <div class="mb-3 form-check">
-                <InputCheckbox id="secured" class="form-check-input" @bind-Value="request.Secured" />
-                <label class="form-check-label" for="secured">Sécurisé (HTTPS)</label>
+                <InputCheckbox id="secured" class="form-check-input" @bind-Value="Secured" />
+                <label class="form-check-label" for="secured">Secured (HTTPS)</label>
             </div>
 
-            <button type="submit" class="btn btn-primary">Créer</button>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create</button>
+            </div>
         </EditForm>
-    </div>
-</div>
 
 @code {
-    private StartHttpListenerRequest request = new StartHttpListenerRequest { BindPort = 8080 };
+    private StartHttpListenerRequest request = new StartHttpListenerRequest 
+    { 
+        Name = "Local",
+        Ip = "127.0.0.1",
+        BindPort = 443, 
+        Secured = true 
+    };
 
     [Parameter]
     public EventCallback OnCreated { get; set; }
 
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private bool Secured
+    {
+        get => request.Secured;
+        set
+        {
+            if (request.Secured != value)
+            {
+                request.Secured = value;
+                UpdatePortBasedOnSecurity(value);
+            }
+        }
+    }
+
+    private void UpdatePortBasedOnSecurity(bool isSecured)
+    {
+        if (isSecured)
+        {
+            if (request.BindPort == 80)
+            {
+                request.BindPort = 443;
+            }
+        }
+        else
+        {
+            if (request.BindPort == 443)
+            {
+                request.BindPort = 80;
+            }
+        }
+    }
+
     private async Task HandleValidSubmit()
     {
-        await Api.StartListenerAsync(request);
-        request = new StartHttpListenerRequest { BindPort = 8080 }; // Reset
-        await OnCreated.InvokeAsync();
+        try
+        {
+            await Api.StartListenerAsync(request);
+            request = new StartHttpListenerRequest 
+            { 
+                Name = "Local",
+                Ip = "127.0.0.1",
+                BindPort = 443, 
+                Secured = true 
+            }; // Reset with correct defaults
+            await OnCreated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message, "Error creating listener");
+        }
     }
 }

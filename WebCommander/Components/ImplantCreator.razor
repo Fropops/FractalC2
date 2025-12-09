@@ -1,5 +1,6 @@
 @using WebCommander.Models
 @using WebCommander.Services
+@using System.Text.RegularExpressions
 @inject TeamServerClient Api
 @inject AgentService AgentService
 
@@ -34,29 +35,61 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="protocol" class="form-label">Protocol</label>
-                            <select id="protocol" class="form-select" @bind="selectedProtocol" disabled="@(!isCustomEndpoint)">
-                                @foreach (var type in Enum.GetValues<ConnexionType>())
-                                {
-                                    <option value="@type">@type</option>
-                                }
+                            <select id="protocol" class="form-select" @bind="SelectedProtocol" disabled="@(!isCustomEndpoint)">
+                                <option value="http">HTTP</option>
+                                <option value="https">HTTPS</option>
+                                <option value="pipe">Pipe</option>
+                                <option value="tcp">TCP</option>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="address" class="form-label">Address</label>
-                            <input type="text" id="address" class="form-control" @bind="endpointAddress" disabled="@(!isCustomEndpoint)" />
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="port" class="form-label">@(IsNamedPipe ? "Pipe Name" : "Port")</label>
-                            <input type="text" id="port" class="form-control" @bind="endpointPort" disabled="@(!isCustomEndpoint)" />
-                        </div>
+                        
+                        @if (ShowAddress)
+                        {
+                            <div class="col-md-4 mb-3">
+                                <label for="address" class="form-label">Address</label>
+                                <input type="text" id="address" class="form-control" @bind="endpointAddress" disabled="@(!isCustomEndpoint)" />
+                            </div>
+                        }
+
+                        @if (ShowPort)
+                        {
+                            <div class="col-md-4 mb-3">
+                                <label for="port" class="form-label">Port</label>
+                                <input type="text" id="port" class="form-control" @bind="endpointPort" disabled="@(!isCustomEndpoint)" />
+                            </div>
+                        }
+                        
+                        @if (ShowPipeName)
+                        {
+                             <div class="col-md-8 mb-3">
+                                <label for="pipeName" class="form-label">Pipe Name</label>
+                                <input type="text" id="pipeName" class="form-control" @bind="endpointPipeName" disabled="@(!isCustomEndpoint)" />
+                                <div class="form-text">Alphanumeric, cannot start with a digit.</div>
+                            </div>
+                        }
                     </div>
-                    @if (selectedProtocol == ConnexionType.Http)
+
+                    @if (ShowAddress)
                     {
-                        <div class="form-check mb-3">
-                            <input type="checkbox" id="secure" class="form-check-input" @bind="isSecure" disabled="@(!isCustomEndpoint)" />
-                            <label for="secure" class="form-check-label">Use HTTPS</label>
+                        <div class="alert alert-secondary d-flex align-items-center">
+                            <i class="bi bi-arrow-up-right-circle fs-4 me-3"></i>
+                            <div>
+                                <strong>Callback Connection</strong><br/>
+                                The implant will initiate a connection TO the TeamServer (or a redirector) at this URL.
+                            </div>
                         </div>
                     }
+                    else
+                    {
+                        <div class="alert alert-warning d-flex align-items-center">
+                            <i class="bi bi-arrow-down-left-circle fs-4 me-3"></i>
+                            <div>
+                                <strong>P2P Listener</strong><br/>
+                                The implant will BIND this local endpoint and wait for another agent to connect to it.
+                            </div>
+                        </div>
+                    }
+
                     <div class="alert alert-info">
                         <strong>Endpoint URL:</strong> @GetEndpointUrl()
                     </div>
@@ -133,13 +166,31 @@
     private List<Listener> listeners = new();
     private string selectedListenerId = "custom";
     private bool isCustomEndpoint = true;
-    private ConnexionType selectedProtocol = ConnexionType.Http;
+    
+    // Protocol selection state
+    private string _selectedProtocol = "http";
+    private string SelectedProtocol 
+    {
+        get => _selectedProtocol;
+        set 
+        {
+            if (_selectedProtocol != value)
+            {
+                _selectedProtocol = value;
+                StateHasChanged();
+            }
+        }
+    }
+
     private string endpointAddress = "127.0.0.1";
     private string endpointPort = "80";
-    private bool isSecure = false;
+    private string endpointPipeName = "demo_pipe";
     private string errorMessage = string.Empty;
 
-    private bool IsNamedPipe => selectedProtocol == ConnexionType.NamedPipe;
+    // Visibility helpers
+    private bool ShowAddress => SelectedProtocol == "http" || SelectedProtocol == "https";
+    private bool ShowPort => SelectedProtocol == "http" || SelectedProtocol == "https" || SelectedProtocol == "tcp";
+    private bool ShowPipeName => SelectedProtocol == "pipe";
 
     protected override void OnInitialized()
     {
@@ -156,22 +207,29 @@
     {
         selectedListenerId = e.Value?.ToString() ?? "custom";
         isCustomEndpoint = selectedListenerId == "custom";
-        UpdateEndpointFromListener();
+        
+        if (!isCustomEndpoint)
+        {
+            UpdateEndpointFromListener();
+        }
+        else
+        {
+             // Reset to defaults for custom
+             SelectedProtocol = "http";
+             endpointAddress = "127.0.0.1";
+             endpointPort = "80";
+        }
     }
 
     private void UpdateEndpointFromListener()
     {
-        if (!isCustomEndpoint)
+        var listener = listeners.FirstOrDefault(l => l.Id == selectedListenerId);
+        if (listener != null)
         {
-            var listener = listeners.FirstOrDefault(l => l.Id == selectedListenerId);
-            if (listener != null)
-            {
-                // Inject listener values into endpoint fields
-                selectedProtocol = ConnexionType.Http;
-                endpointAddress = listener.Ip;
-                endpointPort = listener.BindPort.ToString();
-                isSecure = listener.Secured;
-            }
+            // Inject listener values into input fields
+            SelectedProtocol = listener.Secured ? "https" : "http";
+            endpointAddress = listener.Ip;
+            endpointPort = listener.BindPort.ToString();
         }
     }
 
@@ -179,26 +237,32 @@
     {
         try
         {
-            if (IsNamedPipe)
+            switch (SelectedProtocol)
             {
-                return $"pipe://{endpointAddress}:{endpointPort}";
+                case "http":
+                    return $"http://{endpointAddress}:{endpointPort}";
+                case "https":
+                    return $"https://{endpointAddress}:{endpointPort}";
+                case "pipe":
+                    return $"pipe>{endpointPipeName}";
+                case "tcp":
+                    return $"tcp>{endpointPort}";
+                default:
+                    return "Invalid protocol";
             }
-            else if (selectedProtocol == ConnexionType.Http)
-            {
-                var protocol = isSecure ? "https" : "http";
-                return $"{protocol}://{endpointAddress}:{endpointPort}";
-            }
-            else if (selectedProtocol == ConnexionType.Tcp)
-            {
-                return $"tcp://{endpointAddress}:{endpointPort}";
-            }
-
-            return "Invalid protocol";
         }
         catch
         {
             return "Invalid configuration";
         }
+    }
+
+    private bool IsValidPipeName(string pipedName)
+    {
+        // Alphanumeric strings that DO NOT start with a digit
+        // Allows empty here? No, validation on submit checks IsNullOrWhiteSpace.
+        if (string.IsNullOrEmpty(pipedName)) return false;
+        return Regex.IsMatch(pipedName, @"^[a-zA-Z][a-zA-Z0-9]*$");
     }
 
     private async Task HandleValidSubmit()
@@ -207,14 +271,23 @@
         {
             errorMessage = string.Empty;
 
+            // Extra validation for Pipe Name
+            if (SelectedProtocol == "pipe")
+            {
+                if (string.IsNullOrWhiteSpace(endpointPipeName) || !IsValidPipeName(endpointPipeName))
+                {
+                    errorMessage = "Invalid Pipe Name. Must be alphanumeric and cannot start with a number.";
+                    return;
+                }
+            }
+
             // Build endpoint URL
             var endpointUrl = GetEndpointUrl();
-
-            // Validate using ConnexionUrl.FromString
+            
             var connexion = ConnexionUrl.FromString(endpointUrl);
             if (!connexion.IsValid)
             {
-                errorMessage = "Invalid endpoint configuration. Please check your inputs.";
+                errorMessage = $"Invalid endpoint configuration (generated: {endpointUrl}). Please check your inputs.";
                 return;
             }
 
