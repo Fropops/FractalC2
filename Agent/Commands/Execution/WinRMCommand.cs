@@ -25,7 +25,11 @@ namespace Agent.Commands.Execution
             //context.AppendResult($"target : {target}");
             //context.AppendResult($"cmd length : {cmd.Length}");
 
-            var uri = new Uri($"http://{target}:5985/wsman");
+            int port = 5985;
+            if(task.HasParameter(ParameterId.Port))
+                port = task.GetParameter<int>(ParameterId.Password);
+
+            var uri = new Uri($"http://{target}:{port}/wsman");
 
             WSManConnectionInfo conn = null;
 
@@ -34,6 +38,8 @@ namespace Agent.Commands.Execution
                 var domain = task.GetParameter<string>(ParameterId.Domain);
                 var username = task.GetParameter<string>(ParameterId.User);
                 var password = task.GetParameter<string>(ParameterId.Password);
+                
+
                 var credential = new PSCredential($"{domain}\\{username}", password.ToSecureString());
                 conn = new WSManConnectionInfo(uri, "http://schemas.microsoft.com/powershell/Microsoft.PowerShell", credential);
             }

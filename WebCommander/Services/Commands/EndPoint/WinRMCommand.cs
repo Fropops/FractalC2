@@ -1,0 +1,70 @@
+using System.CommandLine;
+using System.CommandLine.Parsing;
+using System.Threading.Tasks;
+using WebCommander.Models;
+
+namespace WebCommander.Services.Commands
+{
+    public class WinRMCommand : EndPointCommand
+    {
+        public override string Name => "winrm";
+        public override string Description => "Send a command to be executed with winrm to the target";
+        public override CommandId Id => CommandId.Winrm;
+        public override string Category => CommandCategory.LateralMovement;
+
+        private const string ARG_TARGET = "target";
+        private const string ARG_CMD = "cmd";
+        private const string OPT_USER = "--user";
+        private const string OPT_USER_ALIAS = "-u";
+        private const string OPT_PASS = "--password";
+        private const string OPT_PASS_ALIAS = "-p";
+        private const string OPT_PORT = "--port";
+
+        protected override void AddCommandParameters(RootCommand command)
+        {
+            command.AddArgument(new Argument<string>(ARG_TARGET, "Target computer."));
+            command.AddArgument(new Argument<string>(ARG_CMD, "Command to execute"));
+            command.AddOption(new Option<string>(new[] { OPT_USER, OPT_USER_ALIAS }, "username (format : Domain\\user)"));
+            command.AddOption(new Option<string>(new[] { OPT_PASS, OPT_PASS_ALIAS }, "password"));
+            command.AddOption(new Option<int>(OPT_PORT, "Port number"));
+        }
+
+        public override async Task FillParametersAsync(ParseResult parseResult, ParameterDictionary parms)
+        {
+            var target = parseResult.GetValue<string>(ARG_TARGET);
+            var cmd = parseResult.GetValue<string>(ARG_CMD);
+            var user = parseResult.GetValue<string>(OPT_USER);
+            var password = parseResult.GetValue<string>(OPT_PASS);
+
+            parms.AddParameter(ParameterId.Target, target);
+            parms.AddParameter(ParameterId.Command, cmd);
+
+            if (!string.IsNullOrEmpty(user))
+            {
+                if (user.Contains("\\"))
+                {
+                    var split = user.Split('\\');
+                    var domain = split[0];
+                    var username = split[1];
+                    parms.AddParameter(ParameterId.User, username);
+                    parms.AddParameter(ParameterId.Domain, domain);
+                }
+                else
+                {
+                     parms.AddParameter(ParameterId.User, user);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(password))
+            {
+                parms.AddParameter(ParameterId.Password, password);
+            }
+
+            var port = parseResult.GetValue<int>(OPT_PORT);
+            if (port != 0)
+            {
+                 parms.AddParameter(ParameterId.Port, port);
+            }
+        }
+    }
+}
