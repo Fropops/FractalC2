@@ -58,10 +58,12 @@
 
         window.setCursorToEnd = function (element) {
             if (element) {
-                element.focus();
-                // Move cursor to the end
-                const length = element.value.length;
-                element.setSelectionRange(length, length);
+                setTimeout(function () {
+                    element.focus();
+                    const length = element.value.length;
+                    element.setSelectionRange(length, length);
+                    console.log("Cursor set to end, length: " + length);
+                }, 10);
             }
         }
     </script>
