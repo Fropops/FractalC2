@@ -89,58 +89,58 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\..\Agentv2\WinAPI\APIWrapper.cs">
+    <Compile Include="..\..\Agent\WinAPI\APIWrapper.cs">
       <Link>WinAPI\APIWrapper.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\Data\AdvApi.cs">
+    <Compile Include="..\..\Agent\WinAPI\Data\AdvApi.cs">
       <Link>WinAPI\Data\AdvApi.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\Data\Kernel32.cs">
+    <Compile Include="..\..\Agent\WinAPI\Data\Kernel32.cs">
       <Link>WinAPI\Data\Kernel32.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\Data\PE.cs">
+    <Compile Include="..\..\Agent\WinAPI\Data\PE.cs">
       <Link>WinAPI\Data\PE.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Advapi.cs">
+    <Compile Include="..\..\Agent\WinAPI\DInvoke\DInvoke.Advapi.cs">
       <Link>WinAPI\DInvoke\DInvoke.Advapi.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Data.Native.cs">
+    <Compile Include="..\..\Agent\WinAPI\DInvoke\DInvoke.Data.Native.cs">
       <Link>WinAPI\DInvoke\DInvoke.Data.Native.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Data.PE.cs">
+    <Compile Include="..\..\Agent\WinAPI\DInvoke\DInvoke.Data.PE.cs">
       <Link>WinAPI\DInvoke\DInvoke.Data.PE.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Data.Win32.cs">
+    <Compile Include="..\..\Agent\WinAPI\DInvoke\DInvoke.Data.Win32.cs">
       <Link>WinAPI\DInvoke\DInvoke.Data.Win32.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Generic.cs">
+    <Compile Include="..\..\Agent\WinAPI\DInvoke\DInvoke.Generic.cs">
       <Link>WinAPI\DInvoke\DInvoke.Generic.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Kernel32.cs">
+    <Compile Include="..\..\Agent\WinAPI\DInvoke\DInvoke.Kernel32.cs">
       <Link>WinAPI\DInvoke\DInvoke.Kernel32.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Native.cs">
+    <Compile Include="..\..\Agent\WinAPI\DInvoke\DInvoke.Native.cs">
       <Link>WinAPI\DInvoke\DInvoke.Native.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Utilities.cs">
+    <Compile Include="..\..\Agent\WinAPI\DInvoke\DInvoke.Utilities.cs">
       <Link>WinAPI\DInvoke\DInvoke.Utilities.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\DInvoke\DInvoke.Wrapper.cs">
+    <Compile Include="..\..\Agent\WinAPI\DInvoke\DInvoke.Wrapper.cs">
       <Link>WinAPI\DInvoke\DInvoke.Wrapper.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\Helper\ReflectiveLoaderHelper.cs">
+    <Compile Include="..\..\Agent\WinAPI\Helper\ReflectiveLoaderHelper.cs">
       <Link>WinAPI\Helper\ReflectiveLoaderHelper.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\PInvoke\Advapi.cs">
+    <Compile Include="..\..\Agent\WinAPI\PInvoke\Advapi.cs">
       <Link>WinAPI\PInvoke\Advapi.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\PInvoke\Kernel32.cs">
+    <Compile Include="..\..\Agent\WinAPI\PInvoke\Kernel32.cs">
       <Link>WinAPI\PInvoke\Kernel32.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\PInvoke\Native.cs">
+    <Compile Include="..\..\Agent\WinAPI\PInvoke\Native.cs">
       <Link>WinAPI\PInvoke\Native.cs</Link>
     </Compile>
-    <Compile Include="..\..\Agentv2\WinAPI\PInvoke\PInvoke.Wrapper.cs">
+    <Compile Include="..\..\Agent\WinAPI\PInvoke\PInvoke.Wrapper.cs">
       <Link>WinAPI\PInvoke\PInvoke.Wrapper.cs</Link>
     </Compile>
     <Compile Include="Entry.cs" />
