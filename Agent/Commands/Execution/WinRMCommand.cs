@@ -27,7 +27,7 @@ namespace Agent.Commands.Execution
 
             int port = 5985;
             if(task.HasParameter(ParameterId.Port))
-                port = task.GetParameter<int>(ParameterId.Password);
+                port = task.GetParameter<int>(ParameterId.Port);
 
             var uri = new Uri($"http://{target}:{port}/wsman");
 
