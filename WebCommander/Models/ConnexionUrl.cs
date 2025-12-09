@@ -21,10 +21,6 @@ namespace WebCommander.Models
             }
         }
 
-        public bool IsLoopBack =>
-            Address == "127.0.0.1" ||
-            Address.Equals("localhost", StringComparison.OrdinalIgnoreCase);
-
         public static ConnexionUrl FromString(string connStr)
         {
             var conn = new ConnexionUrl { IsValid = false };
