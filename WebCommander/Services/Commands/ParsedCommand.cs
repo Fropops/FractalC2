@@ -66,6 +66,7 @@ namespace WebCommander.Services.Commands
         public override string GetUsage()
         {
             var parts = new List<string>();
+            var descs = new List<string>();
             Command cmd = this.Command;
 
             // Nom de la commande
@@ -88,13 +89,43 @@ namespace WebCommander.Services.Commands
                     continue;
                 string aliases = string.Join(',', opt.Aliases);
                 string syntax = opt.Arity.MinimumNumberOfValues > 0
-                    ? $"<{opt.Name} ({aliases})>"
-                    : $"[{opt.Name} ({aliases})]";
+                    ? $"<{opt.Name}" + (aliases.Length > 0 ? (" (" + aliases + ")") : string.Empty) + ">"
+                    : $"[{opt.Name}" + (aliases.Length > 0 ? (" (" + aliases + ")") : string.Empty) + "]";
                 
                 parts.Add(syntax);
             }
 
-            return "Usage: " + string.Join(" ", parts);
+            if(cmd.Arguments.Count > 1)
+            {
+                descs.Add("Arguments:");
+            }
+            foreach (var arg in cmd.Arguments.Skip(1))
+            {
+                string syntax = arg.Arity.MinimumNumberOfValues > 0
+                    ? $"<{arg.Name}>"
+                    : $"[{arg.Name}]";
+
+                descs.Add("  " + syntax + " : " + arg.Description ?? string.Empty);
+            }
+
+            if(cmd.Options.Count > 2)
+            {
+                descs.Add("Options:");
+            }
+            foreach (var opt in cmd.Options)
+            {
+                if (opt.Name == "--version" || opt.Name == "--help")
+                    continue;
+                string aliases = string.Join(',', opt.Aliases);
+                string syntax = opt.Arity.MinimumNumberOfValues > 0
+                    ? ($"<{opt.Name}" + (aliases.Length > 0 ? $" ({aliases})" : "") + ">")
+                    : $"[{opt.Name}" + (aliases.Length > 0 ? $" ({aliases})" : "") + "]";
+                syntax += " : " + opt.Description ?? string.Empty;
+                
+                descs.Add("  " +syntax);
+            }
+
+            return "Usage: " + string.Join(" ", parts) + "\n" + string.Join("\n", descs);
         }
     }
 }

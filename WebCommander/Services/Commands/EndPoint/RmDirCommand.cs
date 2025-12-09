@@ -13,7 +13,7 @@ namespace WebCommander.Services.Commands.EndPoint
 
         protected override void AddCommandParameters(RootCommand command)
         {
-            command.Add(new Argument<string>("path") { Description = "Path of the folder to delete" });
+            command.Add(new Argument<string>("path") { Description = "Path of the folder to delete", Arity = ArgumentArity.ExactlyOne });
         }
 
         public override Task FillParametersAsync(ParseResult result, ParameterDictionary parms)

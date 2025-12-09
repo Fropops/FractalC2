@@ -5,7 +5,8 @@ namespace WebCommander.Models
         Normal,
         Error,
         Warning,
-        Info
+        Info,
+        Command
     }
 
     public class TerminalLine

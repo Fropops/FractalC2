@@ -14,7 +14,7 @@ namespace WebCommander.Services.Commands.EndPoint
 
         protected override void AddCommandParameters(RootCommand command)
         {
-            command.Arguments.Add(new Argument<string>(ParameterId.Name.ToString()) { Arity = ArgumentArity.ZeroOrOne });
+            command.Arguments.Add(new Argument<string>(ParameterId.Name.ToString()) { Arity = ArgumentArity.ZeroOrOne, Description = "Name of the script to import" });
         }
 
         public override async Task FillParametersAsync(ParseResult parseResult, ParameterDictionary parms)

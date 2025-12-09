@@ -11,12 +11,12 @@ namespace WebCommander.Services.Commands
         public override string Description => "Manage agent links";
         public override CommandId Id => CommandId.Link;
         override protected List<CommandVerbs> AllowedVerbs => new List<CommandVerbs> { CommandVerbs.Show, CommandVerbs.Start, CommandVerbs.Stop };
-        private string bindParam = "Bind";
+        private string bindParam = "--endpoint";
 
         protected override void AddCommandParameters(RootCommand command)
         {
             base.AddCommandParameters(command);
-            command.Options.Add(new Option<string>(bindParam, "--endpoint", "-b"));
+            command.Options.Add(new Option<string>(bindParam, "-b") { Arity = ArgumentArity.ZeroOrOne, Description = "Endpoint to bind to" });
         }
 
         public override async Task FillParametersAsync(ParseResult parseResult, ParameterDictionary parms)

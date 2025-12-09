@@ -13,7 +13,7 @@ namespace WebCommander.Services.Commands
         protected abstract List<CommandVerbs> AllowedVerbs { get; }
         protected override void AddCommandParameters(RootCommand command)
         {
-            command.Arguments.Add(new Argument<string>(verbParam) { Arity = ArgumentArity.ExactlyOne });
+            command.Arguments.Add(new Argument<string>(verbParam) { Arity = ArgumentArity.ExactlyOne, Description = "The action to perform" });
         }
 
         public override async Task FillParametersAsync(ParseResult parseResult, ParameterDictionary parms)

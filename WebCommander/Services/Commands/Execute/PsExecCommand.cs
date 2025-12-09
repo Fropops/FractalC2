@@ -13,8 +13,8 @@ namespace WebCommander.Services.Commands.EndPoint
 
         protected override void AddCommandParameters(RootCommand command)
         {
-            command.Add(new Argument<string>("target") { Description = "Target computer" });
-            command.Add(new Argument<string>("path") { Description = "Path of the service to start" });
+            command.Add(new Argument<string>("target") { Description = "Target computer", Arity = ArgumentArity.ExactlyOne });
+            command.Add(new Argument<string>("path") { Description = "Path of the service to start", Arity = ArgumentArity.ExactlyOne });
         }
 
         public override Task FillParametersAsync(ParseResult result, ParameterDictionary parms)

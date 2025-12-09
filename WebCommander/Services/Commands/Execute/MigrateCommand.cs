@@ -11,18 +11,17 @@ namespace WebCommander.Services.Commands
         public override string Name => "migrate";
         public override string Description => "Migrate to a new process";
         public override CommandId Id => CommandId.Inject;
-        public override string[] Aliases => new[] { "migrate" };
         public override string Category => CommandCategory.Execution;
 
         private string processIdParam = "ProcessId";
-        private string x86Param = "x86";
-        private string endpointParam = "Endpoint";
+        private string x86Param = "-x86";
+        private string endpointParam = "--endpoint";
 
         protected override void AddCommandParameters(RootCommand command)
         {
-            command.Arguments.Add(new Argument<string>(processIdParam) { Arity = ArgumentArity.ExactlyOne });
-            command.Options.Add(new Option<bool?>(x86Param,"-x86"));
-            command.Options.Add(new Option<string>(endpointParam,"-b", "--endpoint"));
+            command.Arguments.Add(new Argument<string>(processIdParam) { Arity = ArgumentArity.ExactlyOne, Description = "Process ID to migrate to" });
+            command.Options.Add(new Option<bool?>(x86Param)  { Arity = ArgumentArity.ZeroOrOne, Description = "Force x86 architecture" });
+            command.Options.Add(new Option<string>(endpointParam, "-b") { Arity = ArgumentArity.ZeroOrOne, Description = "Endpoint to bind to" });
         }
 
         public override async Task FillParametersAsync(ParseResult parseResult, ParameterDictionary parms)

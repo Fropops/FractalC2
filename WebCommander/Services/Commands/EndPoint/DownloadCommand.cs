@@ -15,7 +15,7 @@ namespace WebCommander.Services.Commands
 
         protected override void AddCommandParameters(RootCommand command)
         {
-            command.Arguments.Add(new Argument<string>(ParameterId.Path.ToString()) { Arity = ArgumentArity.ExactlyOne });
+            command.Arguments.Add(new Argument<string>(ParameterId.Path.ToString()) { Arity = ArgumentArity.ExactlyOne, Description = "Path of the file to download" });
         }
 
         public override async Task FillParametersAsync(ParseResult parseResult, ParameterDictionary parms)

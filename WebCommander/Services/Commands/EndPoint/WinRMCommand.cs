@@ -22,11 +22,11 @@ namespace WebCommander.Services.Commands
 
         protected override void AddCommandParameters(RootCommand command)
         {
-            command.AddArgument(new Argument<string>(ARG_TARGET, "Target computer."));
-            command.AddArgument(new Argument<string>(ARG_CMD, "Command to execute"));
-            command.AddOption(new Option<string>(new[] { OPT_USER, OPT_USER_ALIAS }, "username (format : Domain\\user)"));
-            command.AddOption(new Option<string>(new[] { OPT_PASS, OPT_PASS_ALIAS }, "password"));
-            command.AddOption(new Option<int>(OPT_PORT, "Port number"));
+            command.Arguments.Add(new Argument<string>(ARG_TARGET) { Arity = ArgumentArity.ExactlyOne, Description = "Target computer." });
+            command.Arguments.Add(new Argument<string>(ARG_CMD) {Arity = ArgumentArity.ExactlyOne,Description = "Command to execute"});
+            command.Options.Add(new Option<string>(OPT_USER, OPT_USER_ALIAS ) {Arity = ArgumentArity.ZeroOrOne,Description = "Username format DOMAIN\\User"});
+            command.Options.Add(new Option<string>(OPT_PASS, OPT_PASS_ALIAS ) {Arity = ArgumentArity.ZeroOrOne,Description = "Password"});
+            command.Options.Add(new Option<int>(OPT_PORT) {Arity = ArgumentArity.ZeroOrOne, Description = "Port number"});
         }
 
         public override async Task FillParametersAsync(ParseResult parseResult, ParameterDictionary parms)
@@ -64,6 +64,7 @@ namespace WebCommander.Services.Commands
             if (port != 0)
             {
                  parms.AddParameter(ParameterId.Port, port);
+         
             }
         }
     }

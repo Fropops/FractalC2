@@ -12,14 +12,13 @@ namespace WebCommander.Services.Commands.VerbCommand
         public override CommandId Id => CommandId.Proxy;
 
         private const string VerbArg = "verb";
-        private const string PortOpt = "port";
+        private const string PortOpt = "--port";
 
         protected override void AddCommandParameters(RootCommand command)
         {
 
-            command.Arguments.Add(new Argument<string>(VerbArg) { Description = "The action to perform (start, stop, show)" });
-            
-            var portOption = new Option<int>(PortOpt, "--port", "-p") { Description = "Port to use (required for start)" };
+            command.Arguments.Add(new Argument<string>(VerbArg) { Description = "The action to perform (start, stop, show)", Arity = ArgumentArity.ExactlyOne });
+            var portOption = new Option<int>(PortOpt, "-p") { Description = "Port to use (required for start)", Arity = ArgumentArity.ZeroOrOne };
             command.Options.Add(portOption);
         }
 

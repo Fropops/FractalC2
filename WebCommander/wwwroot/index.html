@@ -55,6 +55,15 @@
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
         }
+
+        window.setCursorToEnd = function (element) {
+            if (element) {
+                element.focus();
+                // Move cursor to the end
+                const length = element.value.length;
+                element.setSelectionRange(length, length);
+            }
+        }
     </script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>

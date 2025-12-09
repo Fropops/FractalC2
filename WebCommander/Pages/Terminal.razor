@@ -103,6 +103,10 @@
         color: #d4d4d4;
     }
 
+    .terminal-line.command {
+        color: #569cd6;
+    }
+
     .terminal-input-container {
         background-color: #2d2d30;
         padding: 10px 20px;
@@ -166,6 +170,7 @@
     private int historyIndex = -1;
     private bool shouldExecuteCommand = false;
     private string? commandToExecute = null;
+    private bool shouldSetCursorToEnd = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -290,6 +295,13 @@
     private void AddInfo(string text)
     {
         outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Info });
+        _ = SaveHistory();
+        _ = ScrollToBottom();
+    }
+
+    private void AddCommand(string text)
+    {
+        outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Command });
         _ = SaveHistory();
         _ = ScrollToBottom();
     }
@@ -788,6 +800,12 @@
             shouldScrollToBottom = false;
             await ScrollToBottom();
         }
+
+        if (shouldSetCursorToEnd)
+        {
+            shouldSetCursorToEnd = false;
+            await JSRuntime.InvokeVoidAsync("setCursorToEnd", inputElement);
+        }
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
@@ -799,6 +817,7 @@
             {
                 historyIndex++;
                 currentCommand = commandHistory[historyIndex];
+                shouldSetCursorToEnd = true;
                 StateHasChanged();
             }
             return;
@@ -809,6 +828,7 @@
             {
                 historyIndex--;
                 currentCommand = commandHistory[historyIndex];
+                shouldSetCursorToEnd = true;
                 StateHasChanged();
             }
             else if (historyIndex == 0)
@@ -841,7 +861,7 @@
             }
             
             // Add command to output
-            AddNormal($"{agent?.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
+            AddCommand($"{agent?.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
             
             // Send command
             var (message, error, taskId) = await CommandService.ParseAndSendAsync(commandToSend, agent);
@@ -916,7 +936,7 @@
         historyIndex = -1; // Reset history navigation
 
         // Add command to output
-        AddNormal($"{agent.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
+        AddCommand($"{agent.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
 
         // Send command
         var (message, error, taskId) = await CommandService.ParseAndSendAsync(commandToSend, agent);

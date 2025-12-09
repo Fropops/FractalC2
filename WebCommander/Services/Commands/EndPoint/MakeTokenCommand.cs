@@ -13,7 +13,7 @@ namespace WebCommander.Services.Commands.EndPoint
 
         protected override void AddCommandParameters(RootCommand command)
         {
-            command.Add(new Option<string>("--username") { Description = "Full username (DOMAIN\\User)" });
+            command.Add(new Option<string>("--username", "-u") { Description = "Full username (DOMAIN\\User)" });
             command.Add(new Argument<string>("password") { Description = "Password of the account" });
         }
 

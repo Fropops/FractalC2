@@ -15,7 +15,7 @@ namespace WebCommander.Services.Commands
 
         protected override void AddCommandParameters(RootCommand command)
         {
-            command.Arguments.Add(new Argument<string>(ParameterId.Path.ToString()) { Arity = ArgumentArity.ZeroOrOne });
+            command.Arguments.Add(new Argument<string>(ParameterId.Path.ToString()) { Arity = ArgumentArity.ZeroOrOne, Description = "Path of the directory to list" });
         }
 
         public override async Task FillParametersAsync(ParseResult parseResult, ParameterDictionary parms)

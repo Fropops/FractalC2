@@ -11,11 +11,11 @@ namespace WebCommander.Services.Commands
         public override string Description => "Manage Jobs";
         public override CommandId Id => CommandId.Job;
         override protected List<CommandVerbs> AllowedVerbs => new List<CommandVerbs> { CommandVerbs.Show, CommandVerbs.Kill };
-        private string jobIdParam = "JobId";
+        private string jobIdParam = "--id";
 
         protected override void AddCommandParameters(RootCommand command)
         {
-            command.Options.Add(new Option<int?>(jobIdParam,"--id", "-i"));
+            command.Options.Add(new Option<int?>(jobIdParam, "-i") { Arity = ArgumentArity.ZeroOrOne, Description = "Job ID" });
             base.AddCommandParameters(command);
         }
 
