@@ -11,7 +11,7 @@ namespace WebCommander.Helpers
 
             if (agent.Metadata.SleepInterval == 0)
             {
-                if (agent.LastSeen.AddSeconds(3) >= DateTime.UtcNow)
+                if (agent.LastSeen.AddSeconds(10) >= DateTime.UtcNow)
                     return true;
                 return false;
             }

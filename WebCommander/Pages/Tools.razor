@@ -2,6 +2,7 @@
 @using WebCommander.Models
 @using WebCommander.Services
 @using WebCommander.Components
+@using WebCommander.Helpers
 @inject TeamServerClient TeamServerClient
 @inject AgentService AgentService
 @inject IJSRuntime JSRuntime
@@ -233,8 +234,7 @@
 
     private List<Agent> GetActiveAgents()
     {
-        // Consider agents active if they've been seen in the last 5 minutes
-        var threshold = DateTime.UtcNow.AddMinutes(-5);
-        return AgentService.GetAgents().Where(a => a.LastSeen > threshold).ToList();
+        var allAgents = AgentService.GetAgents();
+        return allAgents.Where(a => AgentHelper.IsAgentAlive(a, allAgents) == true).ToList();
     }
 }

@@ -144,43 +144,5 @@ namespace TeamServer.Controllers
 
             return Ok();
         }
-
-        [HttpGet("{agentId}/startproxy")]
-        public async Task<ActionResult> StartProxy(string agentId, int port)
-        {
-            if (this._socksService.Contains(agentId))
-                return this.Problem($"Socks Proxy is already running for this agent !");
-
-            if (!await this._socksService.StartProxy(agentId, port))
-                return this.Problem($"Cannot start proxy on port {port}!");
-
-            return Ok();
-        }
-
-        [HttpGet("{agentId}/stopproxy")]
-        public async Task<ActionResult> StopProxy(string agentId)
-        {
-            if (!await this._socksService.StopProxy(agentId))
-                return this.Problem($"Cannot stop proxy!");
-
-            return Ok();
-        }
-
-        [HttpGet("proxy")]
-        public async Task<ActionResult> ShowProxy()
-        {
-            List<ProxyInfo> list = new List<ProxyInfo>();
-            foreach (var pair in this._socksService.GetProxies())
-            {
-                list.Add(new ProxyInfo()
-                {
-                    AgentId = pair.Key,
-                    Port = pair.Value.BindPort
-                });
-            }
-
-            return Ok(list);
-        }
-
     }
 }

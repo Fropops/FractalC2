@@ -363,7 +363,7 @@ namespace WebCommander.Services
         public async Task StartProxyAsync(string agentId, int port)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/Agents/{agentId}/startproxy?port={port}");
+            var response = await _client.GetAsync($"/proxy/start?agentId={agentId}&port={port}");
             
             if (!response.IsSuccessStatusCode)
             {
@@ -380,10 +380,10 @@ namespace WebCommander.Services
             }
         }
 
-        public async Task StopProxyAsync(string agentId)
+        public async Task StopProxyAsync(int port)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/Agents/{agentId}/stopproxy");
+            var response = await _client.GetAsync($"/proxy/stop?port={port}");
             
             if (!response.IsSuccessStatusCode)
             {
@@ -443,7 +443,7 @@ namespace WebCommander.Services
         public async Task<List<ProxyInfo>> GetProxiesAsync()
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync("/Agents/proxy");
+            var response = await _client.GetAsync("/proxy");
             
             if (!response.IsSuccessStatusCode)
             {

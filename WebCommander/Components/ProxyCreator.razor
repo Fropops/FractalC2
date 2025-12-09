@@ -1,0 +1,71 @@
+@using WebCommander.Models
+@using WebCommander.Services
+@using WebCommander.Helpers
+@inject TeamServerClient Api
+@inject AgentService AgentService
+@inject ToastService ToastService
+
+<EditForm Model="@this" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="agentId" class="form-label">Agent</label>
+        <InputSelect id="agentId" class="form-select" @bind-Value="SelectedAgentId">
+            <option value="">Select an agent...</option>
+            @foreach (var agent in ActiveAgents)
+            {
+                var displayText = $"({agent.Id}) {agent.Metadata?.ImplantId} - {agent.Metadata?.Desc}";
+                <option value="@agent.Id">@displayText</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="mb-3">
+        <label for="port" class="form-label">Proxy Port</label>
+        <InputNumber id="port" class="form-control" @bind-Value="Port" placeholder="e.g. 1080" />
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" disabled="@(!CanSubmit)">Create</button>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public EventCallback OnCreated { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private string SelectedAgentId { get; set; } = "";
+    private int Port { get; set; } = 1080;
+
+    private List<Agent> ActiveAgents = new();
+    private bool CanSubmit => !string.IsNullOrEmpty(SelectedAgentId) && Port > 0;
+
+    protected override void OnInitialized()
+    {
+        var allAgents = AgentService.GetAgents();
+        ActiveAgents = allAgents
+            .Where(a => AgentHelper.IsAgentAlive(a, allAgents) == true)
+            .ToList();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (!CanSubmit) return;
+
+        try
+        {
+            await Api.StartProxyAsync(SelectedAgentId, Port);
+            ToastService.ShowSuccess($"Proxy started on port {Port}", "Success");
+            await OnCreated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message, "Error creating proxy");
+        }
+    }
+}

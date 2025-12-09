@@ -1,0 +1,128 @@
+@page "/proxies"
+@using WebCommander.Models
+@using WebCommander.Services
+@using WebCommander.Components
+@inject TeamServerClient Api
+@inject AgentService AgentService
+@inject ToastService ToastService
+
+<PageTitle>Proxies</PageTitle>
+
+<h1>Proxies</h1>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowCreateModal">
+        <i class="bi bi-plus-circle"></i> Create Proxy
+    </button>
+</div>
+
+@if (proxies == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (proxies.Count == 0)
+{
+    <p><em>No Proxies running.</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Port</th>
+                <th>Agent</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var proxy in proxies)
+            {
+                var agent = AgentService.GetAgent(proxy.AgentId);
+                var agentDisplay = agent != null 
+                    ? $"({agent.Id}) {agent.Metadata?.ImplantId} ({agent.Metadata?.UserName}@{agent.Metadata?.Hostname})"
+                    : $"Unknown Agent ({proxy.AgentId})";
+
+                <tr>
+                    <td>@proxy.Port</td>
+                    <td>@agentDisplay</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" @onclick="() => StopProxy(proxy.Port)">
+                            <i class="bi bi-stop-circle"></i> Stop
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Create Proxy Modal -->
+@if (showCreateModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Proxy</h5>
+                    <button type="button" class="btn-close" @onclick="HideCreateModal"></button>
+                </div>
+                <div class="modal-body">
+                    <ProxyCreator OnCreated="HandleProxyCreated" OnCancel="HideCreateModal" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ProxyInfo>? proxies;
+    private bool showCreateModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProxies();
+    }
+
+    private async Task LoadProxies()
+    {
+        try 
+        {
+            proxies = await Api.GetProxiesAsync();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to load proxies: {ex.Message}", "Error");
+            proxies = new List<ProxyInfo>();
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        showCreateModal = true;
+    }
+
+    private void HideCreateModal()
+    {
+        showCreateModal = false;
+    }
+
+    private async Task HandleProxyCreated()
+    {
+        HideCreateModal();
+        await LoadProxies();
+    }
+
+    private async Task StopProxy(int port)
+    {
+        try
+        {
+            await Api.StopProxyAsync(port);
+            ToastService.ShowSuccess($"Proxy on port {port} stopped", "Success");
+            await LoadProxies();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error stopping proxy: {ex.Message}", "Error");
+        }
+    }
+}

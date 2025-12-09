@@ -12,12 +12,13 @@ namespace TeamServer.Services
     public interface ISocksService
     {
         Task<bool> StartProxy(string agentId, int port);
-        Task<bool> StopProxy(string agentId);
+        Task<bool> StopProxy(int port);
 
         bool Contains(string agentId);
+        bool Contains(int portId);
 
         SocksClient GetClientById(string agentId, string socksProxyId);
-        List<KeyValuePair<string, SocksProxy>> GetProxies();
+        List<KeyValuePair<int, SocksProxy>> GetProxies();
     }
 
     [InjectableServiceImplementation(typeof(ISocksService))]
@@ -30,30 +31,36 @@ namespace TeamServer.Services
             this._agentService = agentService;
             this._frameService = frameService;
         }
-        private Dictionary<string, SocksProxy> Proxies { get; set; } = new Dictionary<string, SocksProxy>();
+        private Dictionary<int, SocksProxy> ProxiesByPort { get; set; } = new Dictionary<int, SocksProxy>();
+        private Dictionary<string, SocksProxy> ProxiesByAgent { get; set; } = new Dictionary<string, SocksProxy>();
+
+        public bool Contains(int portId)
+        {
+            return this.ProxiesByPort.ContainsKey(portId);
+        }
 
         public bool Contains(string agentId)
         {
-            return this.Proxies.ContainsKey(agentId);
+            return this.ProxiesByAgent.ContainsKey(agentId);
         }
 
-        public List<KeyValuePair<string, SocksProxy>> GetProxies()
+        public List<KeyValuePair<int, SocksProxy>> GetProxies()
         {
-            return Proxies.ToList();
+            return ProxiesByPort.ToList();
         }
 
         public SocksClient GetClientById(string agentId, string socksProxyId)
         {
-            if (!Proxies.ContainsKey(agentId))
+            if (!ProxiesByAgent.ContainsKey(agentId))
                 return null;
 
-            var proxy = Proxies[agentId];
+            var proxy = ProxiesByAgent[agentId];
             return proxy.GetSocksClient(socksProxyId);
         }
 
         public async Task<bool> StartProxy(string agentId, int port)
         {
-            if (this.Proxies.ContainsKey(agentId))
+            if (this.ProxiesByPort.ContainsKey(port) || this.ProxiesByAgent.ContainsKey(agentId))
                 return false;
 
             var agent = this._agentService.GetAgent(agentId);
@@ -63,21 +70,28 @@ namespace TeamServer.Services
             _ = proxy.Start();
 
             await Task.Delay(1000);
-            
-            if(proxy.IsRunning)
-                this.Proxies.Add(agentId, proxy);
+
+            if (proxy.IsRunning)
+            {
+                this.ProxiesByAgent.Add(agentId, proxy);
+                this.ProxiesByPort.Add(port, proxy);
+            }
 
             return proxy.IsRunning;
         }
-        public async Task<bool> StopProxy(string agentId)
+        public async Task<bool> StopProxy(int portId)
         {
-            if(!this.Proxies.ContainsKey(agentId))
+            if(!this.ProxiesByPort.ContainsKey(portId))
                 return false;
 
-            var proxy = this.Proxies[agentId];
+            
+
+            var proxy = this.ProxiesByPort[portId];
             await proxy.Stop();
 
-            this.Proxies.Remove(agentId);
+            var agentId = proxy.AgentId;
+            this.ProxiesByAgent.Remove(agentId);
+            this.ProxiesByPort.Remove(portId);
             return true;
         }
     }

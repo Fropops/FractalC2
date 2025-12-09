@@ -51,8 +51,12 @@ namespace WebCommander.Services.Commands.VerbCommand
                         return cmdResult.Succeed("[*] Proxy server started !");
 
                     case "stop":
-                        await client.StopProxyAsync(agent.Metadata.Id);
-                        return cmdResult.Succeed("[*] Proxy server stopped !");
+                        if (port == 0)
+                        {
+                            return cmdResult.Failed("[X] Port is required to stop the proxy!");
+                        }
+                        await client.StopProxyAsync(port);
+                        return cmdResult.Succeed($"[*] Proxy server on port {port} stopped !");
 
                     case "show":
                         var proxies = await client.GetProxiesAsync();
