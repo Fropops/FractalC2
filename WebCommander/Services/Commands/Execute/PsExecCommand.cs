@@ -9,7 +9,7 @@ namespace WebCommander.Services.Commands.EndPoint
         public override string Name => "psexec";
         public override string Description => "Send a path to be run as remote service";
         public override CommandId Id => CommandId.PsExec;
-        public override string Category => CommandCategory.Execution;
+        public override string Category => CommandCategory.LateralMovement;
 
         protected override void AddCommandParameters(RootCommand command)
         {
