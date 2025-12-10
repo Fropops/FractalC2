@@ -23,8 +23,18 @@ namespace WebCommander.Services.Commands
         {
             await base.FillParametersAsync(parseResult, parms);
             var bind = parseResult.GetValue<string>(bindParam);
+
             if (!string.IsNullOrEmpty(bind))
+            {
+                var connexionUrl = ConnexionUrl.FromString(bind);
+                if(!connexionUrl.IsValid)
+                    throw new ArgumentException("Endpoint is not valid");
+
+                if(connexionUrl.Mode != ConnexionMode.Client)
+                    throw new ArgumentException("Endpoint is client mode");
+
                 parms.AddParameter(ParameterId.Bind, bind);
+            }
         }
     }
 }

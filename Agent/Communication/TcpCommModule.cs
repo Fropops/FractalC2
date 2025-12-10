@@ -138,6 +138,7 @@ namespace Agent.Models
                     Debug.WriteLine($"Tcp : Error reading pipe : {ex}");
 #endif
                     this.OnException?.Invoke();
+
                     return;
                 }
 
@@ -150,6 +151,21 @@ namespace Agent.Models
 
             //_client?.Dispose();
             _tokenSource.Dispose();
+        }
+
+        public override async Task Stop()
+        {
+            await base.Stop();
+            try
+            {
+                this._client?.Close();
+            }
+            catch {
+#if DEBUG
+                Debug.WriteLine($"Tcp : Stop : Error");
+#endif
+            }
+
         }
 
         public override async Task SendFrame(NetFrame frame)

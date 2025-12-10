@@ -650,7 +650,7 @@
         // Add table header
         var headerLine = new TerminalLine
         {
-            Text = string.Format("{0,-20} {1,-20} {2,-20} {3}", "TaskID", "ParentID", "ChildID", "Binding"),
+            Text = string.Format("{0,-20} {1,-20} {2}", "ParentID", "ChildID", "Binding"),
             Type = TerminalLineType.Info,
             Metadata = new Dictionary<string, string>
             {
@@ -661,7 +661,7 @@
         
         var separatorLine = new TerminalLine
         {
-            Text = new string('-', 100),
+            Text = new string('-', 80),
             Type = TerminalLineType.Info,
             Metadata = new Dictionary<string, string>
             {
@@ -673,8 +673,7 @@
         // Add each link
         foreach (var link in links)
         {
-            var lineText = string.Format("{0,-20} {1,-20} {2,-20} {3}", 
-                link.TaskId, 
+            var lineText = string.Format("{0,-20} {1,-20} {2}", 
                 link.ParentId, 
                 link.ChildId,
                 link.Binding);
@@ -686,7 +685,8 @@
                 Metadata = new Dictionary<string, string>
                 {
                     { "IsLinkRow", "true" },
-                    { "ChildId", link.ChildId }
+                    { "ChildId", link.ChildId },
+                    { "Binding", link.Binding }
                 }
             };
             outputLines.Add(line);
@@ -769,10 +769,10 @@
 
     private async Task UnlinkAgent(Dictionary<string, string> metadata)
     {
-        if (metadata == null || !metadata.TryGetValue("ChildId", out var childId))
+        if (metadata == null || !metadata.TryGetValue("Binding", out var binding))
             return;
 
-        var command = $"unlink {childId}";
+        var command = $"link stop -b {binding}";
         await ExecuteCommand(command);
     }
 

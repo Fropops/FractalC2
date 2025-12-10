@@ -1,199 +1,177 @@
 namespace WebCommander.Models
 {
     public class ConnexionUrl
+{
+    public ConnexionType Protocol { get; set; }
+    public ConnexionMode Mode { get; set; }
+    public string Address { get; set; }
+    public int Port { get; set; }
+    public string PipeName { get; set; }
+    public bool IsSecure { get; set; }
+    public bool IsValid { get; set; }
+
+    public string ProtocolString
     {
-        public ConnexionType Protocol { get; set; }
-        public ConnexionMode Mode { get; set; }
-        public string Address { get; set; }
-        public int Port { get; set; }
-        public string PipeName { get; set; }
-        public bool IsSecure { get; set; }
-        public bool IsValid { get; set; }
-
-        public string ProtocolString
+        get
         {
-            get
-            {
-                var str = Protocol.ToString().ToLower();
-                if (IsSecure && Protocol == ConnexionType.Http)
-                    str += "s";
-                return str;
-            }
+            var str = Protocol.ToString().ToLower();
+            if (IsSecure && Protocol == ConnexionType.Http)
+                str += "s";
+            return str;
         }
+    }
 
-        public static ConnexionUrl FromString(string connStr)
+    public bool IsLoopBack =>
+    !String.IsNullOrEmpty(Address) && (
+    Address == "127.0.0.1" ||
+    Address == "::1" ||
+    Address.Equals("localhost", StringComparison.OrdinalIgnoreCase));
+
+    public static ConnexionUrl FromString(string connStr)
+    {
+        var conn = new ConnexionUrl { IsValid = false };
+        
+        try
         {
-            var conn = new ConnexionUrl { IsValid = false };
+            if (!connStr.Contains("://")) return conn;
 
-            try
+            var sep = new[] { "://" };
+            var tab = connStr.Split(sep, StringSplitOptions.None);
+            if (tab.Length != 2) return conn;
+
+            var protocol = tab[0].ToLower();
+            var part = tab[1];
+
+            // Trouver le dernier ":"
+            var lastColonIndex = part.LastIndexOf(':');
+            if (lastColonIndex == -1) return conn;
+
+            var address = part.Substring(0, lastColonIndex).Trim();
+            var complement = part.Substring(lastColonIndex + 1).Trim();
+
+            if (string.IsNullOrEmpty(complement)) return conn;
+
+            // Déterminer le mode (Listener ou Client)
+            var isListener = string.IsNullOrEmpty(address) || 
+                           address == "*" || 
+                           address == "0.0.0.0" ||
+                           address == "::";
+
+            var mode = isListener ? ConnexionMode.Listener : ConnexionMode.Client;
+
+            // HTTP/HTTPS
+            if (protocol == "http" || protocol == "https")
             {
-                string protocol = string.Empty;
-                // Mode Listener (server)
-                if (connStr.Contains(">"))
+                if (isListener) return conn; // HTTP ne peut être qu'en mode Client
+
+                if (!int.TryParse(complement, out int port))
                 {
-                    var parts = connStr.Split('>');
-                    if (parts.Length != 2) return conn;
-
-                    protocol = parts[0].ToLower();
-                    var param = parts[1].Trim();
-
-                    if (protocol == "tcp")
-                    {
-                        if (!int.TryParse(param, out int port) || !IsValidPort(port))
-                            return conn;
-
-                        conn.Protocol = ConnexionType.Tcp;
-                        conn.Mode = ConnexionMode.Listener;
-                        conn.Port = port;
-                        conn.IsValid = true;
-                        return conn;
-                    }
-
-                    if (protocol == "pipe")
-                    {
-                        if (!IsValidPipeName(param))
-                            return conn;
-
-                        conn.Protocol = ConnexionType.NamedPipe;
-                        conn.Mode = ConnexionMode.Listener;
-                        conn.PipeName = param;
-                        conn.IsValid = true;
-                        return conn;
-                    }
-
-                    return conn;
-                }
-
-                // Mode Client
-                if (!connStr.Contains("://")) return conn;
-
-                var sep = new[] { "://" };
-                var tab = connStr.Split(sep, StringSplitOptions.None);
-                if (tab.Length != 2) return conn;
-
-                protocol = tab[0].ToLower();
-                var part = tab[1];
-                var parmTab = part.Split(':');
-
-                if (parmTab.Length < 1 || parmTab.Length > 2) return conn;
-
-                var address = parmTab[0].Trim();
-                if (string.IsNullOrEmpty(address)) return conn;
-
-                var complement = parmTab.Length > 1 ? parmTab[1].Trim() : string.Empty;
-
-                // HTTP/HTTPS
-                if (protocol == "http" || protocol == "https")
-                {
-                    conn.Protocol = ConnexionType.Http;
-                    conn.Mode = ConnexionMode.Client;
-                    conn.IsSecure = protocol == "https";
-                    conn.Address = address;
-
+                    // Port par défaut si vide
                     if (string.IsNullOrEmpty(complement))
-                    {
-                        conn.Port = conn.IsSecure ? 443 : 80;
-                    }
+                        port = protocol == "https" ? 443 : 80;
                     else
-                    {
-                        if (!int.TryParse(complement, out int port) || !IsValidPort(port))
-                            return conn;
-                        conn.Port = port;
-                    }
-
-                    conn.IsValid = true;
-                    return conn;
-                }
-
-                // TCP Client
-                if (protocol == "tcp")
-                {
-                    if (string.IsNullOrEmpty(complement)) return conn;
-                    if (!int.TryParse(complement, out int port) || !IsValidPort(port))
                         return conn;
-
-                    conn.Protocol = ConnexionType.Tcp;
-                    conn.Mode = ConnexionMode.Client;
-                    conn.Address = address;
-                    conn.Port = port;
-                    conn.IsValid = true;
-                    return conn;
                 }
 
-                // Named Pipe Client
-                if (protocol == "pipe")
+                if (!IsValidPort(port)) return conn;
+
+                conn.Protocol = ConnexionType.Http;
+                conn.Mode = ConnexionMode.Client;
+                conn.IsSecure = protocol == "https";
+                conn.Address = address;
+                conn.Port = port;
+                conn.IsValid = true;
+                return conn;
+            }
+
+            // TCP
+            if (protocol == "tcp")
+            {
+                if (!int.TryParse(complement, out int port) || !IsValidPort(port))
+                    return conn;
+
+                conn.Protocol = ConnexionType.Tcp;
+                conn.Mode = mode;
+                conn.Address = isListener ? string.Empty : address;
+                conn.Port = port;
+                conn.IsValid = true;
+                return conn;
+            }
+
+            // Named Pipe
+            if (protocol == "pipe")
+            {
+                if (!IsValidPipeName(complement))
+                    return conn;
+
+                conn.Protocol = ConnexionType.NamedPipe;
+                conn.Mode = mode;
+                conn.Address = isListener ? string.Empty : address;
+                conn.PipeName = complement;
+                conn.IsValid = true;
+                return conn;
+            }
+        }
+        catch
+        {
+            conn.IsValid = false;
+        }
+
+        return conn;
+    }
+
+    public override string ToString()
+    {
+        switch (Protocol)
+        {
+            case ConnexionType.Http:
                 {
-                    if (!IsValidPipeName(complement))
-                        return conn;
-
-                    conn.Protocol = ConnexionType.NamedPipe;
-                    conn.Mode = ConnexionMode.Client;
-                    conn.Address = address;
-                    conn.PipeName = complement;
-                    conn.IsValid = true;
-                    return conn;
+                    var prot = IsSecure ? "https" : "http";
+                    return $"{prot}://{Address}:{Port}";
                 }
-            }
-            catch
-            {
-                conn.IsValid = false;
-            }
 
-            return conn;
+            case ConnexionType.Tcp:
+                {
+                    if (Mode == ConnexionMode.Listener)
+                        return $"tcp://*:{Port}";
+                    return $"tcp://{Address}:{Port}";
+                }
+
+            case ConnexionType.NamedPipe:
+                {
+                    if (Mode == ConnexionMode.Listener)
+                        return $"pipe://*:{PipeName}";
+                    return $"pipe://{Address}:{PipeName}";
+                }
         }
 
-        public override string ToString()
-        {
-            switch (Protocol)
-            {
-                case ConnexionType.Http:
-                    {
-                        var prot = IsSecure ? "https" : "http";
-                        return $"{prot}://{Address}:{Port}";
-                    }
-
-                case ConnexionType.Tcp:
-                    {
-                        if (Mode == ConnexionMode.Listener)
-                            return $"tcp>{Port}";
-                        return $"tcp://{Address}:{Port}";
-                    }
-
-                case ConnexionType.NamedPipe:
-                    {
-                        if (Mode == ConnexionMode.Listener)
-                            return $"pipe>{PipeName}";
-                        return $"pipe://{Address}:{PipeName}";
-                    }
-            }
-
-            return string.Empty;
-        }
-
-        private static bool IsValidPort(int port)
-        {
-            return port >= 0 && port <= 65535;
-        }
-
-        private static bool IsValidPipeName(string pipeName)
-        {
-            if (string.IsNullOrWhiteSpace(pipeName))
-                return false;
-
-            return System.Text.RegularExpressions.Regex.IsMatch(pipeName, @"^[a-zA-Z0-9]+$");
-        }
+        return string.Empty;
     }
 
-    public enum ConnexionType
+    private static bool IsValidPort(int port)
     {
-        Http,
-        Tcp,
-        NamedPipe
+        return port >= 0 && port <= 65535;
     }
 
-    public enum ConnexionMode
+    private static bool IsValidPipeName(string pipeName)
     {
-        Client,
-        Listener
+        if (string.IsNullOrWhiteSpace(pipeName))
+            return false;
+
+        return System.Text.RegularExpressions.Regex.IsMatch(pipeName, @"^[a-zA-Z0-9]+$");
     }
+}
+
+public enum ConnexionType
+{
+    Http,
+    Tcp,
+    NamedPipe
+}
+
+public enum ConnexionMode
+{
+    Client,
+    Listener
+}
 }

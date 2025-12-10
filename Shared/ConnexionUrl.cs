@@ -28,8 +28,9 @@ namespace Shared
         }
 
         public bool IsLoopBack =>
-            !string.IsNullOrEmpty(Address) &&
-(            Address == "127.0.0.1" ||
+            !String.IsNullOrEmpty(Address) && (
+            Address == "127.0.0.1" ||
+            Address == "::1" ||
             Address.Equals("localhost", StringComparison.OrdinalIgnoreCase));
 
         public static ConnexionUrl FromString(string connStr)
@@ -38,108 +39,80 @@ namespace Shared
 
             try
             {
-                string protocol = string.Empty;
-                // Mode Listener (server)
-                if (connStr.Contains(">"))
-                {
-                    var parts = connStr.Split('>');
-                    if (parts.Length != 2) return conn;
-
-                    protocol = parts[0].ToLower();
-                    var param = parts[1].Trim();
-
-                    if (protocol == "tcp")
-                    {
-                        if (!int.TryParse(param, out int port) || !IsValidPort(port))
-                            return conn;
-
-                        conn.Protocol = ConnexionType.Tcp;
-                        conn.Mode = ConnexionMode.Listener;
-                        conn.Port = port;
-                        conn.IsValid = true;
-                        return conn;
-                    }
-
-                    if (protocol == "pipe")
-                    {
-                        if (!IsValidPipeName(param))
-                            return conn;
-
-                        conn.Protocol = ConnexionType.NamedPipe;
-                        conn.Mode = ConnexionMode.Listener;
-                        conn.PipeName = param;
-                        conn.IsValid = true;
-                        return conn;
-                    }
-
-                    return conn;
-                }
-
-                // Mode Client
                 if (!connStr.Contains("://")) return conn;
 
                 var sep = new[] { "://" };
                 var tab = connStr.Split(sep, StringSplitOptions.None);
                 if (tab.Length != 2) return conn;
 
-                protocol = tab[0].ToLower();
+                var protocol = tab[0].ToLower();
                 var part = tab[1];
-                var parmTab = part.Split(':');
 
-                if (parmTab.Length < 1 || parmTab.Length > 2) return conn;
+                // Trouver le dernier ":"
+                var lastColonIndex = part.LastIndexOf(':');
+                if (lastColonIndex == -1) return conn;
 
-                var address = parmTab[0].Trim();
-                if (string.IsNullOrEmpty(address)) return conn;
+                var address = part.Substring(0, lastColonIndex).Trim();
+                var complement = part.Substring(lastColonIndex + 1).Trim();
 
-                var complement = parmTab.Length > 1 ? parmTab[1].Trim() : string.Empty;
+                if (string.IsNullOrEmpty(complement)) return conn;
+
+                // Déterminer le mode (Listener ou Client)
+                var isListener = string.IsNullOrEmpty(address) ||
+                               address == "*" ||
+                               address == "0.0.0.0" ||
+                               address == "::";
+
+                var mode = isListener ? ConnexionMode.Listener : ConnexionMode.Client;
 
                 // HTTP/HTTPS
                 if (protocol == "http" || protocol == "https")
                 {
+                    if (isListener) return conn; // HTTP ne peut être qu'en mode Client
+
+                    if (!int.TryParse(complement, out int port))
+                    {
+                        // Port par défaut si vide
+                        if (string.IsNullOrEmpty(complement))
+                            port = protocol == "https" ? 443 : 80;
+                        else
+                            return conn;
+                    }
+
+                    if (!IsValidPort(port)) return conn;
+
                     conn.Protocol = ConnexionType.Http;
                     conn.Mode = ConnexionMode.Client;
                     conn.IsSecure = protocol == "https";
-                    conn.Address = address;
-
-                    if (string.IsNullOrEmpty(complement))
-                    {
-                        conn.Port = conn.IsSecure ? 443 : 80;
-                    }
-                    else
-                    {
-                        if (!int.TryParse(complement, out int port) || !IsValidPort(port))
-                            return conn;
-                        conn.Port = port;
-                    }
-
-                    conn.IsValid = true;
-                    return conn;
-                }
-
-                // TCP Client
-                if (protocol == "tcp")
-                {
-                    if (string.IsNullOrEmpty(complement)) return conn;
-                    if (!int.TryParse(complement, out int port) || !IsValidPort(port))
-                        return conn;
-
-                    conn.Protocol = ConnexionType.Tcp;
-                    conn.Mode = ConnexionMode.Client;
                     conn.Address = address;
                     conn.Port = port;
                     conn.IsValid = true;
                     return conn;
                 }
 
-                // Named Pipe Client
+                // TCP
+                if (protocol == "tcp")
+                {
+                    if (!int.TryParse(complement, out int port) || !IsValidPort(port))
+                        return conn;
+
+                    conn.Protocol = ConnexionType.Tcp;
+                    conn.Mode = mode;
+                    conn.Address = isListener ? string.Empty : address;
+                    conn.Port = port;
+                    conn.IsValid = true;
+                    return conn;
+                }
+
+                // Named Pipe
                 if (protocol == "pipe")
                 {
                     if (!IsValidPipeName(complement))
                         return conn;
 
                     conn.Protocol = ConnexionType.NamedPipe;
-                    conn.Mode = ConnexionMode.Client;
-                    conn.Address = address;
+                    conn.Mode = mode;
+                    conn.Address = isListener ? string.Empty : address;
                     conn.PipeName = complement;
                     conn.IsValid = true;
                     return conn;
@@ -166,14 +139,14 @@ namespace Shared
                 case ConnexionType.Tcp:
                     {
                         if (Mode == ConnexionMode.Listener)
-                            return $"tcp>{Port}";
+                            return $"tcp://*:{Port}";
                         return $"tcp://{Address}:{Port}";
                     }
 
                 case ConnexionType.NamedPipe:
                     {
                         if (Mode == ConnexionMode.Listener)
-                            return $"pipe>{PipeName}";
+                            return $"pipe://*:{PipeName}";
                         return $"pipe://{Address}:{PipeName}";
                     }
             }
@@ -207,4 +180,5 @@ namespace Shared
         Client,
         Listener
     }
+
 }
