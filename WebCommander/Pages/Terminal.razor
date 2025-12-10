@@ -50,6 +50,9 @@
     }
 </div>
 
+<FileUploadModal @ref="fileUploadModal" />
+
+
 <style>
     .terminal-page-container {
         height: calc(100vh - 60px);
@@ -164,6 +167,7 @@
     private Dictionary<string, string> taskCommands = new();
     private TerminalOutput terminalOutputComponent;
     private ElementReference inputElement;
+    private FileUploadModal fileUploadModal;
     
     // Command history
     private List<string> commandHistory = new();
@@ -864,7 +868,7 @@
             AddCommand($"{agent?.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
             
             // Send command
-            var (message, error, taskId) = await CommandService.ParseAndSendAsync(commandToSend, agent);
+            var (message, error, taskId) = await ProcessCommandAndSend(commandToSend);
             if(!string.IsNullOrEmpty(error))
                 AddError(error);
             if(!string.IsNullOrEmpty(message))
@@ -939,7 +943,7 @@
         AddCommand($"{agent.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
 
         // Send command
-        var (message, error, taskId) = await CommandService.ParseAndSendAsync(commandToSend, agent);
+        var (message, error, taskId) = await ProcessCommandAndSend(commandToSend);
         if (!string.IsNullOrEmpty(error))
             AddError(error);
         if (!string.IsNullOrEmpty(message))
@@ -962,6 +966,42 @@
         // Scroll to bottom
         await ScrollToBottom();
         await SaveHistory();
+    }
+
+    private async Task<(string? message, string? error, string? taskId)> ProcessCommandAndSend(string commandToSend)
+    {
+         var tokens = commandToSend.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+         if (tokens.Length > 0 && tokens[0].Equals("upload", StringComparison.OrdinalIgnoreCase))
+         {
+             return await HandleUploadAsync(commandToSend);
+         }
+         
+         return await CommandService.ParseAndSendAsync(commandToSend, agent);
+    }
+
+    private async Task<(string? message, string? error, string? taskId)> HandleUploadAsync(string commandLine)
+    {
+        var result = await fileUploadModal.ShowAsync();
+        if (result == null)
+        {
+             return (null, "Upload cancelled by user.", null);
+        }
+
+        var (fileBytes, localName) = result.Value;
+
+        var cmdBase = CommandService.GetCommand("upload", agent);
+        if (cmdBase is WebCommander.Services.Commands.UploadCommand uploadCmd)
+        {
+             uploadCmd.FileBytes = fileBytes;
+             uploadCmd.LocalFileName = localName;
+             
+             Console.WriteLine($"Command: upload created (with file {localName})");
+             var cmdResult = await uploadCmd.ExecuteAsync(commandLine);
+             Console.WriteLine($"Command: upload executed");
+             return (cmdResult.Message, cmdResult.Error, cmdResult.TaskId);
+        }
+        
+        return (null, "Failed to create upload command or command not found.", null);
     }
 
     private void Close()

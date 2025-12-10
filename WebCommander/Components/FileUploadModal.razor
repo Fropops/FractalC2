@@ -1,0 +1,111 @@
+@using WebCommander.Models
+@using System.IO
+
+@if (isVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select File to Upload</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="uploadFile" class="form-label">Select Local File</label>
+                        <InputFile OnChange="LoadFiles" class="form-control" id="uploadFile" />
+                    </div>
+                    
+                    @if (isLoading)
+                    {
+                         <div class="progress mb-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                        </div>
+                        <p class="text-center text-muted">Reading file...</p>
+                    }
+                     @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">@errorMessage</div>
+                    }
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="Close" disabled="@isLoading">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="Confirm" disabled="@(!canConfirm || isLoading)">
+                        Select
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isVisible = false;
+    private bool isLoading = false;
+    private bool canConfirm = false;
+    private string errorMessage = string.Empty;
+    private IBrowserFile? selectedFile;
+    private TaskCompletionSource<(byte[] Content, string Name)?>? tcs;
+
+    public Task<(byte[] Content, string Name)?> ShowAsync()
+    {
+        isVisible = true;
+        Reset();
+        StateHasChanged();
+        tcs = new TaskCompletionSource<(byte[] Content, string Name)?>();
+        return tcs.Task;
+    }
+
+    private void Close()
+    {
+        isVisible = false;
+        StateHasChanged();
+        tcs?.TrySetResult(null);
+    }
+
+    private void Reset()
+    {
+        selectedFile = null;
+        canConfirm = false;
+        isLoading = false;
+        errorMessage = string.Empty;
+    }
+
+    private void LoadFiles(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        canConfirm = selectedFile != null;
+        errorMessage = string.Empty;
+    }
+
+    private async Task Confirm()
+    {
+        if (selectedFile == null) return;
+
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            // Read file content
+            // Limit to 100MB for now, arguably this should be configurable or streamed chunks but for now we follow simple pattern
+            using var stream = selectedFile.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024); 
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            var fileBytes = memoryStream.ToArray();
+            
+            tcs?.TrySetResult((fileBytes, selectedFile.Name));
+            isVisible = false;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error reading file: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

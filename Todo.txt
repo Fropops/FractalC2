@@ -3,8 +3,6 @@
 * BOF Loader .Net
 
 # Web Commander
-Implant UI Creation > adapt new url
-proxy page
 
 # Commander 
 * Big rework
