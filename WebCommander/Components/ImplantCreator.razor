@@ -244,9 +244,9 @@
                 case "https":
                     return $"https://{endpointAddress}:{endpointPort}";
                 case "pipe":
-                    return $"pipe>{endpointPipeName}";
+                    return $"pipe://*:{endpointPipeName}";
                 case "tcp":
-                    return $"tcp>{endpointPort}";
+                    return $"tcp://*:{endpointPort}";
                 default:
                     return "Invalid protocol";
             }
