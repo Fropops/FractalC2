@@ -73,11 +73,13 @@
         overflow: hidden;
         min-height: 0;
         max-height: calc(100vh - 275px);
+        min-width: 0; /* Important for flex child to shrink */
     }
 
     .terminal-output {
         flex: 1;
         overflow-y: auto;
+        overflow-x: hidden; /* Prevent horizontal scroll */
         padding: 20px;
         font-size: 14px;
         line-height: 1.5;
@@ -88,6 +90,8 @@
         margin-bottom: 5px;
         white-space: pre-wrap;
         word-wrap: break-word;
+        word-break: break-all; /* Force break on long words/paths */
+        overflow-wrap: anywhere; /* Ensure wrapping happens anywhere if needed */
     }
 
     .terminal-line.error {
@@ -122,6 +126,7 @@
         color: #4ec9b0;
         margin-right: 10px;
         font-weight: bold;
+        white-space: nowrap;
     }
 
     .terminal-input {
@@ -132,6 +137,7 @@
         font-family: 'Consolas', 'Courier New', monospace;
         font-size: 14px;
         outline: none;
+        min-width: 0; /* Allow input to shrink if needed */
     }
 
     .terminal-input::placeholder {

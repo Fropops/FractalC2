@@ -43,7 +43,9 @@
                     var agentColor = agent.IsAlive ? "#10b981" : "#6b7280";
                     var badgeColor = agent.IsAlive ? "#10b981" : "#ef4444";
                     var agentId = $"agent-{agent.Id}";
-                    var agentLabel = $"{agent.Name} ({agent.ShortId})";
+                    var agentLabel = string.IsNullOrEmpty(agent.UserName) 
+                        ? $"{agent.Name} ({agent.ShortId})"
+                        : $"{agent.UserName} - {agent.Name} ({agent.ShortId})";
                     var agentIcon = "⚙️";
                     
                     <g transform="translate(@host.AgentStartX, @agentY)" class="agent-node" data-agent-id="@agent.Id" @onclick="@((MouseEventArgs e) => ShowAgentMenu(agent.Id, e))" @onclick:stopPropagation="true">
@@ -336,8 +338,10 @@
                 hostNode.Agents.Add(agentNode);
                 
                 // Calculate width based on Agent Name + ShortId + Shield
-                string label = $"{agentNode.Name} ({agentNode.ShortId})";
-                int labelWidth = (int)(label.Length * 7); // Approx 7px per char for smaller font
+                string label = string.IsNullOrEmpty(agentNode.UserName) 
+                    ? $"{agentNode.Name} ({agentNode.ShortId})"
+                    : $"{agentNode.UserName} - {agentNode.Name} ({agentNode.ShortId})";
+                int labelWidth = (int)(label.Length * 4.5); // Approx 4.5px per char for 10px font
                 if (agentNode.Integrity == IntegrityLevel.High || agentNode.Integrity == IntegrityLevel.System)
                 {
                     labelWidth += 25; // Space for shield
@@ -357,7 +361,7 @@
             hostNode.AgentStartX = -4 - (maxLabelWidth / 2);
             
             int contentWidth = Math.Max(nameWidth, 32 + maxLabelWidth);
-            hostNode.Width = contentWidth + 60; // Exact 30px padding on each side
+            hostNode.Width = contentWidth + 30; // Reduced to 15px padding on each side
             maxHostWidth = Math.Max(maxHostWidth, hostNode.Width);
             
             hosts.Add(hostNode);
