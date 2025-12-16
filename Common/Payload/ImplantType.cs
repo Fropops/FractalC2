@@ -13,7 +13,8 @@ namespace Common.Payload
         Library,
         ReflectiveLibrary,
         Service,
-        Shellcode
+        Shellcode,
+        Elf,
     }
 
     public enum ImplantArchitecture

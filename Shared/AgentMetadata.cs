@@ -15,6 +15,12 @@ namespace Shared
         System = 0x02
     }
 
+    public enum OsType : byte
+    {
+        Windows = 0x00,
+        Linux = 0x01,
+    }
+
     public class AgentMetadata
     {
         [FieldOrder(0)]
@@ -45,6 +51,8 @@ namespace Shared
         public int SleepInterval { get; set; }
         [FieldOrder(12)]
         public int SleepJitter { get; set; }
+        [FieldOrder(13)]
+        public OsType OsType { get; set; }
 
         public string Sleep
         {

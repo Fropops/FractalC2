@@ -150,6 +150,7 @@ function Release-FractalC2 {
             Remove-Item "$buildDir\*" -Force -Recurse
         }
     }
+	
 
     # Fonction pour créer un zip par cible
     function Zip-Target {
@@ -168,7 +169,32 @@ function Release-FractalC2 {
 		$destDirs = @($destx86Dir, $destx64Dir, $destdebugDir)
 		$platforms = @("x86","x64","ReleaseButDebug")
 	
+		Write-Host "Building Linux Agent..."
+		dotnet publish $baseDir/AgentLinux/AgentLinux.csproj `
+		  -c ReleaseButDebug `
+		  -f net8.0 `
+		  -r linux-x64 `
+		  --self-contained `
+		  -p:PublishSingleFile=true `
+		  -p:PublishTrimmed=true `
+		  -o $destdebugDir
+		  
+		dotnet publish $baseDir/AgentLinux/AgentLinux.csproj `
+		  -c Release `
+		  -f net8.0 `
+		  -r linux-x64 `
+		  --self-contained `
+		  -p:PublishSingleFile=true `
+		  -p:PublishTrimmed=true `
+		  -p:EnableCompressionInSingleFile=true `
+		  -p:DebugType=none `
+		  -p:DebugSymbols=false `
+		  -p:StripSymbols=true `
+		  -o $destx64Dir
+		  
+		  
         Write-Host "Building Agent..."
+		Build-And-Copy -proj "$baseDir\Agent\Agent.csproj" -outputName "Agent.exe" -platforms $platforms -destDirs $destDirs
         Build-And-Copy -proj "$baseDir\Agent\Agent.csproj" -outputName "Agent.exe" -platforms $platforms -destDirs $destDirs
 		Build-And-Copy -proj "$baseDir\Payload\PatcherDll\PatcherDll.csproj" -outputName "Patcher.dll" -platforms $platforms -destDirs $destDirs
 		Build-And-Copy -proj "$baseDir\Payload\InjectDll\InjectDll.csproj" -outputName "Inject.dll" -platforms $platforms -destDirs $destDirs
@@ -190,9 +216,35 @@ function Release-FractalC2 {
 		$destDirs = @($destx86Dir, $destx64Dir, $destdebugDir)
 		$platforms = @("x86","x64","ReleaseButDebug")
 	
-        Write-Host "Mise à jour de la version de l'Agent..."
-        Update-ProjectVersion -ProjectPath "$baseDir\Agent\Agent.csproj" -IncrementPart $IncrementPart
+        Write-Host "Mise à jour de la version de l'Agent Linux..."
+        Update-ProjectVersion -ProjectPath "$baseDir\AgentLinux\AgentLinux.csproj" -IncrementPart $IncrementPart
 
+		Write-Host "Building Linux Agent..."
+		dotnet publish $baseDir/AgentLinux/AgentLinux.csproj `
+		  -c ReleaseButDebug `
+		  -f net8.0 `
+		  -r linux-x64 `
+		  --self-contained `
+		  -p:PublishSingleFile=true `
+		  -p:PublishTrimmed=true `
+		  -o $destdebugDir
+		  
+		dotnet publish $baseDir/AgentLinux/AgentLinux.csproj `
+		  -c Release `
+		  -f net8.0 `
+		  -r linux-x64 `
+		  --self-contained `
+		  -p:PublishSingleFile=true `
+		  -p:PublishTrimmed=true `
+		  -p:EnableCompressionInSingleFile=true `
+		  -p:DebugType=none `
+		  -p:DebugSymbols=false `
+		  -p:StripSymbols=true `
+		  -o $destx64Dir
+		  
+		Write-Host "Mise à jour de la version de l'Agent..."
+        Update-ProjectVersion -ProjectPath "$baseDir\Agent\Agent.csproj" -IncrementPart $IncrementPart
+		
         Write-Host "Building Agent..."
         Build-And-Copy -proj "$baseDir\Agent\Agent.csproj" -outputName "Agent.exe" -platforms $platforms -destDirs $destDirs
 		Build-And-Copy -proj "$baseDir\Payload\PatcherDll\PatcherDll.csproj" -outputName "Patcher.dll" -platforms $platforms -destDirs $destDirs

@@ -7,6 +7,7 @@ Executable,
 Library,
 ReflectiveLibrary,
 Service,
-Shellcode
+Shellcode,
+Elf,
     }
 }
