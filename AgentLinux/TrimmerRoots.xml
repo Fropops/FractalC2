@@ -1,0 +1,7 @@
+﻿<linker>
+	<assembly fullname="AgentLinux">
+		<!-- Namespace + tous les sous-namespaces -->
+		<type fullname="Shared.**" preserve="all"/>
+		<type fullname="Agent.Commands.**" preserve="all"/>
+	</assembly>
+</linker>

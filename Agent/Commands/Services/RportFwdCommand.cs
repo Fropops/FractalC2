@@ -1,19 +1,10 @@
 ﻿using Agent.Commands.Services;
-using Agent.Communication;
-using Agent.Models;
 using Agent.Service;
-using BinarySerializer;
 using Shared;
 using Shared.ResultObjects;
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using WinAPI;
-using WinAPI.Wrapper;
 
 namespace Agent.Commands
 {

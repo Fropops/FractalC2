@@ -13,10 +13,12 @@ namespace Agent.Service
         string SpawnToX64 { get; set; }
 
         byte[] ServerKey { get; set; }
+
+#if WINDOWS
         WinAPI.Wrapper.APIAccessType APIAccessType { get; set; }
 
         WinAPI.Wrapper.InjectionMethod APIInjectionMethod { get; set; }
-
+#endif
         bool EncryptFrames { get; set; }
 
         int JobResultDelay { get; set; }
@@ -29,9 +31,10 @@ namespace Agent.Service
         public bool EncryptFrames { get; set; } = true;
 
         public int JobResultDelay { get; set; } = 5000;
-
+#if WINDOWS
         public WinAPI.Wrapper.APIAccessType APIAccessType { get; set; } = WinAPI.Wrapper.APIAccessType.DInvoke;
 
         public WinAPI.Wrapper.InjectionMethod APIInjectionMethod { get; set; } = WinAPI.Wrapper.InjectionMethod.CreateRemoteThread;
+#endif
     }
 }

@@ -1,0 +1,121 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;Local</Configurations>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Version>2.0.27.0</Version>
+    <AssemblyVersion>2.0.27.0</AssemblyVersion>
+    <FileVersion>2.0.27.0</FileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Local|AnyCPU'">
+    <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\Agent\Agent.cs" Link="Agent.cs" />
+    <Compile Include="..\Agent\BinarySerializer\BigEndianBitConverter.cs" Link="BinarySerializer\BigEndianBitConverter.cs" />
+    <Compile Include="..\Agent\BinarySerializer\BinarySerializationException.cs" Link="BinarySerializer\BinarySerializationException.cs" />
+    <Compile Include="..\Agent\BinarySerializer\DoubleConverter.cs" Link="BinarySerializer\DoubleConverter.cs" />
+    <Compile Include="..\Agent\BinarySerializer\EndianBinaryReader.cs" Link="BinarySerializer\EndianBinaryReader.cs" />
+    <Compile Include="..\Agent\BinarySerializer\EndianBinaryWriter.cs" Link="BinarySerializer\EndianBinaryWriter.cs" />
+    <Compile Include="..\Agent\BinarySerializer\EndianBitConverter.cs" Link="BinarySerializer\EndianBitConverter.cs" />
+    <Compile Include="..\Agent\BinarySerializer\Endianness.cs" Link="BinarySerializer\Endianness.cs" />
+    <Compile Include="..\Agent\BinarySerializer\Extensions.cs" Link="BinarySerializer\Extensions.cs" />
+    <Compile Include="..\Agent\BinarySerializer\FieldOrderAttribute.cs" Link="BinarySerializer\FieldOrderAttribute.cs" />
+    <Compile Include="..\Agent\BinarySerializer\IBinarySerializable.cs" Link="BinarySerializer\IBinarySerializable.cs" />
+    <Compile Include="..\Agent\BinarySerializer\LittleEndianBitConverter.cs" Link="BinarySerializer\LittleEndianBitConverter.cs" />
+    <Compile Include="..\Agent\BinarySerializer\Serializer.cs" Link="BinarySerializer\Serializer.cs" />
+    <Compile Include="..\Agent\Commands\AgentCommand.cs" Link="Commands\AgentCommand.cs" />
+    <Compile Include="..\Agent\Commands\Core\CheckinCommand.cs" Link="Commands\Core\CheckinCommand.cs" />
+    <Compile Include="..\Agent\Commands\Core\ExitCommand.cs" Link="Commands\Core\ExitCommand.cs" />
+    <Compile Include="..\Agent\Commands\Core\SleepCommand.cs" Link="Commands\Core\SleepCommand.cs" />
+    <Compile Include="..\Agent\Commands\Core\WhoamiCommand.cs" Link="Commands\Core\WhoamiCommand.cs" />
+    <Compile Include="..\Agent\Commands\FileSystem\CatCommand.cs" Link="Commands\FileSystem\CatCommand.cs" />
+    <Compile Include="..\Agent\Commands\FileSystem\ChangeDirectoryCommand.cs" Link="Commands\FileSystem\ChangeDirectoryCommand.cs" />
+    <Compile Include="..\Agent\Commands\FileSystem\DeleteDirectoryCommand.cs" Link="Commands\FileSystem\DeleteDirectoryCommand.cs" />
+    <Compile Include="..\Agent\Commands\FileSystem\DeleteFileCommand.cs" Link="Commands\FileSystem\DeleteFileCommand.cs" />
+    <Compile Include="..\Agent\Commands\FileSystem\ListDirectoryCommand.cs" Link="Commands\FileSystem\ListDirectoryCommand.cs" />
+    <Compile Include="..\Agent\Commands\FileSystem\MakeDirectoryCommand.cs" Link="Commands\FileSystem\MakeDirectoryCommand.cs" />
+    <Compile Include="..\Agent\Commands\FileSystem\PrintWorkingDirectoryCommand.cs" Link="Commands\FileSystem\PrintWorkingDirectoryCommand.cs" />
+    <Compile Include="..\Agent\Commands\Link\LinkCommand.cs" Link="Commands\Link\LinkCommand.cs" />
+    <Compile Include="..\Agent\Commands\Server\DownloadCommand.cs" Link="Commands\Server\DownloadCommand.cs" />
+    <Compile Include="..\Agent\Commands\Server\UploadCommand.cs" Link="Commands\Server\UploadCommand.cs" />
+    <Compile Include="..\Agent\Commands\Services\RportFwdCommand.cs" Link="Commands\Services\RportFwdCommand.cs" />
+    <Compile Include="..\Agent\Commands\Services\RunningServiceCommand.cs" Link="Commands\Services\RunningServiceCommand.cs" />
+    <Compile Include="..\Agent\Commands\Services\ServiceCommand.cs" Link="Commands\Services\ServiceCommand.cs" />
+    <Compile Include="..\Agent\Communication\CommunicationFactory.cs" Link="Communication\CommunicationFactory.cs" />
+    <Compile Include="..\Agent\Communication\CommunicationModuleMode.cs" Link="Communication\CommunicationModuleMode.cs" />
+    <Compile Include="..\Agent\Communication\CommunicationType.cs" Link="Communication\CommunicationType.cs" />
+    <Compile Include="..\Agent\Communication\Communicator.cs" Link="Communication\Communicator.cs" />
+    <Compile Include="..\Agent\Communication\EgressCommunicator.cs" Link="Communication\EgressCommunicator.cs" />
+    <Compile Include="..\Agent\Communication\HttpCommmunicator.cs" Link="Communication\HttpCommmunicator.cs" />
+    <Compile Include="..\Agent\Communication\P2PCommunicator.cs" Link="Communication\P2PCommunicator.cs" />
+    <Compile Include="..\Agent\Communication\TcpCommModule.cs" Link="Communication\TcpCommModule.cs" />
+    <Compile Include="..\Agent\Helpers\Extensions.cs" Link="Helpers\Extensions.cs" />
+    <Compile Include="..\Agent\Helpers\HttpExtensions.cs" Link="Helpers\HttpExtensions.cs" />
+    <Compile Include="..\Agent\Helpers\PipeExtensions.cs" Link="Helpers\PipeExtensions.cs" />
+    <Compile Include="..\Agent\Helpers\ShortGuid.cs" Link="Helpers\ShortGuid.cs" />
+    <Compile Include="..\Agent\Helpers\TcpExtensions.cs" Link="Helpers\TcpExtensions.cs" />
+    <Compile Include="..\Agent\Program.cs" Link="Program.cs" />
+    <Compile Include="..\Agent\Service\ConfigService.cs" Link="Service\ConfigService.cs" />
+    <Compile Include="..\Agent\Service\CryptoService.cs" Link="Service\CryptoService.cs" />
+    <Compile Include="..\Agent\Service\FileChunk.cs" Link="Service\FileChunk.cs" />
+    <Compile Include="..\Agent\Service\FileService.cs" Link="Service\FileService.cs" />
+    <Compile Include="..\Agent\Service\FrameService.cs" Link="Service\FrameService.cs" />
+    <Compile Include="..\Agent\Service\JobService.cs" Link="Service\JobService.cs" />
+    <Compile Include="..\Agent\Service\NetworkService.cs" Link="Service\NetworkService.cs" />
+    <Compile Include="..\Agent\Service\ProxyService.cs" Link="Service\ProxyService.cs" />
+    <Compile Include="..\Agent\Service\RevertPortForwardService.cs" Link="Service\RevertPortForwardService.cs" />
+    <Compile Include="..\Agent\Service\RunningService\RunningService.cs" Link="Service\RunningService\RunningService.cs" />
+    <Compile Include="..\Agent\Service\ServiceProvider.cs" Link="Service\ServiceProvider.cs" />
+    <Compile Include="..\Agent\Service\WebHostService.cs" Link="Service\WebHostService.cs" />
+    <Compile Include="..\Shared\AgentMetadata.cs" Link="Shared\AgentMetadata.cs" />
+    <Compile Include="..\Shared\AgentTask.cs" Link="Shared\AgentTask.cs" />
+    <Compile Include="..\Shared\AgentTaskResult.cs" Link="Shared\AgentTaskResult.cs" />
+    <Compile Include="..\Shared\Commands.cs" Link="Shared\Commands.cs" />
+    <Compile Include="..\Shared\CommandVerbs.cs" Link="Shared\CommandVerbs.cs" />
+    <Compile Include="..\Shared\ConnexionUrl.cs" Link="Shared\ConnexionUrl.cs" />
+    <Compile Include="..\Shared\DownloadFile.cs" Link="Shared\DownloadFile.cs" />
+    <Compile Include="..\Shared\Job.cs" Link="Shared\Job.cs" />
+    <Compile Include="..\Shared\LinkInfo.cs" Link="Shared\LinkInfo.cs" />
+    <Compile Include="..\Shared\NetFrame.cs" Link="Shared\NetFrame.cs" />
+    <Compile Include="..\Shared\NetFrameType.cs" Link="Shared\NetFrameType.cs" />
+    <Compile Include="..\Shared\ParameterDictionary.cs" Link="Shared\ParameterDictionary.cs" />
+    <Compile Include="..\Shared\ParameterId.cs" Link="Shared\ParameterId.cs" />
+    <Compile Include="..\Shared\ResultObjects\ListDirectoryResult.cs" Link="Shared\ResultObjects\ListDirectoryResult.cs" />
+    <Compile Include="..\Shared\ResultObjects\ListProcessResult.cs" Link="Shared\ResultObjects\ListProcessResult.cs" />
+    <Compile Include="..\Shared\ResultObjects\ReversePortForwarResult.cs" Link="Shared\ResultObjects\ReversePortForwarResult.cs" />
+    <Compile Include="..\Shared\ReversePortForward.cs" Link="Shared\ReversePortForward.cs" />
+    <Compile Include="..\Shared\Socks.cs" Link="Shared\Socks.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <TrimmerRootDescriptor Include="TrimmerRoots.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Commands\FileSystem\" />
+    <Folder Include="Commands\Link\" />
+    <Folder Include="Commands\Services\" />
+    <Folder Include="Commands\Server\" />
+    <Folder Include="Helpers\" />
+    <Folder Include="BinarySerializer\" />
+    <Folder Include="Service\RunningService\" />
+    <Folder Include="Shared\ResultObjects\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Agent.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Agent.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Agent.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Agent.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>

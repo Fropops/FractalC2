@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <Configurations>Debug;Release;ReleaseButDebug</Configurations>
+    <Configurations>Debug;Release;ReleaseButDebug;Local</Configurations>
   </PropertyGroup>
   <PropertyGroup>
     <Version>2.0.10.0</Version>

