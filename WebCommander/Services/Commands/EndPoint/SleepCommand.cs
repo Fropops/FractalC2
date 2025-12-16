@@ -7,6 +7,8 @@ namespace WebCommander.Services.Commands.EndPoint
     public class SleepCommand : EndPointCommand
     {
         public override string Name => "sleep";
+        public override string[] Aliases => new[] { "sleep" };
+        public override OsType[] SupportedOs => new[] { OsType.Windows, OsType.Linux };
         public override string Description => "Display or Change agent response time";
         public override CommandId Id => CommandId.Sleep;
         public override string Category => CommandCategory.Agent;

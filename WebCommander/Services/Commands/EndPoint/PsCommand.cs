@@ -8,6 +8,7 @@ namespace WebCommander.Services.Commands.EndPoint
     {
         public override string Name => "ps";
         public override string Description => "List processes";
+        public override OsType[] SupportedOs => new[] { OsType.Windows, OsType.Linux };
         public override CommandId Id => CommandId.ListProcess;
         public override string Category => CommandCategory.System;
 

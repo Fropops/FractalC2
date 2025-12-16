@@ -142,9 +142,12 @@
                         @if (openDropdownLine == line)
                         {
                             <div class="ls-dropdown" @onclick:stopPropagation="true">
-                                <a class="ls-dropdown-item" href="#" @onclick="async () => { CloseDropdown(); await OnMigrateProcess.InvokeAsync(line.Metadata); }" @onclick:preventDefault>
-                                    <i class="bi bi-arrow-right-circle me-2"></i>Migrate here
-                                </a>
+                                @if (AgentOsType == OsType.Windows)
+                                {
+                                    <a class="ls-dropdown-item" href="#" @onclick="async () => { CloseDropdown(); await OnMigrateProcess.InvokeAsync(line.Metadata); }" @onclick:preventDefault>
+                                        <i class="bi bi-arrow-right-circle me-2"></i>Migrate here
+                                    </a>
+                                }
                             </div>
                         }
                     </div>
@@ -238,6 +241,9 @@
 
     [Parameter]
     public EventCallback<Dictionary<string, string>> OnUnlinkAgent { get; set; }
+
+    [Parameter]
+    public OsType AgentOsType { get; set; } = OsType.Windows;
 
     private ElementReference terminalOutput;
     private int _lastCount = 0;

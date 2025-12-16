@@ -34,7 +34,8 @@
                             OnEnterDirectory="EnterDirectory"
                             OnMigrateProcess="MigrateProcess"
                             OnKillJob="KillJob"
-                            OnUnlinkAgent="UnlinkAgent" />
+                            OnUnlinkAgent="UnlinkAgent"
+                            AgentOsType="@(agent?.Metadata?.OsType ?? OsType.Windows)" />
             
             <div class="terminal-input-container">
                 <span class="terminal-prompt">@(agent.Metadata?.ImplantId ?? "Unknown") &gt;</span>
@@ -496,9 +497,10 @@
             var size = item.IsFile ? ResultObjectHelper.FormatFileSize(item.Length) : "";
             var lineText = string.Format("{0,-10} {1,-15} {2}", type, size, item.Name);
             
-            // Force Windows-style path separator
-            var directory = result.Directory.TrimEnd('\\', '/');
-            var fullPath = $"{directory}\\{item.Name}";
+            // Determine path separator
+            var separator = agent?.Metadata?.OsType == OsType.Linux ? '/' : '\\';
+            var directory = result.Directory.TrimEnd(separator);
+            var fullPath = $"{directory}{separator}{item.Name}";
             
             var line = new TerminalLine
             {

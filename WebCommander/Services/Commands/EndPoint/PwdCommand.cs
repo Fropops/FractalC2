@@ -8,6 +8,8 @@ namespace WebCommander.Services.Commands
     public class PwdCommand : EndPointCommand
     {
         public override string Name => "pwd";
+        public override string[] Aliases => new[] { "pwd" };
+        public override OsType[] SupportedOs => new[] { OsType.Windows, OsType.Linux };
         public override string Description => "Print the current working directory.";
         public override CommandId Id => CommandId.Pwd;
         public override string Category => CommandCategory.System;

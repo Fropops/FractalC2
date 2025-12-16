@@ -11,6 +11,7 @@ namespace WebCommander.Services.Commands.EndPoint
         public override string Description => "Ask an agent to exit.";
         public override CommandId Id => CommandId.Exit;
         public override string[] Aliases => new[] { "exit", "quit" };
+        public override OsType[] SupportedOs => new[] { OsType.Windows, OsType.Linux };
         public override string Category => CommandCategory.Agent;
 
         protected override void AddCommandParameters(RootCommand command)

@@ -10,6 +10,7 @@ namespace WebCommander.Services.Commands
         public abstract CommandId Id { get; }
         public virtual string Category { get; } = CommandCategory.Agent;
         public virtual string[] Aliases { get; } = Array.Empty<string>();
+        public virtual OsType[] SupportedOs { get; } = new[] { OsType.Windows };
 
         public string CommandLine { get; protected set;}
 

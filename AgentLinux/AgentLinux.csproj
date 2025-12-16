@@ -36,7 +36,6 @@
     <Compile Include="..\Agent\Commands\Core\CheckinCommand.cs" Link="Commands\Core\CheckinCommand.cs" />
     <Compile Include="..\Agent\Commands\Core\ExitCommand.cs" Link="Commands\Core\ExitCommand.cs" />
     <Compile Include="..\Agent\Commands\Core\SleepCommand.cs" Link="Commands\Core\SleepCommand.cs" />
-    <Compile Include="..\Agent\Commands\Core\WhoamiCommand.cs" Link="Commands\Core\WhoamiCommand.cs" />
     <Compile Include="..\Agent\Commands\FileSystem\CatCommand.cs" Link="Commands\FileSystem\CatCommand.cs" />
     <Compile Include="..\Agent\Commands\FileSystem\ChangeDirectoryCommand.cs" Link="Commands\FileSystem\ChangeDirectoryCommand.cs" />
     <Compile Include="..\Agent\Commands\FileSystem\DeleteDirectoryCommand.cs" Link="Commands\FileSystem\DeleteDirectoryCommand.cs" />

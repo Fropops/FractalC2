@@ -8,6 +8,7 @@ namespace WebCommander.Services.Commands
     public class LinkCommand : VerbAwareCommand
     {
         public override string Name => "link";
+        public override OsType[] SupportedOs => new[] { OsType.Windows, OsType.Linux };
         public override string Description => "Manage agent links";
         public override CommandId Id => CommandId.Link;
         override protected List<CommandVerbs> AllowedVerbs => new List<CommandVerbs> { CommandVerbs.Show, CommandVerbs.Start, CommandVerbs.Stop };

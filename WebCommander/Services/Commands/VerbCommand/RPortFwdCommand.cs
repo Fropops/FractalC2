@@ -9,6 +9,7 @@ namespace WebCommander.Services.Commands.VerbCommand
         public override string Category => CommandCategory.Network;
         public override string Description => "Start a Reverse Port Forward on the agent";
         public override string Name => "rportfwd";
+        public override OsType[] SupportedOs => new[] { OsType.Windows, OsType.Linux };
         public override CommandId Id => CommandId.RportFwd;
 
         private const string VerbArg = "verb";

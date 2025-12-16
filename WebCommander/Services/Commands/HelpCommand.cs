@@ -40,7 +40,7 @@ namespace WebCommander.Services.Commands
             sb.AppendLine("Available Commands:");
             sb.AppendLine("===================");
 
-            var commands = _commandService.GetCommands().Where(c => c.Name != "help");
+            var commands = _commandService.GetCommands().Where(c => c.Name != "help" && (_agent == null || c.SupportedOs.Contains(_agent.Metadata.OsType)));
             var groupedCommands = commands.GroupBy(c => c.Category).OrderBy(g => g.Key);
 
             foreach (var group in groupedCommands)

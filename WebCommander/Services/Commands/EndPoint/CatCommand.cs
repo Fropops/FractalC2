@@ -8,6 +8,8 @@ namespace WebCommander.Services.Commands
     public class CatCommand : EndPointCommand
     {
         public override string Name => "cat";
+        public override string[] Aliases => new[] { "cat", "type" };
+        public override OsType[] SupportedOs => new[] { OsType.Windows, OsType.Linux };
         public override string Description => "Display the content of a file.";
         public override CommandId Id => CommandId.Cat;
         public override string Category => CommandCategory.System;

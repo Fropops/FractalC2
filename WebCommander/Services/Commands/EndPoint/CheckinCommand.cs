@@ -8,6 +8,8 @@ namespace WebCommander.Services.Commands
     public class CheckinCommand : EndPointCommand
     {
         public override string Name => "checkin";
+        public override string[] Aliases => new[] { "checkin" };
+        public override OsType[] SupportedOs => new[] { OsType.Windows, OsType.Linux };
         public override string Description => "Force agent to update its metadata.";
         public override CommandId Id => CommandId.CheckIn;
 

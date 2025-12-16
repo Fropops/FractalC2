@@ -10,7 +10,8 @@ namespace WebCommander.Services.Commands
         public override string Name => "ls";
         public override string Description => "List directory contents";
         public override CommandId Id => CommandId.Ls;
-        public override string[] Aliases => new[] { "dir" };
+        public override string[] Aliases => new[] { "ls", "dir" };
+        public override OsType[] SupportedOs => new[] { OsType.Windows, OsType.Linux };
         public override string Category => CommandCategory.System;
 
         protected override void AddCommandParameters(RootCommand command)

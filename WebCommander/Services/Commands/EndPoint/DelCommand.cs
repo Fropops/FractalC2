@@ -10,7 +10,8 @@ namespace WebCommander.Services.Commands
         public override string Name => "del";
         public override string Description => "Delete a file on the agent.";
         public override CommandId Id => CommandId.Del;
-        public override string[] Aliases => new[] { "rm" };
+        public override string[] Aliases => new[] { "rm", "del" };
+        public override OsType[] SupportedOs => new[] { OsType.Windows, OsType.Linux };
         public override string Category => CommandCategory.System;
 
         protected override void AddCommandParameters(RootCommand command)

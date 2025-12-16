@@ -8,10 +8,11 @@ namespace WebCommander.Services.Commands
     public class DownloadCommand : EndPointCommand
     {
         public override string Name => "download";
+        public override OsType[] SupportedOs => new[] { OsType.Windows, OsType.Linux };
         public override string Description => "Download a file";
         public override CommandId Id => CommandId.Download;
         public override string[] Aliases => new[] { "dl" };
-        public override string Category => CommandCategory.System;
+        public override string Category => CommandCategory.Network;
 
         protected override void AddCommandParameters(RootCommand command)
         {

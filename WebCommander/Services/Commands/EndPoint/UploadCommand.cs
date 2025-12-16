@@ -8,6 +8,7 @@ namespace WebCommander.Services.Commands
     public class UploadCommand : EndPointCommand
     {
         public override string Name => "upload";
+        public override OsType[] SupportedOs => new[] { OsType.Windows, OsType.Linux };
         public override string Description => "Upload a file to the agent";
         public override CommandId Id => CommandId.Upload;
         public override string Category => CommandCategory.Network;
