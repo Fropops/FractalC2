@@ -171,7 +171,7 @@ function Release-FractalC2 {
 	
 		Write-Host "Building Linux Agent..."
 		dotnet publish $baseDir/AgentLinux/AgentLinux.csproj `
-		  -c ReleaseButDebug `
+		  -c Debug `
 		  -f net8.0 `
 		  -r linux-x64 `
 		  --self-contained `
@@ -186,7 +186,6 @@ function Release-FractalC2 {
 		  --self-contained `
 		  -p:PublishSingleFile=true `
 		  -p:PublishTrimmed=true `
-		  -p:EnableCompressionInSingleFile=true `
 		  -p:DebugType=none `
 		  -p:DebugSymbols=false `
 		  -p:StripSymbols=true `
@@ -221,7 +220,7 @@ function Release-FractalC2 {
 
 		Write-Host "Building Linux Agent..."
 		dotnet publish $baseDir/AgentLinux/AgentLinux.csproj `
-		  -c ReleaseButDebug `
+		  -c Debug `
 		  -f net8.0 `
 		  -r linux-x64 `
 		  --self-contained `
@@ -236,7 +235,6 @@ function Release-FractalC2 {
 		  --self-contained `
 		  -p:PublishSingleFile=true `
 		  -p:PublishTrimmed=true `
-		  -p:EnableCompressionInSingleFile=true `
 		  -p:DebugType=none `
 		  -p:DebugSymbols=false `
 		  -p:StripSymbols=true `

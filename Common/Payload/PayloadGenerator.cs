@@ -56,15 +56,16 @@ public partial class PayloadGenerator
     public byte[] GenerateImplant(ImplantConfig options)
     {
         byte[] agentbytes = null;
-        if (options.IsInjected  && options.Type != ImplantType.Library)
-        {
-            agentbytes = PrepareAgent(options, false);
-            agentbytes = PrepareInjectedAgent(options, agentbytes, options.Type == ImplantType.Service);
-        }
-        else
-        {
-            agentbytes = PrepareAgent(options, options.Type == ImplantType.Service);
-        }
+        if(options.Type != ImplantType.Elf)
+            if (options.IsInjected  && options.Type != ImplantType.Library)
+            {
+                agentbytes = PrepareAgent(options, false);
+                agentbytes = PrepareInjectedAgent(options, agentbytes, options.Type == ImplantType.Service);
+            }
+            else
+            {
+                agentbytes = PrepareAgent(options, options.Type == ImplantType.Service);
+            }
 
         byte[] implantData = null;
         switch (options.Type)
@@ -75,6 +76,7 @@ public partial class PayloadGenerator
             case ImplantType.ReflectiveLibrary: implantData = this.ReflectiveLibraryEncapsulation(options, agentbytes); break;
             case ImplantType.Service: implantData = agentbytes; break;
             case ImplantType.Shellcode: implantData = this.BinaryEncapsulation(options, agentbytes); break;
+            case ImplantType.Elf: implantData = this.ElfPrepare(options); break;
             default:
                 throw new NotImplementedException();
 

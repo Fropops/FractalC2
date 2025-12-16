@@ -103,7 +103,8 @@
                     <select id="implantType" class="form-select" @bind="config.Type">
                         @foreach (var type in Enum.GetValues<ImplantType>())
                         {
-                            <option value="@type">@type</option>
+                            var prefix = type == ImplantType.Elf ? "Linux - " : "Windows - ";
+                            <option value="@type">@prefix@type</option>
                         }
                     </select>
                 </div>
@@ -277,6 +278,22 @@
                 if (string.IsNullOrWhiteSpace(endpointPipeName) || !IsValidPipeName(endpointPipeName))
                 {
                     errorMessage = "Invalid Pipe Name. Must be alphanumeric and cannot start with a number.";
+                    return;
+                }
+            }
+
+            // ELF Validation
+            if (config.Type == ImplantType.Elf && isCustomEndpoint)
+            {
+                if (config.Architecture == ImplantArchitecture.x86)
+                {
+                    errorMessage = "ELF implants do not support x86 architecture.";
+                    return;
+                }
+
+                if (SelectedProtocol == "pipe")
+                {
+                    errorMessage = "ELF implants do not support Pipe endpoints.";
                     return;
                 }
             }

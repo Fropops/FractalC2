@@ -70,7 +70,7 @@ namespace AgentLinux {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to [IMPLANT]**********************************************************************************************************************.
+        ///   Looks up a localized string similar to [IMPLANT]***********************************************************************************************************************.
         /// </summary>
         internal static string Implant {
             get {
@@ -79,7 +79,7 @@ namespace AgentLinux {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to [KEY]**************************************************************************************************************************.
+        ///   Looks up a localized string similar to [KEY]***************************************************************************************************************************.
         /// </summary>
         internal static string Key {
             get {

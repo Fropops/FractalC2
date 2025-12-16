@@ -7,6 +7,12 @@ namespace WebCommander.Models
         System = 0x02
     }
 
+    public enum OsType : byte
+    {
+        Windows = 0x00,
+        Linux = 0x01,
+    }
+
     public class AgentMetadata
     {
         public string Id { get; set; }
@@ -22,6 +28,7 @@ namespace WebCommander.Models
         public byte[] Address { get; set; }
         public int SleepInterval { get; set; }
         public int SleepJitter { get; set; }
+        public OsType OsType { get; set; }
 
         public string Sleep
         {

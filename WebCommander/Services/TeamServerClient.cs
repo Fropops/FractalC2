@@ -225,7 +225,7 @@ namespace WebCommander.Services
         public async Task<Implant?> GetImplantAsync(string id)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/Implants/{id}");
+            var response = await _client.GetAsync($"/Implants/{id}?withData=false");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
             response.EnsureSuccessStatusCode();

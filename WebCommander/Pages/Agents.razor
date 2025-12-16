@@ -52,7 +52,7 @@ else
                     <td>@AgentHelper.IpAsString(agent.Metadata?.Address)</td>
                     <td>@agent.Metadata?.Integrity</td>
                     <td>@agent.Metadata?.ProcessName (@agent.Metadata?.ProcessId)</td>
-                    <td>@agent.Metadata?.Architecture</td>
+                    <td>@agent.Metadata?.Architecture - @agent.Metadata?.OsType</td>
                     <td>
                         @{
                             var endpoint = agent.Metadata?.EndPoint ?? "";
