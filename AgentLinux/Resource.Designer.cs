@@ -22,14 +22,14 @@ namespace AgentLinux {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Agent {
+    internal class Resource {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Agent() {
+        internal Resource() {
         }
         
         /// <summary>
@@ -39,7 +39,7 @@ namespace AgentLinux {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("AgentLinux.Agent", typeof(Agent).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("AgentLinux.Resource", typeof(Resource).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -61,7 +61,7 @@ namespace AgentLinux {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to [ENDPOINT]*******************************************.
+        ///   Looks up a localized string similar to [ENDPOINT]**********************************************************************************************************************.
         /// </summary>
         internal static string EndPoint {
             get {
@@ -70,7 +70,7 @@ namespace AgentLinux {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to [IMPLANT]*******************************************.
+        ///   Looks up a localized string similar to [IMPLANT]**********************************************************************************************************************.
         /// </summary>
         internal static string Implant {
             get {
@@ -79,7 +79,7 @@ namespace AgentLinux {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to [KEY]*******************************************.
+        ///   Looks up a localized string similar to [KEY]**************************************************************************************************************************.
         /// </summary>
         internal static string Key {
             get {

