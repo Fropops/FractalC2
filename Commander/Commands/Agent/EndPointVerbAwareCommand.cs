@@ -19,7 +19,6 @@ namespace Commander.Commands.Agent
     public abstract class EndPointVerbAwareCommand<T> : EndPointCommand<T> where T : EndPointVerbAwareCommandOptions
     {
         protected Dictionary<CommandVerbs, Func<CommandContext<T>, Task<bool>>> dico = new Dictionary<CommandVerbs, Func<CommandContext<T>, Task<bool>>>();
-        public override string Category => CommandCategory.Services;
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
         public override CommandId CommandId => CommandId.Job;
 

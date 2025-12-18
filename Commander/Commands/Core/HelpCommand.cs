@@ -27,7 +27,10 @@ namespace Commander.Commands.Core
 
             context.Terminal.WriteLine("Available commands :");
 
-            foreach (var cat in cmds.Select(c => c.Category).Distinct().OrderBy(cat => cat))
+            var categories = new List<string> { CommandCategory.Commander };
+            categories.AddRange(cmds.Select(c => c.Category).Distinct().Where(c => c != CommandCategory.Commander).OrderBy(cat => cat));
+
+            foreach (var cat in categories)
             {
                 var table = new Table();
                 table.Border(TableBorder.Rounded);

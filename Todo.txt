@@ -13,6 +13,7 @@ webhost?
 Scripts implants?
 
 PsExec & WinRm => Execution?
+rework category
 
 # Install
 Commander Ok?

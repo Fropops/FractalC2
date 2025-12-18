@@ -11,7 +11,7 @@ namespace Commander.Commands.Navigation
 {
     public class BackCommand : ExecutorCommand
     {
-        public override string Category => CommandCategory.Navigation;
+        public override string Category => CommandCategory.Commander;
         public override string Description => "Return to Commander mode";
         public override string Name => "back";
 

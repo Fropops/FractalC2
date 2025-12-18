@@ -18,7 +18,6 @@ namespace Commander.Commands.Core
     public abstract class VerbAwareCommand<T> : EnhancedCommand<T> where T : VerbAwareCommandOptions
     {
         protected Dictionary<string, Func<CommandContext<T>, Task<bool>>> dico = new Dictionary<string, Func<CommandContext<T>, Task<bool>>>();
-        public override string Category => CommandCategory.Services;
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
 
         public VerbAwareCommand()
