@@ -145,7 +145,7 @@ namespace WebCommander.Services
         public async Task<bool> StopListenerAsync(string id)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.DeleteAsync($"/Listeners?id={id}");
+            var response = await _client.DeleteAsync($"/Listeners/{id}");
             
             if (!response.IsSuccessStatusCode)
             {

@@ -13,14 +13,13 @@ namespace Commander.Commands
     {
         public string verb { get; set; }
 
-        public CommandVerbs CommandVerb { get { return (CommandVerbs)Enum.Parse(typeof(CommandVerbs), verb, true); } }
     }
-    public abstract class VerbAwareCommand<T> : EndPointCommand<T> where T : VerbAwareCommandOptions
+
+    public abstract class VerbAwareCommand<T> : EnhancedCommand<T> where T : VerbAwareCommandOptions
     {
-        protected Dictionary<CommandVerbs, Func<CommandContext<T>, Task<bool>>> dico = new Dictionary<CommandVerbs, Func<CommandContext<T>, Task<bool>>>();
+        protected Dictionary<string, Func<CommandContext<T>, Task<bool>>> dico = new Dictionary<string, Func<CommandContext<T>, Task<bool>>>();
         public override string Category => CommandCategory.Services;
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
-        public override CommandId CommandId => CommandId.Job;
 
         public VerbAwareCommand()
         {
@@ -31,26 +30,18 @@ namespace Commander.Commands
         {
         }
 
-        public void Register(CommandVerbs verb, Func<CommandContext<T>, Task<bool>> action)
+        public void Register(string verb, Func<CommandContext<T>, Task<bool>> action)
         {
-            dico.Add(verb, action);
+            dico.Add(verb.ToLower(), action);
         }
 
         protected override async Task<bool> HandleCommand(CommandContext<T> context)
         {
-            if (!await CheckParams(context))
-                return false;
-
-            var verb = context.Options.CommandVerb;
-            context.AddParameter(ParameterId.Verb, verb);
+            var verb = context.Options.verb.ToLower();
 
             if (dico.TryGetValue(verb, out var action))
                 if (!await action(context))
                     return false;
-
-            SpecifyParameters(context);
-
-            await CallEndPointCommand(context);
             return true;
         }
 

@@ -9,10 +9,7 @@ namespace Commander.Executor
     public enum ExecutorMode
     {
         None,
-        Listener,
-        Agent,
         AgentInteraction,
-        Launcher,
         All,
     }
 }

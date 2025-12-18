@@ -5,13 +5,13 @@ using Commander.Helper;
 
 namespace Commander.Commands.Agent.EndPoint
 {
-    public class RegCommandOptions : VerbAwareCommandOptions
+    public class RegCommandOptions : EndPointVerbAwareCommandOptions
     {
         public string path { get; set; }
         public string key { get; set; }
         public string value { get; set; }
     }
-    public class RegCommand : VerbAwareCommand<RegCommandOptions>
+    public class RegCommand : EndPointVerbAwareCommand<RegCommandOptions>
     {
         public override string Category => CommandCategory.Core;
         public override string Description => "Manage registrykeys on the agent";

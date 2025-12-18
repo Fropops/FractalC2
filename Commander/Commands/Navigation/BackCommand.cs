@@ -23,7 +23,7 @@ namespace Commander.Commands.Navigation
                 case ExecutorMode.AgentInteraction:
                     {
                         context.Executor.CurrentAgent = null;
-                        context.Executor.Mode = ExecutorMode.Agent;
+                        context.Executor.Mode = ExecutorMode.None;
                     }
                     break;
                 default:

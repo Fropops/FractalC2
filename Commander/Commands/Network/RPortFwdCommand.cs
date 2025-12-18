@@ -1,4 +1,5 @@
-﻿using Commander.Communication;
+﻿using Commander.Commands.Agent;
+using Commander.Communication;
 using Commander.Executor;
 using Commander.Helper;
 using Commander.Models;
@@ -14,14 +15,14 @@ using System.Threading.Tasks;
 
 namespace Commander.Commands.Network
 {
-    public class RPortFwdCommandOptions : VerbAwareCommandOptions
+    public class RPortFwdCommandOptions : EndPointVerbAwareCommandOptions
     {
         public int? port { get; set; }
         public string destHost { get; set; }
         public int? destPort { get; set; }
     }
 
-    public class RPortFwdCommand : VerbAwareCommand<RPortFwdCommandOptions>
+    public class RPortFwdCommand : EndPointVerbAwareCommand<RPortFwdCommandOptions>
     {
         public override string Category => CommandCategory.Network;
         public override string Description => "Start a Reverse Port Forward on the agent";

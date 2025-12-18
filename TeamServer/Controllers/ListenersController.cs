@@ -91,7 +91,7 @@ namespace TeamServer.Controllers
             return Created(path, listener);
         }
 
-        [HttpDelete]
+        [HttpDelete("{id}")]
         public IActionResult StopListener(string id)
         {
             var listener = this._listenerService.GetListeners().FirstOrDefault(l => l.Id == id);

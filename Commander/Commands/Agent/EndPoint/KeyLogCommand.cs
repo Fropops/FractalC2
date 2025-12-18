@@ -5,10 +5,10 @@ using Commander.Helper;
 
 namespace Commander.Commands.Agent.EndPoint
 {
-    public class KeyLogCommandOptions : VerbAwareCommandOptions
+    public class KeyLogCommandOptions : EndPointVerbAwareCommandOptions
     {
     }
-    public class KeyLogCommand : VerbAwareCommand<KeyLogCommandOptions>
+    public class KeyLogCommand : EndPointVerbAwareCommand<KeyLogCommandOptions>
     {
         public override string Category => CommandCategory.Core;
         public override string Description => "Log keys on the agent";

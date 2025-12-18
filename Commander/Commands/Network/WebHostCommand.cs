@@ -20,7 +20,7 @@ using Commander.Helper;
 
 namespace Commander.Commands.Network
 {
-    public class WebHostCommandOptions : VerbAwareCommandOptions
+    public class WebHostCommandOptions : EndPointVerbAwareCommandOptions
     {
         public string path { get; set; }
         public string file { get; set; }
@@ -30,7 +30,7 @@ namespace Commander.Commands.Network
         public string listener { get; set; }
     }
 
-    public class WebHostCommand : VerbAwareCommand<WebHostCommandOptions>
+    public class WebHostCommand : EndPointVerbAwareCommand<WebHostCommandOptions>
     {
         public override string Category => CommandCategory.Network;
         public override string Description => "WebHost file on the TeamServer";

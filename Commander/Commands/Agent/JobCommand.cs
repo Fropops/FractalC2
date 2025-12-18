@@ -10,11 +10,11 @@ using Shared;
 
 namespace Commander.Commands.Agent
 {
-    public class JobCommandOptions : VerbAwareCommandOptions
+    public class JobCommandOptions : EndPointVerbAwareCommandOptions
     {
         public int? id { get; set; }
     }
-    public class JobCommand : VerbAwareCommand<JobCommandOptions>
+    public class JobCommand : EndPointVerbAwareCommand<JobCommandOptions>
     {
         public override string Description => "Manage Jobs";
         public override string Name => "job";

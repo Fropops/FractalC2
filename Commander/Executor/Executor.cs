@@ -46,12 +46,12 @@ namespace Commander.Executor
         {
             if (this._currentAgent.Metadata == null)
             {
-                this.Terminal.Prompt = $"${ExecutorMode.Agent}({_currentAgent.Id})> ";
+                this.Terminal.Prompt = $"$({_currentAgent.Id})> ";
             }
             else
             {
                 var star = _currentAgent.Metadata?.HasElevatePrivilege() == true ? "*" : string.Empty;
-                this.Terminal.Prompt = $"${ExecutorMode.Agent}({_currentAgent.Id}) {_currentAgent.Metadata.UserName}{star}@{_currentAgent.Metadata.Hostname}> ";
+                this.Terminal.Prompt = $"$({_currentAgent.Id}) {_currentAgent.Metadata.UserName}{star}@{_currentAgent.Metadata.Hostname}> ";
             }
         }
         private ICommModule CommModule { get; set; }

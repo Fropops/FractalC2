@@ -1,4 +1,5 @@
-﻿using Commander.Communication;
+﻿using Commander.Commands.Agent;
+using Commander.Communication;
 using Commander.Executor;
 using Commander.Helper;
 using Commander.Models;
@@ -14,12 +15,12 @@ using System.Threading.Tasks;
 
 namespace Commander.Commands.Network
 {
-    public class ProxyCommandOptions : VerbAwareCommandOptions
+    public class ProxyCommandOptions : EndPointVerbAwareCommandOptions
     {
         public int? port { get; set; }
     }
 
-    public class ProxyCommand : VerbAwareCommand<ProxyCommandOptions>
+    public class ProxyCommand : EndPointVerbAwareCommand<ProxyCommandOptions>
     {
         public override string Category => CommandCategory.Network;
         public override string Description => "Start a Socks4 Proxy on the agent";

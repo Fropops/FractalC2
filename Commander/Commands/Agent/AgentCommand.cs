@@ -1,4 +1,4 @@
-﻿using Commander.Communication;
+using Commander.Communication;
 using Commander.Executor;
 using Commander.Helper;
 using Commander.Terminal;
@@ -7,37 +7,43 @@ using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.NamingConventionBinder;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Commander.Commands.Agent
 {
-    public class ListAgentsCommandOptions
+    public class AgentCommandOptions : VerbAwareCommandOptions
     {
-        public string listenerName { get; set; }
-        public bool verbose { get; set; }
+        public string id { get; set; }
+        public bool all { get; set; }
     }
 
-    public class ListAgentsCommand : EnhancedCommand<ListAgentsCommandOptions>
+    public class AgentCommand : VerbAwareCommand<AgentCommandOptions>
     {
         public override string Category => CommandCategory.Commander;
-        public override string Description => "List all agents";
-        public override string Name => "list";
+        public override string Description => "Manage agents";
+        public override string Name => "agent";
+        public override ExecutorMode AvaliableIn => ExecutorMode.All;
 
-        public override ExecutorMode AvaliableIn => ExecutorMode.Agent;
+        public override string[] Alternate => new string[] { "agents" };
 
-        public override RootCommand Command => new RootCommand(this.Description)
-            {
-                new Argument<string>("listenerName",() => "" ,"Name of the listener"),
-                new Option(new[] { "--verbose", "-v" }, "Show details of the command execution."),
-            };
-
-
-        protected override async Task<bool> HandleCommand(CommandContext<ListAgentsCommandOptions> context)
+        public override RootCommand Command => new RootCommand(Description)
         {
-            var result = context.CommModule.GetAgents();
+            new Argument<string>("verb", () => "show").FromAmong("show", "delete"),
+            new Option<string>(new[] { "--id", "-i" }, "Id of the agent"),
+            new Option<bool>(new[] { "--all", "-a" }, "Apply to all agents"),
+        };
+
+        protected override void RegisterVerbs()
+        {
+            base.RegisterVerbs();
+            Register("show", Show);
+            Register("delete", Delete);
+        }
+
+        protected async Task<bool> Show(CommandContext<AgentCommandOptions> context)
+        {
+             var result = context.CommModule.GetAgents();
             if (result.Count() == 0)
             {
                 context.Terminal.WriteLine("No Agents running.");
@@ -64,9 +70,6 @@ namespace Commander.Commands.Agent
             var index = 0;
             foreach (var agent in result.OrderBy(a => a.FirstSeen))
             {
-                //var listenerName = listeners.FirstOrDefault(l => l.Id == agent.ListenerId)?.Name ?? string.Empty;
-                //if (string.IsNullOrEmpty(context.Options.listenerName) || listenerName.ToLower().Equals(context.Options.listenerName.ToLower()))
-                //{
                 var activ = context.IsAgentAlive(agent);
                 var activStr = "Unknown";
                 if (activ == true)
@@ -87,10 +90,7 @@ namespace Commander.Commands.Agent
                         SurroundIfDeadOrSelf(agent, context, agent.Metadata?.Architecture),
                         SurroundIfDeadOrSelf(agent, context, agent.Metadata?.EndPoint),
                         SurroundIfDeadOrSelf(agent, context, StringHelper.FormatElapsedTime(Math.Round(agent.LastSeenDelta.TotalSeconds, 2)))
-                        //Version = agent.Metadata.Version,
-                        //Listener = listenerName,
                     );
-                //}
                 index++;
             }
 
@@ -114,13 +114,35 @@ namespace Commander.Commands.Agent
                 return new Markup(value);
         }
 
-        public class ListAgentsEverywhareCommand : ListAgentsCommand
+        protected async Task<bool> Delete(CommandContext<AgentCommandOptions> context)
         {
-            public override string Name => "agents";
+            bool cmdRes = true;
+            var agents = new List<Models.Agent>();
+            if (context.Options.all)
+            {
+                agents.AddRange(context.CommModule.GetAgents());
+            }
+            else
+            {
+                var agt = context.CommModule.GetAgent(context.Options.id);
+                if (agt != null)
+                    agents.Add(agt);
+            }
 
-            public override ExecutorMode AvaliableIn => ExecutorMode.All;
+            foreach (var agent in agents)
+            {
+                var result = await context.CommModule.StopAgent(agent.Id);
+
+                if (!result.IsSuccessStatusCode)
+                {
+                    context.Terminal.WriteError($"An error occured : {result.StatusCode}");
+                    cmdRes = false;
+                }
+                else
+                    context.Terminal.WriteSuccess($"{agent.Id} was deleted.");
+            }
+
+            return cmdRes;
         }
-
     }
-
 }

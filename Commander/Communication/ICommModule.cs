@@ -39,7 +39,7 @@ namespace Commander.Communication
         TeamServerAgentTask GetTask(string taskId);
         AgentTaskResult GetTaskResult(string taskId);
         Task<HttpResponseMessage> CreateListener(string name, int port, string address, bool secured);
-        Task<HttpResponseMessage> StopListener(string id, bool clean);
+        Task<HttpResponseMessage> StopListener(string id);
         IEnumerable<TeamServerListener> GetListeners();
         Task TaskAgent(string label, string agentId, CommandId commandId, ParameterDictionary parms = null);
 

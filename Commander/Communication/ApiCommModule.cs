@@ -508,9 +508,9 @@ namespace Commander.Communication
             return await _client.PostAsync("/Listeners/", new StringContent(requestContent, UnicodeEncoding.UTF8, "application/json"));
         }
 
-        public async Task<HttpResponseMessage> StopListener(string id, bool clean)
+        public async Task<HttpResponseMessage> StopListener(string id)
         {
-            return await _client.DeleteAsync($"/Listeners/?id={id}&clean={clean}");
+            return await _client.DeleteAsync($"/Listeners/{id}");
         }
 
         public IEnumerable<TeamServerListener> GetListeners()

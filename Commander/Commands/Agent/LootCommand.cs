@@ -10,29 +10,27 @@ using Commander.Models;
 using System.Collections.Generic;
 using Spectre.Console;
 
-namespace Commander.Commands
+namespace Commander.Commands.Agent
 {
     public class LootCommandOptions
     {
         public string action { get; set; } // show, download, upload
-        public string agentId { get; set; }
         public string target { get; set; } // fileName or filePath
     }
 
     public class LootCommand : EnhancedCommand<LootCommandOptions>
     {
-        public override string Category => CommandCategory.Commander;
+        public override string Category => CommandCategory.Core;
         public override string Description => "Manage Loot";
         public override string Name => "loot";
-        public override ExecutorMode AvaliableIn => ExecutorMode.All;
+        public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
 
         public override RootCommand Command
         {
             get
             {
                 var root = new RootCommand(Description);
-                root.AddArgument(new Argument<string>("action", "show, download, upload").FromAmong("show", "download", "upload"));
-                root.AddArgument(new Argument<string>("agentId", "Agent ID"));
+                root.AddArgument(new Argument<string>("action", () => "show", "show, download, upload").FromAmong("show", "download", "upload"));
                 root.AddArgument(new Argument<string>("target", () => null, "File Name (download) or File Path (upload)")); // Optional for show
 
                 return root;
@@ -57,7 +55,7 @@ namespace Commander.Commands
 
         private async Task<bool> ShowLoot(CommandContext<LootCommandOptions> context)
         {
-            var agentId = context.Options.agentId;
+            var agentId = context.Executor.CurrentAgent.Id;
             // target ignored
             
             if (string.IsNullOrEmpty(agentId))
@@ -96,7 +94,7 @@ namespace Commander.Commands
 
         private async Task<bool> DownloadLoot(CommandContext<LootCommandOptions> context)
         {
-            var agentId = context.Options.agentId;
+            var agentId = context.Executor.CurrentAgent.Id;
             var fileName = context.Options.target;
 
             if (string.IsNullOrEmpty(agentId) || string.IsNullOrEmpty(fileName))
@@ -133,7 +131,7 @@ namespace Commander.Commands
 
          private async Task<bool> UploadLoot(CommandContext<LootCommandOptions> context)
         {
-            var agentId = context.Options.agentId;
+            var agentId = context.Executor.CurrentAgent.Id;
             var filePath = context.Options.target;
              if (string.IsNullOrEmpty(agentId) || string.IsNullOrEmpty(filePath))
             {

@@ -5,11 +5,11 @@ using Commander.Helper;
 
 namespace Commander.Commands.Agent.EndPoint
 {
-    public class LinkCommandOptions : VerbAwareCommandOptions
+    public class LinkCommandOptions : EndPointVerbAwareCommandOptions
     {
         public string bindto { get; set; }
     }
-    public class LinkCommand : VerbAwareCommand<LinkCommandOptions>
+    public class LinkCommand : EndPointVerbAwareCommand<LinkCommandOptions>
     {
         public override string Category => CommandCategory.Core;
         public override string Description => "Link to another Agent";
