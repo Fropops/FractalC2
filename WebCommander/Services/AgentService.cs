@@ -114,7 +114,7 @@ namespace WebCommander.Services
 
                 foreach (var change in changes)
                 {
-                    // Console.WriteLine($"Processing change: {change.Type} for ID {change.Id}");
+                    Console.WriteLine($"Processing change: {change.Type} for ID {change.Id}");
                     
                     if (change.Type == ChangingElement.Agent)
                     {

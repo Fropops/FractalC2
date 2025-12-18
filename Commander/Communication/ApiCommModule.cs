@@ -20,6 +20,7 @@ using Common.APIModels;
 using BinarySerializer;
 using Common;
 using Common.APIModels.WebHost;
+using Common.Payload;
 
 namespace Commander.Communication
 {
@@ -31,6 +32,7 @@ namespace Commander.Communication
         public event EventHandler<Agent> AgentMetaDataUpdated;
         public event EventHandler<AgentTaskResult> TaskResultUpdated;
         public event EventHandler<Agent> AgentAdded;
+        public event EventHandler<Implant> ImplantAdded;
 
         private CancellationTokenSource _tokenSource;
 
@@ -40,6 +42,7 @@ namespace Commander.Communication
         protected ConcurrentDictionary<string, Agent> _agents = new ConcurrentDictionary<string, Agent>();
         protected ConcurrentDictionary<string, TeamServerAgentTask> _tasks = new ConcurrentDictionary<string, TeamServerAgentTask>();
         protected ConcurrentDictionary<string, AgentTaskResult> _results = new ConcurrentDictionary<string, AgentTaskResult>();
+        protected ConcurrentDictionary<string, Implant> _implants = new ConcurrentDictionary<string, Implant>();
 
 
         private ITerminal Terminal;
@@ -65,6 +68,7 @@ namespace Commander.Communication
             this._tasks.Clear();
             this._results.Clear();
             this._listeners.Clear();
+            this._implants.Clear();
 
             this.ConnectionStatus = ConnectionStatus.Unknown;
             this.ConnectionStatusChanged?.Invoke(this, this.ConnectionStatus);
@@ -106,14 +110,12 @@ namespace Commander.Communication
 
                     if (isSyncing)
                     {
-                        var serverConfig = await this.ServerConfig();
-                        this.Config.ServerConfig = serverConfig;
-                        
-
                         this._listeners.Clear();
                         this._agents.Clear();
                         this._tasks.Clear();
+                        this._tasks.Clear();
                         this._results.Clear();
+                        this._implants.Clear();
 
                         Terminal.Interrupt();
                         Terminal.CanHandleInput = false;
@@ -149,7 +151,9 @@ namespace Commander.Communication
                         //Terminal.WriteInfo($"{changes.Count(c => c.Element == ChangingElement.Listener)} Listeners to load.");
                         //Terminal.WriteInfo($"{changes.Count(c => c.Element == ChangingElement.Agent)} Agents to load.");
                         //Terminal.WriteInfo($"{changes.Count(c => c.Element == ChangingElement.Task)} Tasks to load.");
+                        //Terminal.WriteInfo($"{changes.Count(c => c.Element == ChangingElement.Task)} Tasks to load.");
                         //Terminal.WriteInfo($"{changes.Count(c => c.Element == ChangingElement.Result)} Results to load.");
+                        //Terminal.WriteInfo($"{changes.Count(c => c.Element == ChangingElement.Implant)} Implants to load.");
 
                         Terminal.WriteSuccess($"Syncing done.");
                         //Terminal.WriteInfo($"ServerKey is {this.Config.ServerConfig.Key}");
@@ -209,6 +213,9 @@ namespace Commander.Communication
                     break;
                 case ChangingElement.Metadata:
                     await this.UpdateMetadata(change.Id);
+                    break;
+                case ChangingElement.Implant:
+                    await this.UpdateImplant(change.Id);
                     break;
             }
         }
@@ -536,18 +543,6 @@ namespace Commander.Communication
                 throw new Exception($"{response}");
         }
 
-        public async Task<ServerConfig> ServerConfig()
-        {
-            var response = await _client.GetAsync($"/Config");
-
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response}");
-
-            var json = await response.Content.ReadAsStringAsync();
-            var conf = JsonConvert.DeserializeObject<ServerConfig>(json);
-
-            return conf;
-        }
 
         #region Proxy
         public async Task<bool> StartProxy(string agentId, int port)
@@ -651,29 +646,119 @@ namespace Commander.Communication
 
         #endregion
 
-        #region files
-        public async Task<List<TeamServerDownloadFile>> GetFiles()
+        private async Task UpdateImplant(string id)
         {
-            var response = await _client.GetAsync($"/DownloadFile/");
+            try
+            {
+                var response = await _client.GetStringAsync($"Implants/{id}");
+                var implant = JsonConvert.DeserializeObject<Implant>(response);
 
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response}");
+                this._implants.AddOrUpdate(implant.Id, implant, (key, current) =>
+                {
+                    current.Config = implant.Config;
+                    return current;
+                });
 
-            var json = await response.Content.ReadAsStringAsync();
-            var list = JsonConvert.DeserializeObject<List<TeamServerDownloadFile>>(json);
-            return list;
+                if (!this.isSyncing)
+                    this.ImplantAdded?.Invoke(this, implant);
+            }
+            catch (HttpRequestException e)
+            {
+                if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    if (this._implants.ContainsKey(id))
+                        this._implants.Remove(id, out _);
+                }
+                else
+                    throw e;
+            }
         }
 
-        public async Task<TeamServerDownloadFile> GetFile(string id)
+        #region Implants
+        public List<Implant> GetImplants()
         {
-            var response = await _client.GetAsync($"/DownloadFile/{id}");
+            return this._implants.Values.ToList();
+        }
 
+        public Implant GetImplant(string id)
+        {
+            if (this._implants.ContainsKey(id))
+                return this._implants[id];
+            return null;
+        }
+
+        public async Task<ImplantCreationResult> GenerateImplant(ImplantConfig config)
+        {
+            var requestContent = JsonConvert.SerializeObject(config);
+            var response = await _client.PostAsync("/Implants", new StringContent(requestContent, UnicodeEncoding.UTF8, "application/json"));
+            
             if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response}");
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Failed to generate implant: {response.StatusCode} - {error}");
+            }
 
             var json = await response.Content.ReadAsStringAsync();
-            var file = JsonConvert.DeserializeObject<TeamServerDownloadFile>(json);
-            return file;
+            var result = JsonConvert.DeserializeObject<ImplantCreationResult>(json);
+
+            if (config.IsVerbose && !string.IsNullOrEmpty(result.Logs))
+            {
+                Terminal.WriteInfo(result.Logs);
+            }
+
+            Terminal.WriteSuccess($"Generation of implant {result.ImplantName} succeeded!");
+            return result;
+        }
+
+        public async Task<Implant> GetImplantBinary(string id)
+        {
+            var response = await _client.GetAsync($"/Implants/{id}?withData=true");
+
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var json = await response.Content.ReadAsStringAsync();
+            var implant = JsonConvert.DeserializeObject<Implant>(json);
+            return implant;
+        }
+
+        public async Task DeleteImplant(string id)
+        {
+            var response = await _client.DeleteAsync($"/Implants/{id}");
+            if (!response.IsSuccessStatusCode)
+                 throw new Exception($"{response.StatusCode}");
+             
+            if (this._implants.ContainsKey(id))
+                this._implants.Remove(id, out _);
+        }
+        #endregion
+
+        #region Loot
+        public async Task<List<Loot>> GetLoot(string agentId)
+        {
+            var response = await _client.GetAsync($"/loot/{agentId}");
+            if (!response.IsSuccessStatusCode)
+                throw new Exception($"{response.StatusCode}");
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<Loot>>(json);
+        }
+
+        public async Task<Loot> GetLootFile(string agentId, string fileName)
+        {
+            var response = await _client.GetAsync($"/loot/{agentId}/{fileName}");
+            if (!response.IsSuccessStatusCode)
+                throw new Exception($"{response.StatusCode}");
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<Loot>(json);
+        }
+        
+        public async Task DeleteLoot(string agentId, string fileName)
+        {
+            var response = await _client.DeleteAsync($"/loot/{agentId}/{fileName}");
+            if (!response.IsSuccessStatusCode)
+                throw new Exception($"{response.StatusCode}");
         }
         #endregion
     }

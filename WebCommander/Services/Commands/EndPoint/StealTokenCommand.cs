@@ -13,7 +13,7 @@ namespace WebCommander.Services.Commands.EndPoint
 
         protected override void AddCommandParameters(RootCommand command)
         {
-            command.Add(new Argument<int>("pid") { Description = "Id of the process" });
+            command.Add(new Argument<int>("pid") { Description = "Id of the process", Arity = ArgumentArity.ExactlyOne });
         }
 
         public override Task FillParametersAsync(ParseResult result, ParameterDictionary parms)

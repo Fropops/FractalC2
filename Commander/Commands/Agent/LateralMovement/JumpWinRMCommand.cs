@@ -54,7 +54,7 @@ namespace Commander.Commands
 
         protected override async Task<bool> Body(CommandContext<JumpWinRMCommandOptions> context)
         {
-            var agent = context.Executor.CurrentAgent;
+            /*var agent = context.Executor.CurrentAgent;
             if (string.IsNullOrEmpty(context.Options.endpoint))
             {
                 context.Terminal.WriteLine($"No Endpoint selected, taking the current agent endpoint ({agent.Metadata.EndPoint})");
@@ -94,7 +94,7 @@ namespace Commander.Commands
                 context.Terminal.WriteSuccess($"[+] Generation succeed!");
 
             context.AddParameter(ParameterId.Command, Encoding.UTF8.GetString(pay));
-            context.AddParameter(ParameterId.Target, context.Options.target);
+            context.AddParameter(ParameterId.Target, context.Options.target);*/
             return true;
         }
 

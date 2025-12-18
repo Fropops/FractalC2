@@ -30,7 +30,6 @@
     <Compile Remove="Commands\Scripted\AgentTask.cs" />
     <Compile Remove="Commands\FilesCommand.cs" />
     <Compile Remove="Commands\GetCommand.cs" />
-    <Compile Remove="Commands\Payload\JumpWinRMCommand.cs" />
     <Compile Remove="Commands\PushCommand.cs" />
     <Compile Remove="Commands\WebHostCommand.cs" />
     <Compile Remove="Models\AgentMetadata.cs" />

@@ -468,6 +468,12 @@ public partial class PayloadGenerator
 
     private string GetOutputFilePath(ImplantConfig options)
     {
+        string outPath = Path.Combine(this.FoldersConfig.ImplantsFolder, GetImplantFileName(options));
+        return outPath;
+    }
+
+    public static string GetImplantFileName(ImplantConfig options)
+    {
         var outFile = options.ImplantName;
         switch (options.Type)
         {
@@ -489,9 +495,7 @@ public partial class PayloadGenerator
                     outFile += ".bin";
                 break;
         }
-
-        string outPath = Path.Combine(this.FoldersConfig.ImplantsFolder, outFile);
-        return outPath;
+        return outFile;
     }
 }
 

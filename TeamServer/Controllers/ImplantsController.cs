@@ -99,9 +99,10 @@ namespace TeamServer.Controllers
             config.ImplantName = Payload.GenerateName();
             config.ServerKey = _cryptoService.ServerKey;
             string logs = string.Empty;
+            Implant implant = null;
             try
             {
-                (logs, var implant) = GenerateImplant(config);
+                (logs, implant) = GenerateImplant(config);
                 if (implant == null)
                 {
                     return this.Problem(logs);
@@ -114,7 +115,12 @@ namespace TeamServer.Controllers
                 return this.Problem(ex.ToString());
             }
 
-            return Ok(logs);
+            return Ok(new ImplantCreationResult()
+            {
+                Id = implant.Id,
+                ImplantName = config.ImplantName,
+                Logs = logs,
+            });
         }
 
         private (string, Implant) GenerateImplant(ImplantConfig config)

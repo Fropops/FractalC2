@@ -106,13 +106,23 @@ namespace Commander.Commands
             AnsiConsole.Status()
                     .Start($"[olive]Generating Payload {options.Type} for Endpoint {options.Endpoint} (arch = {options.Architecture}).[/]", ctx =>
                     {
-                        var generator = new PayloadGenerator(context.Config.FoldersConfig, context.Config.SpawnConfig);
-                        generator.MessageSent += (object sender, string msg) => { if (verbose) context.Terminal.WriteLine(msg); };
-                        options.ImplantName = Payload.GenerateName();
-                        pay = generator.GenerateImplant(options);
+                if (string.IsNullOrEmpty(options.ImplantName))
+                    options.ImplantName = Payload.GenerateName();
+                
+                try
+                {
+                    context.Terminal.WriteInfo("Triggering server-side generation...");
+                    var result = context.CommModule.GenerateImplant(options).GetAwaiter().GetResult();
+                    // No return value from API expected by this method's caller for now.
+                }
+                catch (Exception ex)
+                {
+                    context.Terminal.WriteError($"[X] Generation Failed: {ex.Message}");
+                    if (verbose) context.Terminal.WriteError(ex.ToString());
+                }
                     });
 
-            return pay;
+            return null;
         }
     }
 }

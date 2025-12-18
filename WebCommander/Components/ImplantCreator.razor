@@ -330,10 +330,10 @@
             }
 
             // Create the implant - only pass the config
-            var (success,logs) = await Api.CreateImplantAsync(config);
+            var (success, implantName, logs) = await Api.CreateImplantAsync(config);
             
             // Notify parent of success
-            await OnCreationResult.InvokeAsync((success, success ? $"Implant created successfully." : "Failed to create implant.", logs));
+            await OnCreationResult.InvokeAsync((success, success ? $"Implant {implantName} created successfully." : "Failed to create implant.", logs));
         }
         catch (HttpRequestException ex)
         {

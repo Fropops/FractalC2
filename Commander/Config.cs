@@ -37,9 +37,6 @@ namespace Commander
     public class CommanderConfig
     {
         public ApiConfig ApiConfig { get; private set; }
-        public FoldersConfig FoldersConfig { get; private set; }
-        public SpawnConfig SpawnConfig { get; private set;}
-        public ServerConfig ServerConfig { get; set; }
         public string Session { get; private set; }
 
         public bool Verbose { get; set; } = false;
@@ -47,8 +44,6 @@ namespace Commander
         public CommanderConfig()
         {
             this.ApiConfig = new ApiConfig();
-            this.FoldersConfig = new FoldersConfig();
-            this.SpawnConfig = new SpawnConfig();
             this.Session = Guid.NewGuid().ToString();
         }
 
@@ -56,8 +51,6 @@ namespace Commander
         {
             this.Verbose = config.GetValue<bool>("Verbose");
             this.ApiConfig.FromSection(config.GetSection("Api"));
-            this.FoldersConfig.FromSection(config.GetSection("Folder"), this.Verbose);
-            this.SpawnConfig.FromSection(config.GetSection("Spawn"));
         }
 
 

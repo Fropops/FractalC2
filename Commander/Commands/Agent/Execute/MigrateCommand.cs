@@ -61,30 +61,6 @@ namespace Commander.Commands.Laucher
                 return false;
             }
 
-            context.Terminal.WriteLine($"[>] Generating binary...");
-
-            var options = new ImplantConfig()
-            {
-                Architecture = context.Options.x86 ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
-                Endpoint = endpoint,
-                IsDebug = context.Options.debug,
-                IsVerbose = context.Options.verbose,
-                ServerKey = string.IsNullOrEmpty(context.Options.serverKey) ? context.Config.ServerConfig.Key : context.Options.serverKey,
-                Type = ImplantType.Shellcode
-            };
-
-            var pay = context.GeneratePayloadAndDisplay(options, context.Options.verbose);
-           
-            if (pay == null)
-            {
-                context.Terminal.WriteError($"[X] Generation Failed!");
-                return false;
-            }
-            else
-                context.Terminal.WriteSuccess($"[+] Generation succeed!");
-
-            context.AddParameter(ParameterId.File, pay);
-
 
             if (context.Options.processId.HasValue)
             {

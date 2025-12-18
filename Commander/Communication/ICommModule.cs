@@ -2,6 +2,7 @@
 using Common.APIModels;
 using Common.APIModels.WebHost;
 using Common.Models;
+using Common.Payload;
 using Shared;
 using System;
 using System.Collections.Generic;
@@ -42,10 +43,6 @@ namespace Commander.Communication
         IEnumerable<TeamServerListener> GetListeners();
         Task TaskAgent(string label, string agentId, CommandId commandId, ParameterDictionary parms = null);
 
-        //Task<Byte[]> Download(string id, Action<int> OnCompletionChanged = null);
-
-        //Task<string> Upload(byte[] fileBytes, string filename, Action<int> OnCompletionChanged = null);
-
         Task WebHost(string path, byte[] fileContent, bool isPowerShell, string description);
         Task<List<WebHostLog>> GetWebHostLogs();
         Task<List<FileWebHost>> GetWebHosts();
@@ -57,11 +54,20 @@ namespace Commander.Communication
         Task<bool> StopProxy(string agentId);
         Task<List<ProxyInfo>> ShowProxy();
 
-        Task<List<TeamServerDownloadFile>> GetFiles();
-
-        Task<TeamServerDownloadFile> GetFile(string id);
-
         Task CloseSession();
 
+        // Implants
+        List<Implant> GetImplants();
+        Implant GetImplant(string id);
+        Task<ImplantCreationResult> GenerateImplant(ImplantConfig config);
+        Task<Implant> GetImplantBinary(string id);
+        Task DeleteImplant(string id);
+
+        // Loot
+        Task<List<Loot>> GetLoot(string agentId);
+        Task<Loot> GetLootFile(string agentId, string fileName);
+        Task DeleteLoot(string agentId, string fileName);
+
+        event EventHandler<Implant> ImplantAdded;
     }
 }

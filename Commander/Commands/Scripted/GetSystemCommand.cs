@@ -55,7 +55,7 @@ namespace Commander.Commands.Composite
 
         protected override void Run(ScriptingAgent<GetSystemCommandOptions> agent, ScriptingCommander<GetSystemCommandOptions> commander, ScriptingTeamServer<GetSystemCommandOptions> teamServer, GetSystemCommandOptions options, CommanderConfig config)
         {
-            if (agent.Metadata.Integrity != Shared.IntegrityLevel.High)
+            /*if (agent.Metadata.Integrity != Shared.IntegrityLevel.High)
             {
                 commander.WriteError($"[X] Agent should be in High integrity context!");
                 return;
@@ -140,7 +140,7 @@ namespace Commander.Commands.Composite
             }
 
             if (options.inject)
-                commander.WriteInfo($"Due to AV evasion, agent can take a couple of minutes to check-in...");
+                commander.WriteInfo($"Due to AV evasion, agent can take a couple of minutes to check-in...");*/
         }
     }
 }

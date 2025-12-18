@@ -55,7 +55,7 @@ namespace Commander.Commands.Composite
 
         protected override void Run(ScriptingAgent<ElevateCommandOptions> agent, ScriptingCommander<ElevateCommandOptions> commander, ScriptingTeamServer<ElevateCommandOptions> teamServer, ElevateCommandOptions options, CommanderConfig config)
         {
-            var endpoint = ConnexionUrl.FromString($"pipe://127.0.0.1:{options.pipe}");
+            /*var endpoint = ConnexionUrl.FromString($"pipe://127.0.0.1:{options.pipe}");
             var payloadOptions = new ImplantConfig()
             {
                 Architecture =  options.x86 ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
@@ -126,7 +126,7 @@ namespace Commander.Commands.Composite
             agent.Link(targetEndPoint);
             agent.Delay(2);
             agent.Echo($"[*] Execution done!");
-            agent.Echo(Environment.NewLine);
+            agent.Echo(Environment.NewLine);*/
         }
     }
 }
