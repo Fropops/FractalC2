@@ -5,15 +5,14 @@
 # Web Commander
 
 # Commander 
-* Big rework
-Le projet TeamServer (l'api) a pas mal évolué (tu peux te baser sur le swagger à http://localhost:5000/swagger/index.html), notamment la génération des implant a été déporté côté API. Il faudrait retravailler le projet Commander pour que cela foncitonne correctement.
-Voici la liste des tâches : 
-- Implémenter le système de cache pour les implants.
-- Adapter l'ApiCommunication pour prendre en compte les changements de l'API
-- Implémenter les commandes pour les implants : Navigation, génération
-- Adapter les commandes existantes qui généraient des implants pour qu'ils passent par l'api pour ls générer.
-- Ajouter une verbCommand permettant de gérer les loots (show, upload, download)
+Check loot command
+Command OS support
+Commands Category
+tools?
+webhost?
+Scripts implants?
 
-Prépare un plan d'implémentation et suit le pour réaliser les modifications.
+PsExec & WinRm => Execution?
 
 # Install
+Commander Ok?

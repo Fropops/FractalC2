@@ -18,6 +18,7 @@ namespace Commander.Commands.Agent.EndPoint
     public class MakeDirCommand : EndPointCommand<MakeDirCommandOptions>
     {
         public override string Description => "Create a folder on the agent.";
+        public override string Category => CommandCategory.System;
         public override string Name => "mkdir";
 
         public override CommandId CommandId => CommandId.MkDir;

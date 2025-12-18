@@ -18,7 +18,7 @@ using Common.APIModels.WebHost;
 using Common.Models;
 using Commander.Helper;
 
-namespace Commander.Commands.Network
+namespace Commander.Commands.Core
 {
     public class WebHostCommandOptions : EndPointVerbAwareCommandOptions
     {
@@ -32,7 +32,7 @@ namespace Commander.Commands.Network
 
     public class WebHostCommand : EndPointVerbAwareCommand<WebHostCommandOptions>
     {
-        public override string Category => CommandCategory.Network;
+        public override string Category => CommandCategory.Commander;
         public override string Description => "WebHost file on the TeamServer";
         public override string Name => "host";
 

@@ -26,8 +26,8 @@ namespace Commander.Commands.Core
             cmds.AddRange(context.Executor.GetCommandsInMode(ExecutorMode.All));
 
             context.Terminal.WriteLine("Available commands :");
-            bool first = true;
-            foreach (var cat in CommandCategory.All)
+
+            foreach (var cat in cmds.Select(c => c.Category).Distinct().OrderBy(cat => cat))
             {
                 var table = new Table();
                 table.Border(TableBorder.Rounded);
@@ -36,12 +36,7 @@ namespace Commander.Commands.Core
                 table.AddColumn(new TableColumn("Description").LeftAligned());
 
                 var tmpCmds = cmds.Where(c => c.Category == cat);
-                if (!tmpCmds.Any())
-                    continue;
-                /*if (first)
-                    first = false;
-                else
-                    context.Terminal.WriteLine();*/
+
                 context.Terminal.Write(new Rule(cat));
 
 

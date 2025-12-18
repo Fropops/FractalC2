@@ -15,6 +15,7 @@ namespace Commander.Commands.Agent.Execute
     public class InlineAssemblyAssemblyCommand : SimpleEndPointCommand
     {
         public override string Description => "Execute a dot net assembly in memory";
+        public override string Category => CommandCategory.Execution;
         public override string Name => "inline-assembly";
 
         public override CommandId CommandId => CommandId.Assembly;

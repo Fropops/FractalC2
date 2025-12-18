@@ -19,6 +19,7 @@ namespace Commander.Commands.Agent.EndPoint
     public class PowershellImportCommand : EndPointCommand<PowershellImportCommandOptions>
     {
         public override string Description => "Import a script to be executed whil using powershell commands";
+        public override string Category => CommandCategory.Execution;
         public override string Name => "powershell-import";
 
         public override CommandId CommandId => CommandId.PowershellImport;

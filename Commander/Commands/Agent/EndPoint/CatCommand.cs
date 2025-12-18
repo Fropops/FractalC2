@@ -18,6 +18,7 @@ namespace Commander.Commands.Agent.EndPoint
     public class CatCommand : EndPointCommand<CatCommandOptions>
     {
         public override string Description => "Display the content of a file.";
+        public override string Category => CommandCategory.System;
         public override string Name => "cat";
 
         public override CommandId CommandId => CommandId.Cat;

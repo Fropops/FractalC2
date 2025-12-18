@@ -18,6 +18,7 @@ namespace Commander.Commands.Agent.EndPoint
     public class DelCommand : EndPointCommand<DelCommandOptions>
     {
         public override string Description => "Delete a file on the agent.";
+        public override string Category => CommandCategory.System;
         public override string Name => "del";
 
         public override CommandId CommandId => CommandId.Del;

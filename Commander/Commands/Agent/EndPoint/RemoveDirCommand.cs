@@ -18,6 +18,7 @@ namespace Commander.Commands.Agent.EndPoint
     public class RemoveDirCommand : EndPointCommand<RemoveDirCommandOptions>
     {
         public override string Description => "Delete a folder on the agent.";
+        public override string Category => CommandCategory.System;
         public override string Name => "rmdir";
 
         public override CommandId CommandId => CommandId.RmDir;

@@ -20,7 +20,7 @@ namespace Commander.Commands.Agent
 
     public class LootCommand : EnhancedCommand<LootCommandOptions>
     {
-        public override string Category => CommandCategory.Core;
+        public override string Category => CommandCategory.Agent;
         public override string Description => "Manage Loot";
         public override string Name => "loot";
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;

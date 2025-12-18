@@ -16,7 +16,7 @@ namespace Commander.Commands.Agent
 {
     public abstract class EndPointCommand<T> : EnhancedCommand<T>
     {
-        public override string Category => CommandCategory.Core;
+        public override string Category => CommandCategory.Agent;
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
         public override RootCommand Command => new RootCommand(this.Description);
 

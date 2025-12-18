@@ -11,7 +11,7 @@ namespace Commander.Commands.Agent.EndPoint
     }
     public class LinkCommand : EndPointVerbAwareCommand<LinkCommandOptions>
     {
-        public override string Category => CommandCategory.Core;
+        public override string Category => CommandCategory.Agent;
         public override string Description => "Link to another Agent";
         public override string Name => "link";
 

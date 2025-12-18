@@ -12,7 +12,8 @@ namespace Commander.Commands.Agent.EndPoint
     public class CheckinCommand : EndPointCommand
     {
         public override string Description => "Force agent to update its metadata.";
-        public override string Name => "checkin";
+        public override string Category => CommandCategory.Agent;
         public override CommandId CommandId => CommandId.CheckIn;
+        public override string Name => "checkin";
     }
 }

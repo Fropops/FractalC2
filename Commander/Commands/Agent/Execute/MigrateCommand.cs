@@ -30,7 +30,7 @@ namespace Commander.Commands.Laucher
     }
     public class MigrateCommand : EnhancedCommand<MigrateCommandOptions>
     {
-        public override string Category => CommandCategory.Commander;
+        public override string Category => CommandCategory.Execution;
         public override string Description => "Migrate the current agent to another process";
         public override string Name => "migrate";
 

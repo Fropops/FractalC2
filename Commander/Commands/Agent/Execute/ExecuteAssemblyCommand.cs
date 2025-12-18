@@ -14,7 +14,7 @@ namespace Commander.Commands.Agent.Execute
     public class ExecuteAssemblyCommand : SimpleEndPointCommand
     {
         public override string Description => "Execute a dot net assembly in memory with Fork And Run mechanism";
-        public override string Name => "execute-assembly";
+        public override string Category => CommandCategory.Execution;
 
         public override CommandId CommandId => CommandId.ForkAndRun;
 

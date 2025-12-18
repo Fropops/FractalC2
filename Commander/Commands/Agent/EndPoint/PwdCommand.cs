@@ -12,6 +12,7 @@ namespace Commander.Commands.Agent.EndPoint
     public class PwdCommand : EndPointCommand
     {
         public override string Description => "Display the current working directory.";
+        public override string Category => CommandCategory.System;
         public override string Name => "pwd";
         public override CommandId CommandId => CommandId.Pwd;
     }

@@ -10,7 +10,7 @@ namespace Commander.Commands.Agent.EndPoint
 {
     public abstract class SimpleEndPointCommand : ExecutorCommand
     {
-        public override string Category => CommandCategory.Core;
+        public override string Category => CommandCategory.Agent;
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
         public abstract CommandId CommandId { get; }
         protected override void InnerExecute(CommandContext context)

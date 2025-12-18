@@ -14,6 +14,7 @@ namespace Commander.Commands.Agent.EndPoint
     public class ShellCommand : SimpleEndPointCommand
     {
         public override string Name => "shell";
+        public override string Category => CommandCategory.Execution;
         public override string Description => "Send a command to be executed by the agent";
         public override CommandId CommandId => CommandId.Shell;
 

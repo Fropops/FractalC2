@@ -18,9 +18,11 @@ namespace Commander.Commands.Agent.EndPoint
         public string password { get; set; }
         public string target { get; set; }
     }
+
     public class WinRMCommand : EndPointCommand<WinRMCommandOptions>
     {
         public override string Description => "Send a command to be executed with winrm to the target";
+        public override string Category => CommandCategory.LateralMovement;
         public override string Name => "winrm";
 
         public override CommandId CommandId => CommandId.Winrm;

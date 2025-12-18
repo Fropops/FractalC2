@@ -15,6 +15,7 @@ namespace Commander.Commands.Agent.EndPoint
     public class PSCommand : EndPointCommand<PSCommandOptions>
     {
         public override string Description => "Change the current working directopy.";
+        public override string Category => CommandCategory.System;
         public override string Name => "ps";
 
         public override CommandId CommandId => CommandId.ListProcess;

@@ -10,7 +10,7 @@ namespace Commander.Commands.Agent.EndPoint
     }
     public class KeyLogCommand : EndPointVerbAwareCommand<KeyLogCommandOptions>
     {
-        public override string Category => CommandCategory.Core;
+        public override string Category => CommandCategory.Agent;
         public override string Description => "Log keys on the agent";
         public override string Name => "keylog";
 

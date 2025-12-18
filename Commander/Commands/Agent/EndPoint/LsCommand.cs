@@ -18,6 +18,7 @@ namespace Commander.Commands.Agent.EndPoint
     public class LsCommandOptions : EndPointCommand<AgentLsCommandOptions>
     {
         public override string Description => "Change the current working directopy.";
+        public override string Category => CommandCategory.System;
         public override string Name => "ls";
 
         public override CommandId CommandId => CommandId.Ls;

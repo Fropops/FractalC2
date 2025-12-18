@@ -13,7 +13,7 @@ namespace Commander.Commands.Agent.EndPoint
     }
     public class RegCommand : EndPointVerbAwareCommand<RegCommandOptions>
     {
-        public override string Category => CommandCategory.Core;
+        public override string Category => CommandCategory.Agent;
         public override string Description => "Manage registrykeys on the agent";
         public override string Name => "reg";
 

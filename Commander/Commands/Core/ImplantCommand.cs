@@ -12,7 +12,7 @@ using Shared;
 using Spectre.Console;
 using Common;
 
-namespace Commander.Commands
+namespace Commander.Commands.Core
 {
     public class ImplantCommandOptions
     {

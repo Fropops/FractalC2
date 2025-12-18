@@ -15,7 +15,7 @@ namespace Commander.Commands.Agent.Execute
     public class ExecutePECommand : SimpleEndPointCommand
     {
         public override string Description => "Execute a PE assembly with Fork And Run mechanism";
-        public override string Name => "execute-pe";
+        public override string Category => CommandCategory.Execution;
 
         public override CommandId CommandId => CommandId.ForkAndRun;
 

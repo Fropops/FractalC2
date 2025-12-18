@@ -12,7 +12,8 @@ namespace Commander.Commands.Agent.EndPoint
     public class ExitCommand : EndPointCommand
     {
         public override string Description => "Ask an agent to exit.";
-        public override string Name => "destroy";
+        public override string Category => CommandCategory.Agent;
         public override CommandId CommandId => CommandId.Exit;
+        public override string Name => "destroy";
     }
 }

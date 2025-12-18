@@ -18,6 +18,7 @@ namespace Commander.Commands.Agent.EndPoint
     public class CdCommand : EndPointCommand<AgentCdCommandOptions>
     {
         public override string Description => "List the content of the directory directopy.";
+        public override string Category => CommandCategory.System;
         public override string Name => "cd";
 
         public override CommandId CommandId => CommandId.Cd;

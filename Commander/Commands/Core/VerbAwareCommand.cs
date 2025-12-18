@@ -7,7 +7,7 @@ using Commander.Commands.Agent;
 using Commander.Executor;
 using Shared;
 
-namespace Commander.Commands
+namespace Commander.Commands.Core
 {
     public class VerbAwareCommandOptions
     {

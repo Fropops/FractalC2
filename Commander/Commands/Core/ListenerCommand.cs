@@ -14,7 +14,7 @@ using System.CommandLine;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Commander.Commands.Network
+namespace Commander.Commands.Core
 {
     public class ListenerCommandOptions : VerbAwareCommandOptions
     {
@@ -26,7 +26,7 @@ namespace Commander.Commands.Network
 
     public class ListenerCommand : VerbAwareCommand<ListenerCommandOptions>
     {
-        public override string Category => CommandCategory.Network;
+        public override string Category => CommandCategory.Commander;
         public override string Description => "Manage listeners";
         public override string Name => "listener";
 

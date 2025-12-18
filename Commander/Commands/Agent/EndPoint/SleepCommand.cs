@@ -22,6 +22,7 @@ namespace Commander.Commands.Agent.EndPoint
     public class SleepCommand : EndPointCommand<SleepCommandOptions>
     {
         public override string Description => "Display or Change agent response time";
+        public override string Category => CommandCategory.Agent;
         public override string Name => "sleep";
 
         public override CommandId CommandId => CommandId.Sleep;

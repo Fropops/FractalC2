@@ -17,6 +17,7 @@ namespace Commander.Commands.Agent
     public class JobCommand : EndPointVerbAwareCommand<JobCommandOptions>
     {
         public override string Description => "Manage Jobs";
+        public override string Category => CommandCategory.Agent;
         public override string Name => "job";
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
         public override CommandId CommandId => CommandId.Job;
