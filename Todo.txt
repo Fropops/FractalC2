@@ -3,17 +3,15 @@
 * BOF Loader .Net
 
 # Commanders
-Commands to rework
+Commands To rework
+ScriptCommands
 
 # Web Commander
 
 # Commander 
 View as loot?
-Command OS support
-Commands Category
 tools?
 webhost?
-Scripts implants?
 
 # Install
 Commander Ok?

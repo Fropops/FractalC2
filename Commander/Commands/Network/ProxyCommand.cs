@@ -27,6 +27,7 @@ namespace Commander.Commands.Network
         public override string Name => "proxy";
 
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows, Shared.OsType.Linux };
         public override CommandId CommandId => CommandId.Proxy;
 
         public override RootCommand Command => new RootCommand(Description)

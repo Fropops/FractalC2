@@ -13,7 +13,7 @@ namespace Commander.Commands.Agent.EndPoint
         public override string Category => CommandCategory.Agent;
         public override string Description => "Log keys on the agent";
         public override string Name => "keylog";
-
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
         public override CommandId CommandId => CommandId.KeyLog;
 
         public override RootCommand Command => new RootCommand(this.Description)

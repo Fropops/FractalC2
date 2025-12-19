@@ -18,6 +18,8 @@ namespace Commander.Commands.Agent.EndPoint
         public override string Description => "Run an executable, capturing output";
         public override CommandId CommandId => CommandId.Run;
 
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
+
         protected override void SpecifyParameters(CommandContext context)
         {
             context.AddParameter(ParameterId.Command, context.CommandParameters.BinarySerializeAsync().Result);

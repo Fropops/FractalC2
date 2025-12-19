@@ -21,7 +21,7 @@ namespace Commander.Commands.Agent.EndPoint
         public override string Description => "Send a path to be run as remote service";
         public override string Category => CommandCategory.LateralMovement;
         public override string Name => "psexec";
-
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
         public override CommandId CommandId => CommandId.PsExec;
 
         public override RootCommand Command => new RootCommand(this.Description)

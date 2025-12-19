@@ -40,6 +40,8 @@ namespace Commander.Commands.Composite
         public override string Name => "get-system";
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
 
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
+
         public override RootCommand Command => new RootCommand(this.Description)
         {
              new Option(new[] { "--verbose", "-v" }, "Show details of the command execution."),

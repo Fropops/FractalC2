@@ -40,6 +40,8 @@ namespace Commander.Commands.Agent.LateralMovement
         public override string Category => CommandCategory.ToRework;
         public override string Description => "Obtain system agent using Services";
         public override string Name => "jump-psexec";
+
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
 
         public override RootCommand Command => new RootCommand(Description)

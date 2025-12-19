@@ -24,7 +24,7 @@ namespace Commander.Commands.Agent.EndPoint
         public override string Description => "Send a command to be executed with winrm to the target";
         public override string Category => CommandCategory.LateralMovement;
         public override string Name => "winrm";
-
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
         public override CommandId CommandId => CommandId.Winrm;
 
         public override RootCommand Command => new RootCommand(this.Description)

@@ -15,5 +15,6 @@ namespace Commander.Commands.Agent.EndPoint
         public override string Name => "capture";
         public override CommandId CommandId => CommandId.Capture;
         public override string Category => CommandCategory.Media;
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
     }
 }

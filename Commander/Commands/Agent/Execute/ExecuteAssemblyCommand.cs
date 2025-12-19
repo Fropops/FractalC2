@@ -16,6 +16,7 @@ namespace Commander.Commands.Agent.Execute
         public override string Description => "Execute a dot net assembly in memory with Fork And Run mechanism";
         public override string Category => CommandCategory.Execution;
         public override string Name => "execute-assembly";
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
         public override CommandId CommandId => CommandId.ForkAndRun;
 
         protected override async void InnerExecute(CommandContext context)

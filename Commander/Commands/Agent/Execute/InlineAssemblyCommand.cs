@@ -17,7 +17,7 @@ namespace Commander.Commands.Agent.Execute
         public override string Description => "Execute a dot net assembly in memory";
         public override string Category => CommandCategory.Execution;
         public override string Name => "inline-assembly";
-
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
         public override CommandId CommandId => CommandId.Assembly;
 
         protected override void SpecifyParameters(CommandContext context)

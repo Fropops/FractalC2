@@ -35,6 +35,7 @@ namespace Commander.Commands.Laucher
         public override string Name => "migrate";
 
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
 
         public override RootCommand Command => new RootCommand(this.Description)
         {

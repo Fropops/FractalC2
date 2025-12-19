@@ -17,6 +17,7 @@ namespace Commander.Commands.Agent.EndPoint
         public override string Category => CommandCategory.Execution;
         public override string Description => "Send a command to be executed by the agent powershell";
         public override string[] Alternate { get => new string[1] { "powerpick" }; }
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
         public override CommandId CommandId => CommandId.Powershell;
 
         protected override bool CheckParams(CommandContext context)

@@ -37,6 +37,7 @@ namespace Commander.Commands
         public override string Category => CommandCategory.ToRework;
         public override string Description => "Using winrm to jump to the target machine";
         public override string Name => "jump-winrm";
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
 
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
 

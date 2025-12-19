@@ -21,7 +21,7 @@ namespace Commander.Commands.Agent.EndPoint
         public override string Description => "Import a script to be executed whil using powershell commands";
         public override string Category => CommandCategory.Execution;
         public override string Name => "powershell-import";
-
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
         public override CommandId CommandId => CommandId.PowershellImport;
 
         public override RootCommand Command => new RootCommand(this.Description)

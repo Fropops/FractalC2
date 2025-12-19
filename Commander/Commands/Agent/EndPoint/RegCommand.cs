@@ -17,6 +17,7 @@ namespace Commander.Commands.Agent.EndPoint
         public override string Description => "Manage registrykeys on the agent";
         public override string Name => "reg";
 
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
         public override CommandId CommandId => CommandId.Reg;
 
         public override RootCommand Command => new RootCommand(this.Description)

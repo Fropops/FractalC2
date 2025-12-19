@@ -20,6 +20,7 @@ namespace Commander.Commands.Agent
         public override string Category => CommandCategory.Agent;
         public override string Name => "job";
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
         public override CommandId CommandId => CommandId.Job;
         public override RootCommand Command => new RootCommand(Description)
         {

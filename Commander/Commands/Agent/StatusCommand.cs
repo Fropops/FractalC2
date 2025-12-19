@@ -46,6 +46,9 @@ namespace Commander.Commands.Agent
             table.AddColumn(new TableColumn("Value").LeftAligned());
             table.HideHeaders();
 
+            string arch = agent.Metadata?.Architecture ?? "Unknown Arch";
+            arch += " - " + agent.Metadata?.OsType ?? "Unknown Os";
+
             table.AddRow("Id", agent.Id ?? string.Empty);
             table.AddRow("Implant", agent.Metadata?.ImplantId ?? string.Empty);
             table.AddRow("Hostname", agent.Metadata?.Hostname ?? string.Empty);
@@ -53,7 +56,7 @@ namespace Commander.Commands.Agent
             table.AddRow("IP", StringHelper.IpAsString(agent.Metadata?.Address));
             table.AddRow("Process Id", agent.Metadata?.ProcessId.ToString() ?? string.Empty);
             table.AddRow("Process Name", agent.Metadata?.ProcessName ?? string.Empty);
-            table.AddRow("Architecture", agent.Metadata?.Architecture ?? string.Empty);
+            table.AddRow("Architecture", arch);
             table.AddRow("Integrity", agent.Metadata?.Integrity.ToString() ?? string.Empty);
             table.AddRow("EndPoint", agent.Metadata?.EndPoint ?? string.Empty);
             table.AddRow("Version", agent.Metadata?.Version ?? string.Empty);

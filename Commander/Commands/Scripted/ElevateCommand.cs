@@ -42,6 +42,8 @@ namespace Commander.Commands.Composite
 
         public override string Category => CommandCategory.ToRework;
 
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
+
         public override RootCommand Command => new RootCommand(this.Description)
         {
              new Option<string>(new[] { "--key", "-k" }, () => "c2s", "Name of the key to use"),

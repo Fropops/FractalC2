@@ -18,6 +18,8 @@ namespace Commander.Commands.Agent.EndPoint
         public override string Description => "Start an executable, without capturing output";
         public override CommandId CommandId => CommandId.Start;
 
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
+
         protected override void SpecifyParameters(CommandContext context)
         {
             context.AddParameter(ParameterId.Command, context.CommandParameters.BinarySerializeAsync().Result);
@@ -30,6 +32,8 @@ namespace Commander.Commands.Agent.EndPoint
         public override string Name => "startas";
         public override string Description => "Start an executable, without capturing output, as another user";
         public override CommandId CommandId => CommandId.StartAs;
+
+        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
 
         protected override bool CheckParams(CommandContext context)
         {

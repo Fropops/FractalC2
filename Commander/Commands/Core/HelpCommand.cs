@@ -40,6 +40,14 @@ namespace Commander.Commands.Core
 
                 var tmpCmds = cmds.Where(c => c.Category == cat);
 
+                if (mode == ExecutorMode.AgentInteraction && context.Executor.CurrentAgent != null && context.Executor.CurrentAgent.Metadata != null)
+                {
+                    tmpCmds = tmpCmds.Where(c => c.SupportedOs == null || !c.SupportedOs.Any() || c.SupportedOs.Contains(context.Executor.CurrentAgent.Metadata.OsType));
+                }
+
+                if (!tmpCmds.Any())
+                    continue;
+
                 context.Terminal.Write(new Rule(cat));
 
 

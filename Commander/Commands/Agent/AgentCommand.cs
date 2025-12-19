@@ -78,6 +78,9 @@ namespace Commander.Commands.Agent
                 if(activ == false)
                     activStr = "No";
 
+                string arch = agent.Metadata?.Architecture ?? "Unknown Arch";
+                arch += " - " + agent.Metadata?.OsType ?? "Unknown Os";
+
                 table.AddRow(
                         SurroundIfDeadOrSelf(agent, context, index.ToString()),
                         SurroundIfDeadOrSelf(agent, context, agent.Id),
@@ -88,7 +91,7 @@ namespace Commander.Commands.Agent
                         SurroundIfDeadOrSelf(agent, context, StringHelper.IpAsString(agent.Metadata?.Address)),
                         SurroundIfDeadOrSelf(agent, context, agent.Metadata?.Integrity.ToString()),
                         SurroundIfDeadOrSelf(agent, context, agent.Metadata?.ProcessName + " (" + agent.Metadata?.ProcessId + ")"),
-                        SurroundIfDeadOrSelf(agent, context, agent.Metadata?.Architecture),
+                        SurroundIfDeadOrSelf(agent, context, arch),
                         SurroundIfDeadOrSelf(agent, context, agent.Metadata?.EndPoint),
                         SurroundIfDeadOrSelf(agent, context, StringHelper.FormatElapsedTime(Math.Round(agent.LastSeenDelta.TotalSeconds, 2)))
                     );
