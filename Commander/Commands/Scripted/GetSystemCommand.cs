@@ -35,6 +35,7 @@ namespace Commander.Commands.Composite
     }
     public class GetSystemCommand : ScriptCommand<GetSystemCommandOptions>
     {
+        public override string Category => CommandCategory.ToRework;
         public override string Description => "Obtain system agent using Services";
         public override string Name => "get-system";
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;

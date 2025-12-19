@@ -13,6 +13,7 @@ namespace Commander.Commands.Agent.EndPoint
 {
     public class RunCommand : SimpleEndPointCommand
     {
+        public override string Category => CommandCategory.ToRework;
         public override string Name => "run";
         public override string Description => "Run an executable, capturing output";
         public override CommandId CommandId => CommandId.Run;

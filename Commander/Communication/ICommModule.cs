@@ -66,6 +66,9 @@ namespace Commander.Communication
         // Loot
         Task<List<Loot>> GetLoot(string agentId);
         Task<Loot> GetLootFile(string agentId, string fileName);
+
+        Task<bool> CreateLootAsync(string agentId, Loot loot);
+       
         Task DeleteLoot(string agentId, string fileName);
 
         event EventHandler<Implant> ImplantAdded;

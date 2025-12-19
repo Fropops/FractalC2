@@ -13,6 +13,7 @@ namespace Commander.Commands.Agent.EndPoint
 {
     public class StartCommand : SimpleEndPointCommand
     {
+        public override string Category => CommandCategory.ToRework;
         public override string Name => "start";
         public override string Description => "Start an executable, without capturing output";
         public override CommandId CommandId => CommandId.Start;
@@ -25,6 +26,7 @@ namespace Commander.Commands.Agent.EndPoint
 
     public class StartAsCommand : SimpleEndPointCommand
     {
+        public override string Category => CommandCategory.ToRework;
         public override string Name => "startas";
         public override string Description => "Start an executable, without capturing output, as another user";
         public override CommandId CommandId => CommandId.StartAs;

@@ -37,7 +37,7 @@ namespace Commander.Commands.Agent.LateralMovement
     }
     public class JumpPsExecCommand : ScriptCommand<JumpPsExecCommandOptions>
     {
-        public override string Category => CommandCategory.LateralMovement;
+        public override string Category => CommandCategory.ToRework;
         public override string Description => "Obtain system agent using Services";
         public override string Name => "jump-psexec";
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;

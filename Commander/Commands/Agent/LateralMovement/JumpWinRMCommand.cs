@@ -34,7 +34,7 @@ namespace Commander.Commands
     internal class JumpWinRMCommand : EndPointCommand<JumpWinRMCommandOptions>
     {
         public override CommandId CommandId => CommandId.Winrm;
-        public override string Category => CommandCategory.LateralMovement;
+        public override string Category => CommandCategory.ToRework;
         public override string Description => "Using winrm to jump to the target machine";
         public override string Name => "jump-winrm";
 

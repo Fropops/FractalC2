@@ -40,6 +40,8 @@ namespace Commander.Commands.Composite
         public override string Name => "elevate";
         public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
 
+        public override string Category => CommandCategory.ToRework;
+
         public override RootCommand Command => new RootCommand(this.Description)
         {
              new Option<string>(new[] { "--key", "-k" }, () => "c2s", "Name of the key to use"),

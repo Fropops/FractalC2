@@ -2,18 +2,18 @@
 * RunAsLoggedOn https://github.com/antonioCoco/RunasCs/blob/master/RunasCs.cs
 * BOF Loader .Net
 
+# Commanders
+Commands to rework
+
 # Web Commander
 
 # Commander 
-Check loot command
+View as loot?
 Command OS support
 Commands Category
 tools?
 webhost?
 Scripts implants?
-
-PsExec & WinRm => Execution?
-rework category
 
 # Install
 Commander Ok?

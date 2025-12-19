@@ -5,22 +5,23 @@ using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using BinarySerializer;
 using Commander.Models;
 using Commander.Terminal;
+using Common;
+using Common.APIModels;
+using Common.APIModels.WebHost;
+using Common.Models;
+using Common.Payload;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
-using Spectre.Console;
 using Shared;
-using Common.Models;
-using Common.APIModels;
-using BinarySerializer;
-using Common;
-using Common.APIModels.WebHost;
-using Common.Payload;
+using Spectre.Console;
 
 namespace Commander.Communication
 {
@@ -753,7 +754,13 @@ namespace Commander.Communication
             var json = await response.Content.ReadAsStringAsync();
             return JsonConvert.DeserializeObject<Loot>(json);
         }
-        
+
+        public async Task<bool> CreateLootAsync(string agentId, Loot loot)
+        {
+            var response = await _client.PostAsJsonAsync($"/loot/{agentId}/add", loot);
+            return response.IsSuccessStatusCode;
+        }
+
         public async Task DeleteLoot(string agentId, string fileName)
         {
             var response = await _client.DeleteAsync($"/loot/{agentId}/{fileName}");

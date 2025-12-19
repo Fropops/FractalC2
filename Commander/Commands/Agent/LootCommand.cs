@@ -1,24 +1,26 @@
-using Commander.Executor;
+using System;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Threading.Tasks;
-using Common.APIModels;
-using System.Linq;
-using System;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Commander.Commands.Core;
+using Commander.Executor;
 using Commander.Models;
-using System.Collections.Generic;
+using Common.APIModels;
+using Shared;
 using Spectre.Console;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Commander.Commands.Agent
 {
-    public class LootCommandOptions
+    public class LootCommandOptions : VerbAwareCommandOptions
     {
-        public string action { get; set; } // show, download, upload
         public string target { get; set; } // fileName or filePath
     }
 
-    public class LootCommand : EnhancedCommand<LootCommandOptions>
+    public class LootCommand : VerbAwareCommand<LootCommandOptions>
     {
         public override string Category => CommandCategory.Agent;
         public override string Description => "Manage Loot";
@@ -30,34 +32,29 @@ namespace Commander.Commands.Agent
             get
             {
                 var root = new RootCommand(Description);
-                root.AddArgument(new Argument<string>("action", () => "show", "show, download, upload").FromAmong("show", "download", "upload"));
+                root.AddArgument(new Argument<string>("verb", () => "show", "show, download, upload, delete").FromAmong("show", "download", "upload", "delete"));
                 root.AddArgument(new Argument<string>("target", () => null, "File Name (download) or File Path (upload)")); // Optional for show
 
                 return root;
             }
         }
 
-        protected override async Task<bool> HandleCommand(CommandContext<LootCommandOptions> context)
+        protected override void RegisterVerbs()
         {
-            switch (context.Options.action.ToLower())
-            {
-                case "show":
-                    return await this.ShowLoot(context);
-                case "download":
-                    return await this.DownloadLoot(context);
-                case "upload":
-                    return await this.UploadLoot(context);
-                default:
-                    context.Terminal.WriteError($"Unknown action: {context.Options.action}");
-                    return false;
-            }
+            base.RegisterVerbs();
+            this.Register("show", this.Show);
+            this.Register("uplaod", this.Upload);
+            this.Register("download", this.Download);
+            this.Register("delete", this.Delete);
         }
 
-        private async Task<bool> ShowLoot(CommandContext<LootCommandOptions> context)
+      
+
+        private async Task<bool> Show(CommandContext<LootCommandOptions> context)
         {
             var agentId = context.Executor.CurrentAgent.Id;
             // target ignored
-            
+
             if (string.IsNullOrEmpty(agentId))
             {
                 context.Terminal.WriteError("Agent ID is required.");
@@ -76,11 +73,10 @@ namespace Commander.Commands.Agent
                 var table = new Spectre.Console.Table();
                 table.AddColumn(new TableColumn("File Name"));
                 table.AddColumn(new TableColumn("Is Image"));
-                table.AddColumn(new TableColumn("Has Data"));
 
                 foreach (var item in lootList)
                 {
-                    table.AddRow(item.FileName ?? "", item.IsImage.ToString(), string.IsNullOrEmpty(item.Data) ? "No" : "Yes");
+                    table.AddRow(item.FileName ?? "", item.IsImage.ToString());
                 }
 
                 context.Terminal.Write(table);
@@ -92,14 +88,14 @@ namespace Commander.Commands.Agent
             return true;
         }
 
-        private async Task<bool> DownloadLoot(CommandContext<LootCommandOptions> context)
+        private async Task<bool> Download(CommandContext<LootCommandOptions> context)
         {
             var agentId = context.Executor.CurrentAgent.Id;
             var fileName = context.Options.target;
 
-            if (string.IsNullOrEmpty(agentId) || string.IsNullOrEmpty(fileName))
+            if (string.IsNullOrEmpty(fileName))
             {
-                context.Terminal.WriteError("Agent ID and File Name are required.");
+                context.Terminal.WriteError("File Name is required.");
                 return false;
             }
 
@@ -108,10 +104,10 @@ namespace Commander.Commands.Agent
                 var loot = await context.CommModule.GetLootFile(agentId, fileName);
                 if (loot == null || string.IsNullOrEmpty(loot.Data))
                 {
-                     context.Terminal.WriteError("Loot data not found.");
-                     return false;
+                    context.Terminal.WriteError("Loot data not found.");
+                    return false;
                 }
-                
+
                 var data = Convert.FromBase64String(loot.Data);
                 var outPath = Path.Combine(Environment.CurrentDirectory, "Loot", agentId, fileName);
                 var dir = Path.GetDirectoryName(outPath);
@@ -123,23 +119,85 @@ namespace Commander.Commands.Agent
             }
             catch (Exception ex)
             {
-                 context.Terminal.WriteError($"Error downloading loot: {ex.Message}");
+                context.Terminal.WriteError($"Error downloading loot: {ex.Message}");
             }
 
             return true;
         }
 
-         private async Task<bool> UploadLoot(CommandContext<LootCommandOptions> context)
+        private async Task<bool> Upload(CommandContext<LootCommandOptions> context)
         {
             var agentId = context.Executor.CurrentAgent.Id;
             var filePath = context.Options.target;
-             if (string.IsNullOrEmpty(agentId) || string.IsNullOrEmpty(filePath))
+            if (string.IsNullOrEmpty(filePath))
             {
-                context.Terminal.WriteError("Agent ID and File Path are required.");
+                context.Terminal.WriteError("File Path is required.");
                 return false;
             }
-            context.Terminal.WriteInfo("Upload feature pending API verification.");
+
+            if (!File.Exists(filePath))
+            {
+                context.Terminal.WriteError("File not found.");
+                return false;
+            }
+
+            var fileName = Path.GetFileName(filePath);
+            try
+            {
+                var data = File.ReadAllBytes(filePath);
+                var loot = new Loot()
+                {
+                    AgentId = agentId,
+                    Data = Convert.ToBase64String(data),
+                    FileName = fileName,
+                    IsImage = IsImageFile(fileName)
+                };
+                await context.CommModule.CreateLootAsync(agentId, loot);
+                context.Terminal.WriteSuccess($"Loot {fileName} uploaded !");
+            }
+            catch (Exception ex)
+            {
+                context.Terminal.WriteError($"Error uploading loot: {ex.Message}");
+            }
+
             return true;
+
+        }
+
+        private async Task<bool> Delete(CommandContext<LootCommandOptions> context)
+        {
+            var agentId = context.Executor.CurrentAgent.Id;
+            var fileName = context.Options.target;
+            if (string.IsNullOrEmpty(fileName))
+            {
+                context.Terminal.WriteError("File Name is required.");
+                return false;
+            }
+
+            if (!File.Exists(fileName))
+            {
+                context.Terminal.WriteError("File not found.");
+                return false;
+            }
+
+            try
+            {
+                await context.CommModule.DeleteLoot(agentId, fileName);
+                context.Terminal.WriteSuccess($"Loot {fileName} deleted !");
+            }
+            catch (Exception ex)
+            {
+                context.Terminal.WriteError($"Error deleting loot: {ex.Message}");
+            }
+
+            return true;
+
+        }
+
+        private bool IsImageFile(string fileName)
+        {
+            var ext = Path.GetExtension(fileName).ToLower();
+            return new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" }.Contains(ext);
         }
 
     }
