@@ -32,15 +32,10 @@ namespace Commander.Commands.Agent.Execute
 
             var exePath = args[0];
 
-            if (!File.Exists(exePath))
-            {
-                context.Terminal.WriteError($"File {exePath} not found");
-                return;
-            }
-
             var prms = context.CommandParameters.ExtractAfterParam(0).Trim();
          
             context.AddParameter(ParameterId.Name, Path.GetFileName(exePath));
+            context.AddParameter(ParameterId.Parameters, prms);
             context.AddParameter(ParameterId.Output, true);
 
             base.CallEndPointCommand(context);

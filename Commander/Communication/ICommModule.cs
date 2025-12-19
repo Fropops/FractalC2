@@ -71,6 +71,10 @@ namespace Commander.Communication
        
         Task DeleteLoot(string agentId, string fileName);
 
+        // Tools
+        Task<List<Tool>> GetTools(ToolType? type = null, string name = null);
+        Task AddTool(string path);
+
         event EventHandler<Implant> ImplantAdded;
     }
 }

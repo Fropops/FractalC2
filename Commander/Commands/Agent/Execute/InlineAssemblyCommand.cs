@@ -27,17 +27,8 @@ namespace Commander.Commands.Agent.Execute
             var exePath = args[0];
 
             var binParams = context.CommandParameters.Substring(exePath.Length);
-            
-            byte[] fileBytes = null;
 
-            using (FileStream fs = File.OpenRead(exePath))
-            {
-                fileBytes = new byte[fs.Length];
-                fs.Read(fileBytes, 0, (int)fs.Length);
-            }
-    
-            context.AddParameter(ParameterId.File, fileBytes);
-            context.AddParameter(ParameterId.Name, Path.GetFileName(exePath));
+            context.AddParameter(ParameterId.Name, exePath);
             context.AddParameter(ParameterId.Parameters, binParams);
             context.AddParameter(ParameterId.Output, true);
         }
@@ -48,14 +39,6 @@ namespace Commander.Commands.Agent.Execute
             if (args.Length == 0)
             {
                 context.Terminal.WriteLine($"Usage : {this.Name} AssemblyPathPath [Arguments]");
-                return false;
-            }
-
-            var exePath = args[0];
-
-            if (!File.Exists(exePath))
-            {
-                context.Terminal.WriteError($"File {exePath} not found");
                 return false;
             }
 

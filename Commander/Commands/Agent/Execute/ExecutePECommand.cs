@@ -33,12 +33,6 @@ namespace Commander.Commands.Agent.Execute
 
             var exePath = args[0];
 
-            if (!File.Exists(exePath))
-            {
-                context.Terminal.WriteError($"File {exePath} not found");
-                return;
-            }
-
             var prms = context.CommandParameters.ExtractAfterParam(0);
 
             if (string.IsNullOrEmpty(prms))
@@ -47,6 +41,7 @@ namespace Commander.Commands.Agent.Execute
                 context.Terminal.WriteLine($"Generating payload with params {prms}...");
 
             context.AddParameter(ParameterId.Name, Path.GetFileName(exePath));
+            context.AddParameter(ParameterId.Parameters, prms);
             context.AddParameter(ParameterId.Output, true);
 
             base.CallEndPointCommand(context);

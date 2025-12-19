@@ -34,6 +34,8 @@ namespace Commander.Commands.Core
         public override string Name => "implant";
         public override ExecutorMode AvaliableIn => ExecutorMode.All;
 
+        public override string[] Alternate => new string[] { "implants" };
+
         public override RootCommand Command
         {
             get

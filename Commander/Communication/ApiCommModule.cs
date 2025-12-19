@@ -768,5 +768,41 @@ namespace Commander.Communication
                 throw new Exception($"{response.StatusCode}");
         }
         #endregion
+        #region Tools
+        public async Task<List<Tool>> GetTools(ToolType? type = null, string name = null)
+        {
+            var query = new List<string>();
+            if (type.HasValue) query.Add($"type={(int)type.Value}");
+            if (!string.IsNullOrEmpty(name)) query.Add($"name={name}");
+            
+            var queryString = query.Any() ? "?" + string.Join("&", query) : string.Empty;
+
+            var response = await _client.GetAsync($"/Tools{queryString}");
+            if (!response.IsSuccessStatusCode)
+                throw new Exception($"{response.StatusCode}");
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<Tool>>(json);
+        }
+
+        public async Task AddTool(string path) 
+        {
+             if(!File.Exists(path))
+                 throw new FileNotFoundException("File not found", path);
+
+             var data = await File.ReadAllBytesAsync(path);
+             var tool = new Tool()
+             {
+                 Name = Path.GetFileName(path),
+                 Data = Convert.ToBase64String(data),
+             };
+             
+            var requestContent = JsonConvert.SerializeObject(tool);
+            var response = await _client.PostAsync("/Tools", new StringContent(requestContent, UnicodeEncoding.UTF8, "application/json"));
+             if (!response.IsSuccessStatusCode)
+                 throw new Exception($"{response.StatusCode} {await response.Content.ReadAsStringAsync()}");
+        }
+        #endregion
+
     }
 }

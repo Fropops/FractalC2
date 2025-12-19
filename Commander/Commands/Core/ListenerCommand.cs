@@ -30,6 +30,8 @@ namespace Commander.Commands.Core
         public override string Description => "Manage listeners";
         public override string Name => "listener";
 
+        public override string[] Alternate => new string[] { "listeners" };
+
         public override ExecutorMode AvaliableIn => ExecutorMode.All;
 
         public override RootCommand Command => new RootCommand(Description)
