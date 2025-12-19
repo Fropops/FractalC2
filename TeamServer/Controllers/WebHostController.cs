@@ -1,7 +1,10 @@
-﻿using Common.APIModels.WebHost;
-using Microsoft.AspNetCore.Mvc;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using Common.APIModels.WebHost;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using TeamServer.Helper;
 using TeamServer.Services;
 namespace TeamServer.Controllers
@@ -25,14 +28,37 @@ namespace TeamServer.Controllers
             _auditService = auditService;
         }
 
+        //[HttpPost]
+        //public IActionResult WebHost([FromBody] FileWebHost wb)
+        //{
+        //    try
+        //    {
+        //        //var outPath = this._fileService.GetWebHostPath(wb.FileName);
+        //        //System.IO.File.WriteAllBytes(outPath, wb.Data);
+        //        //Logger.Log($"WebHost push {wb.Path}");
+
+        //        this._webHostService.Add(wb.Path, wb);
+        //        this._auditService.Record(this.UserContext, $"Web hosting {wb.Path} - {wb.Description}");
+        //        return Ok();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return this.Problem(ex.ToString());
+        //    }
+        //}
+
         [HttpPost]
-        public IActionResult WebHost([FromBody] FileWebHost wb)
+        //public IActionResult WebHost([FromBody] FileWebHost wb) does not work from commander => don't understand why
+        public IActionResult WebHost()
         {
             try
             {
-                //var outPath = this._fileService.GetWebHostPath(wb.FileName);
-                //System.IO.File.WriteAllBytes(outPath, wb.Data);
-                //Logger.Log($"WebHost push {wb.Path}");
+                string body = string.Empty;
+                using (var reader = new StreamReader(this.Request.Body, Encoding.UTF8, leaveOpen: true))
+                {
+                    body =  reader.ReadToEndAsync().Result;
+                }
+                FileWebHost wb = JsonConvert.DeserializeObject<FileWebHost>(body);
 
                 this._webHostService.Add(wb.Path, wb);
                 this._auditService.Record(this.UserContext, $"Web hosting {wb.Path} - {wb.Description}");

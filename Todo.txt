@@ -10,8 +10,6 @@ ScriptCommands
 
 # Commander 
 View as loot?
-tools?
-webhost?
 
 # Install
 Commander Ok?

@@ -20,7 +20,7 @@ using Commander.Helper;
 
 namespace Commander.Commands.Core
 {
-    public class WebHostCommandOptions : EndPointVerbAwareCommandOptions
+    public class WebHostCommandOptions : VerbAwareCommandOptions
     {
         public string path { get; set; }
         public string file { get; set; }
@@ -30,7 +30,7 @@ namespace Commander.Commands.Core
         public string listener { get; set; }
     }
 
-    public class WebHostCommand : EndPointVerbAwareCommand<WebHostCommandOptions>
+    public class WebHostCommand : VerbAwareCommand<WebHostCommandOptions>
     {
         public override string Category => CommandCategory.Commander;
         public override string Description => "WebHost file on the TeamServer";
@@ -40,7 +40,7 @@ namespace Commander.Commands.Core
 
         public override RootCommand Command => new RootCommand(Description)
             {
-                new Argument<string>("verb", () => CommandVerbs.Show.Command()).FromAmong(CommandVerbs.Push.Command(), CommandVerbs.Remove.Command(), CommandVerbs.Show.Command(), CommandVerbs.Script.Command(), CommandVerbs.Log.Command(), CommandVerbs.Clear.Command()),
+                new Argument<string>("verb", () => CommandVerbs.Show.Command()).FromAmong("push", "delete", "show", "script", "log", "clear"),
 
                 new Option<string>(new[] { "--file", "-f" }, () => null, "Path of the local file to push (" + CommandVerbs.Push.Command() + ")"),
                 new Option<string>(new[] { "--path", "-p" }, () => null, "Hosting path (" + CommandVerbs.Push.Command() + "," + CommandVerbs.Show.Command() + ")"),
@@ -58,19 +58,13 @@ namespace Commander.Commands.Core
         {
 
             base.RegisterVerbs();
-            Register(CommandVerbs.Show, Show);
-            Register(CommandVerbs.Push, Push);
-            Register(CommandVerbs.Remove, Remove);
-            Register(CommandVerbs.Log, Log);
-            Register(CommandVerbs.Clear, Clear);
-            Register(CommandVerbs.Script, Show);
+            Register("show", Show);
+            Register("push", Push);
+            Register("remove", Remove);
+            Register("log", Log);
+            Register("clear", Clear);
+            Register("script", Show);
         }
-
-        protected override async Task CallEndPointCommand(CommandContext<WebHostCommandOptions> context)
-        {
-                //don't call endpoint as it's a server side functionality
-        }
-
         protected async Task<bool> Push(CommandContext<WebHostCommandOptions> context)
         {
             if (string.IsNullOrEmpty(context.Options.file))
@@ -126,7 +120,7 @@ namespace Commander.Commands.Core
                 rule.Style = Style.Parse("cyan");
                 context.Terminal.Write(rule);
 
-                if (context.Options.CommandVerb == CommandVerbs.Show)
+                if (context.Options.verb == "show")
                 {
                     var table = new Table();
                     table.Border(TableBorder.Rounded);
@@ -149,7 +143,7 @@ namespace Commander.Commands.Core
                     context.Terminal.Write(table);
                 }
 
-                if (context.Options.CommandVerb == CommandVerbs.Script)
+                if (context.Options.verb == "script")
                 {
                     foreach (var item in list.Where(i => i.IsPowershell))
                     {

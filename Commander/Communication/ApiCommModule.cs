@@ -594,7 +594,7 @@ namespace Commander.Communication
             };
             var requestContent = JsonConvert.SerializeObject(wh);
 
-            var response = await _client.PostAsync($"/WebHost", new StringContent(requestContent, UnicodeEncoding.UTF8, "application/json"));
+            var response = await _client.PostAsJsonAsync($"/WebHost", wh);
             if (!response.IsSuccessStatusCode)
                 throw new Exception($"{response}");
         }
@@ -627,12 +627,7 @@ namespace Commander.Communication
 
         public async Task RemoveWebHost(string path)
         {
-            var wh = new FileWebHost()
-            {
-                Path = path,
-            };
-            var requestContent = JsonConvert.SerializeObject(wh);
-            var response = await _client.PostAsync($"/WebHost/Remove", new StringContent(requestContent, UnicodeEncoding.UTF8, "application/json"));
+            var response = await _client.DeleteAsync($"/WebHost?path={path}");
             if (!response.IsSuccessStatusCode)
                 throw new Exception($"{response}");
         }
