@@ -10,6 +10,7 @@ ScriptCommands
 
 # Commander 
 View as loot?
+Proxy
 
 # Install
 Commander Ok?

