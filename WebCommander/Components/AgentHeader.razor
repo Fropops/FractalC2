@@ -9,7 +9,7 @@
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h4 class="mb-0">
-            <i class="bi @(Agent.Metadata?.OsType == OsType.Linux ? "bi-terminal-fill" : "bi-windows")"></i> Agent: @(Agent.Metadata?.ImplantId ?? "Unknown")
+            <i class="bi @(Agent.Metadata?.OsType == OsType.Linux ? "bi-terminal-fill" : "bi-windows")"></i> Agent: @(Agent.Metadata?.Name ?? "Unknown")
         </h4>
         <div>
             @if (ActivePage != "info")
@@ -41,7 +41,7 @@
     <div class="card-body">
         <div class="row">
             <div class="col-md-3">
-                <strong>ID:</strong> @Agent.Metadata?.ImplantId (@Agent.Id)
+                <strong>ID:</strong> @Agent.Metadata?.Name (@Agent.Id)
             </div>
             <div class="col-md-3">
                 <strong>Hostname:</strong> @Agent.Metadata?.Hostname
@@ -109,7 +109,7 @@
 
     private async Task DeleteAgent()
     {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete agent {Agent.Metadata?.ImplantId ?? "Unknown"}?"))
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete agent {Agent.Metadata?.Name ?? "Unknown"}?"))
         {
             await AgentService.StopAgentAsync(Agent.Id);
             NavigationManager.NavigateTo("/agents");

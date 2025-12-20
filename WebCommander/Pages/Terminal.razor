@@ -11,7 +11,7 @@
 @inject IJSRuntime JSRuntime
 @inject TerminalHistoryService TerminalHistoryService
 
-<PageTitle>Terminal - @(agent?.Metadata?.ImplantId ?? "Unknown")</PageTitle>
+<PageTitle>Terminal - @(agent?.Metadata?.Name ?? "Unknown")</PageTitle>
 
 <div class="terminal-page-container">
     @if (agent == null)
@@ -38,7 +38,7 @@
                             AgentOsType="@(agent?.Metadata?.OsType ?? OsType.Windows)" />
             
             <div class="terminal-input-container">
-                <span class="terminal-prompt">@(agent.Metadata?.ImplantId ?? "Unknown") &gt;</span>
+                <span class="terminal-prompt">@(agent.Metadata?.Name ?? "Unknown") &gt;</span>
                 <input type="text" 
                        class="terminal-input" 
                        @bind="currentCommand" 
@@ -201,7 +201,7 @@
             }
             else
             {
-                AddInfo($"Connected to agent {agent.Metadata?.ImplantId ?? "Unknown"}");
+                AddInfo($"Connected to agent {agent.Metadata?.Name ?? "Unknown"}");
                 AddInfo($"User: {agent.Metadata?.Desc}");
                 AddInfo($"Architecture: {agent.Metadata?.Architecture}");
                 AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
@@ -252,7 +252,7 @@
                 else
                 {
                     // Show agent info
-                    AddInfo($"Connected to agent {agent.Metadata?.ImplantId ?? "Unknown"}");
+                    AddInfo($"Connected to agent {agent.Metadata?.Name ?? "Unknown"}");
                     AddInfo($"User: {agent.Metadata?.Desc}");
                     AddInfo($"Architecture: {agent.Metadata?.Architecture}");
                     AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
@@ -873,7 +873,7 @@
             }
             
             // Add command to output
-            AddCommand($"{agent?.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
+            AddCommand($"{agent?.Metadata?.Name ?? "Unknown"} > {commandToSend}");
             
             // Send command
             var (message, error, taskId) = await ProcessCommandAndSend(commandToSend);
@@ -905,7 +905,7 @@
         
         if (agent != null)
         {
-            AddInfo($"Connected to agent {agent.Metadata?.ImplantId ?? "Unknown"}");
+            AddInfo($"Connected to agent {agent.Metadata?.Name ?? "Unknown"}");
             AddInfo($"User: {agent.Metadata?.Desc}");
             AddInfo($"Architecture: {agent.Metadata?.Architecture}");
             AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
@@ -948,7 +948,7 @@
         historyIndex = -1; // Reset history navigation
 
         // Add command to output
-        AddCommand($"{agent.Metadata?.ImplantId ?? "Unknown"} > {commandToSend}");
+        AddCommand($"{agent.Metadata?.Name ?? "Unknown"} > {commandToSend}");
 
         // Send command
         var (message, error, taskId) = await ProcessCommandAndSend(commandToSend);

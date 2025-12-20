@@ -120,9 +120,6 @@
   <data name="EndPoint" xml:space="preserve">
     <value>http://127.0.0.1:443</value>
   </data>
-  <data name="Implant" xml:space="preserve">
-    <value>Unknown-Animal</value>
-  </data>
   <data name="Key" xml:space="preserve">
     <value>MXlPZEVWWGVmN2xqbnpyUg==</value>
   </data>

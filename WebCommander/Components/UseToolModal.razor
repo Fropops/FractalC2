@@ -17,7 +17,7 @@
                             <option value="">Select an agent...</option>
                             @foreach (var agent in ActiveAgents)
                             {
-                                var displayText = $"({agent.Id}) {agent.Metadata?.ImplantId} - {agent.Metadata?.Desc}";
+                                var displayText = $"{agent.Metadata?.Name} - {agent.Metadata?.Desc}";
                                 <option value="@agent.Id">@displayText</option>
                             }
                         </select>

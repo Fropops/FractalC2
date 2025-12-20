@@ -51,7 +51,7 @@ namespace Commander.Executor
             else
             {
                 var star = _currentAgent.Metadata?.HasElevatePrivilege() == true ? "*" : string.Empty;
-                this.Terminal.Prompt = $"${_currentAgent.Metadata.ImplantId} ({_currentAgent.Id}) {_currentAgent.Metadata.UserName}{star}@{_currentAgent.Metadata.Hostname}> ";
+                this.Terminal.Prompt = $"$({_currentAgent.Metadata.Name}) {_currentAgent.Metadata.UserName}{star}@{_currentAgent.Metadata.Hostname}> ";
             }
         }
         private ICommModule CommModule { get; set; }

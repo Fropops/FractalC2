@@ -50,7 +50,7 @@ namespace Commander.Commands.Agent
             arch += " - " + agent.Metadata?.OsType ?? "Unknown Os";
 
             table.AddRow("Id", agent.Id ?? string.Empty);
-            table.AddRow("Implant", agent.Metadata?.ImplantId ?? string.Empty);
+            table.AddRow("Name", agent.Metadata?.Name ?? string.Empty);
             table.AddRow("Hostname", agent.Metadata?.Hostname ?? string.Empty);
             table.AddRow("User Name", agent.Metadata?.UserName ?? string.Empty);
             table.AddRow("IP", StringHelper.IpAsString(agent.Metadata?.Address));

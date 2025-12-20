@@ -18,7 +18,6 @@ namespace Common.Payload
             var srcBinary = File.ReadAllBytes(this.Source("AgentLinux", options.Architecture, options.IsDebug));
             PatchKey(srcBinary, "[KEY]", options.ServerKey);
             PatchKey(srcBinary, "[ENDPOINT]", options.Endpoint.ToString());
-            PatchKey(srcBinary, "[IMPLANT]", options.ImplantName);
             return srcBinary;
         }
 

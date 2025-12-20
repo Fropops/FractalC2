@@ -277,7 +277,6 @@ public partial class PayloadGenerator
         {
             { "EndPoint", options.Endpoint.ToString() },
             { "Key", options.ServerKey ?? String.Empty },
-            { "Implant", options.ImplantName ?? String.Empty }
         });
 
         if (options.IsDebug)
@@ -496,6 +495,47 @@ public partial class PayloadGenerator
                 break;
         }
         return outFile;
+    }
+
+
+    public static string GenerateImplantName()
+    {
+        var landscapes = new List<string>
+    {
+        "Desert", "Lake", "Tundra", "Hill", "Mountain", "Valley", "Canyon", "Plateau", "Prairie", "Forest",
+        "Jungle", "Savanna", "Swamp", "Marsh", "Beach", "Coast", "Island", "Peninsula", "Bay", "Fjord",
+        "Glacier", "Iceberg", "Volcano", "Crater", "Cave", "Cliff", "Ridge", "Peak", "Summit", "Slope",
+        "Dune", "Oasis", "Mesa", "Butte", "Gorge", "Ravine", "Basin", "Delta", "Estuary", "Reef",
+        "Lagoon", "Atoll", "Archipelago", "Strait", "Channel", "Sound", "Gulf", "Ocean", "Sea", "River",
+        "Stream", "Creek", "Waterfall", "Rapids", "Spring", "Pond", "Reservoir", "Wetland", "Bog", "Fen",
+        "Moor", "Heath", "Steppe", "Plain", "Meadow", "Field", "Grove", "Thicket", "Woodland", "Rainforest",
+        "Taiga", "Chaparral", "Shrubland", "Grassland", "Pasture", "Orchard", "Vineyard", "Garden", "Park", "Reserve",
+        "Wilderness", "Badlands", "Wasteland", "Quarry", "Mine", "Pit", "Abyss", "Trench", "Crevasse", "Fault",
+        "Ridge", "Escarpment", "Bluff", "Promontory", "Headland", "Cape", "Point", "Rock", "Boulder", "Stone"
+    };
+
+        var adjectives = new List<string>
+    {
+        "Vast", "Serene", "Rugged", "Rolling", "Majestic", "Lush", "Barren", "Frozen", "Golden", "Verdant",
+        "Pristine", "Wild", "Remote", "Tranquil", "Endless", "Dramatic", "Scenic", "Picturesque", "Breathtaking", "Stunning",
+        "Magnificent", "Spectacular", "Imposing", "Towering", "Steep", "Gentle", "Undulating", "Flat", "Jagged", "Smooth",
+        "Rocky", "Sandy", "Muddy", "Mossy", "Grassy", "Wooded", "Forested", "Dense", "Sparse", "Thick",
+        "Open", "Enclosed", "Hidden", "Isolated", "Desolate", "Arid", "Humid", "Tropical", "Temperate", "Arctic",
+        "Alpine", "Coastal", "Inland", "Elevated", "Lowland", "Subterranean", "Underground", "Deep", "Shallow", "Wide",
+        "Narrow", "Winding", "Straight", "Curved", "Circular", "Angular", "Irregular", "Uniform", "Diverse", "Homogeneous",
+        "Colorful", "Monochrome", "Vibrant", "Muted", "Bright", "Dark", "Shadowy", "Sunlit", "Moonlit", "Starlit",
+        "Misty", "Foggy", "Cloudy", "Clear", "Stormy", "Calm", "Windy", "Still", "Turbulent", "Peaceful",
+        "Ancient", "Timeless", "Primordial", "Untouched", "Unspoiled", "Pure", "Sacred", "Mysterious", "Enchanted", "Mystical"
+    };
+
+        var random = new Random();
+
+        string landscape = landscapes[random.Next(landscapes.Count)];
+        string adjective = adjectives[random.Next(adjectives.Count)];
+
+        string result = $"{adjective}-{landscape}";
+
+        return result;
     }
 }
 

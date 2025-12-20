@@ -107,7 +107,7 @@ namespace Commander.Commands
                     .Start($"[olive]Generating Payload {options.Type} for Endpoint {options.Endpoint} (arch = {options.Architecture}).[/]", ctx =>
                     {
                 if (string.IsNullOrEmpty(options.ImplantName))
-                    options.ImplantName = Payload.GenerateName();
+                    options.ImplantName = PayloadGenerator.GenerateImplantName();
                 
                 try
                 {

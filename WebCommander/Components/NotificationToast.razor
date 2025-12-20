@@ -114,7 +114,7 @@
     private void OnNewAgent(Agent agent)
     {
         AddToast("🎉 New Agent", 
-            $"<strong>Agent {agent.Metadata?.ImplantId ?? "Unknown"}</strong> just connected<br/><small>{agent.Metadata?.Desc}</small>", 
+            $"<strong>Agent {agent.Metadata?.Name ?? "Unknown"}</strong> just connected<br/><small>{agent.Metadata?.Desc}</small>", 
             ToastType.Info, 
             agent);
     }

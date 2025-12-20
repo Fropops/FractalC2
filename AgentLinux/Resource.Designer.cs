@@ -70,15 +70,6 @@ namespace AgentLinux {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to [IMPLANT]***********************************************************************************************************************.
-        /// </summary>
-        internal static string Implant {
-            get {
-                return ResourceManager.GetString("Implant", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to [KEY]***************************************************************************************************************************.
         /// </summary>
         internal static string Key {

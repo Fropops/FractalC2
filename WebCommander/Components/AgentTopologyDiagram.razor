@@ -49,8 +49,8 @@
                     var badgeColor = agent.IsAlive ? "#10b981" : "#ef4444";
                     var agentId = $"agent-{agent.Id}";
                     var agentLabel = string.IsNullOrEmpty(agent.UserName) 
-                        ? $"{agent.Name} ({agent.ShortId})"
-                        : $"{agent.UserName} - {agent.Name} ({agent.ShortId})";
+                        ? $"{agent.Name}"
+                    : $"{agent.Name} ({agent.UserName})";
                     var agentIcon = "⚙️";
                     
                     <g transform="translate(@host.AgentStartX, @agentY)" class="agent-node" data-agent-id="@agent.Id" @onclick="@((MouseEventArgs e) => ShowAgentMenu(agent.Id, e))" @onclick:stopPropagation="true">
@@ -330,7 +330,7 @@
                 {
                     Id = agent.Id,
                     ShortId = agent.Id.Length > 8 ? agent.Id.Substring(0, 8) : agent.Id,
-                    Name = agent.Metadata?.ImplantId ?? "Unknown",
+                    Name = agent.Metadata?.Name ?? "Unknown",
                     IsAlive = AgentHelper.IsAgentAlive(agent, agents) ?? false,
                     EndPoint = agent.Metadata?.EndPoint ?? "",
                     RelayId = agent.RelayId,

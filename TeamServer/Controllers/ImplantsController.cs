@@ -96,7 +96,7 @@ namespace TeamServer.Controllers
             var body = this.Request.Body;
             string val = Encoding.UTF8.GetString(body.ReadStream().Result);
             var config = JsonConvert.DeserializeObject<ImplantConfig>(val);
-            config.ImplantName = Payload.GenerateName();
+            config.ImplantName = PayloadGenerator.GenerateImplantName();
             config.ServerKey = _cryptoService.ServerKey;
             string logs = string.Empty;
             Implant implant = null;

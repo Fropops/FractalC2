@@ -16,7 +16,7 @@ namespace WebCommander.Models
     public class AgentMetadata
     {
         public string Id { get; set; }
-        public string ImplantId { get; set; }
+        public string Name { get; set; }
         public string Hostname { get; set; }
         public string UserName { get; set; }
         public string ProcessName { get; set; }

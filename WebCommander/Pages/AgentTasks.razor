@@ -10,7 +10,7 @@
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
-<PageTitle>Tasks - @(agent?.Metadata?.ImplantId ?? "Unknown")</PageTitle>
+<PageTitle>Tasks - @(agent?.Metadata?.Name ?? "Unknown")</PageTitle>
 
 @if (agent == null)
 {
@@ -145,7 +145,7 @@ else
         header.AppendLine("TASK OUTPUT");
         header.AppendLine("=".PadRight(80, '='));
         header.AppendLine();
-        header.AppendLine($"Agent ID:        {agent?.Metadata?.ImplantId ?? "Unknown"}");
+        header.AppendLine($"Agent Name:      {agent?.Metadata?.Name ?? "Unknown"}");
         header.AppendLine($"Hostname:        {agent?.Metadata?.Hostname ?? "Unknown"}");
         header.AppendLine($"User:            {agent?.Metadata?.UserName ?? "Unknown"}");
         header.AppendLine($"IP Address:      {AgentHelper.IpAsString(agent?.Metadata?.Address)}");

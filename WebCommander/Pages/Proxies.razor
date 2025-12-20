@@ -39,7 +39,7 @@ else
             {
                 var agent = AgentService.GetAgent(proxy.AgentId);
                 var agentDisplay = agent != null 
-                    ? $"({agent.Id}) {agent.Metadata?.ImplantId} ({agent.Metadata?.UserName}@{agent.Metadata?.Hostname})"
+                    ? $"{agent.Metadata?.Name} ({agent.Metadata?.UserName}@{agent.Metadata?.Hostname})"
                     : $"Unknown Agent ({proxy.AgentId})";
 
                 <tr>

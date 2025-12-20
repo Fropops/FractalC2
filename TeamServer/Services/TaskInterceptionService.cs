@@ -211,7 +211,7 @@ namespace TeamServer.Services
             {
                 Architecture = task.GetParameter<string>(ParameterId.Target) == "x86" ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Type = ImplantType.ReflectiveLibrary,
-                ImplantName = Payload.GenerateName(),
+                ImplantName = PayloadGenerator.GenerateImplantName(),
                 IsDebug = false,
                 IsInjected = false,
                 Endpoint = ConnexionUrl.FromString(task.GetParameter<string>(ParameterId.Bind)),

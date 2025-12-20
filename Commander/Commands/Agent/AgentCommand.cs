@@ -1,21 +1,22 @@
-using Commander.Commands.Core;
-using Commander.Communication;
-using Commander.Executor;
-using Commander.Helper;
-using Commander.Terminal;
-using Spectre.Console;
-using Spectre.Console.Rendering;
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using System.Threading.Tasks;
+using Commander.Commands.Core;
+using Commander.Communication;
+using Commander.Executor;
+using Commander.Helper;
+using Commander.Models;
+using Commander.Terminal;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Commander.Commands.Agent
 {
     public class AgentCommandOptions : VerbAwareCommandOptions
     {
-        public string id { get; set; }
+        public string index { get; set; }
         public bool all { get; set; }
     }
 
@@ -31,7 +32,7 @@ namespace Commander.Commands.Agent
         public override RootCommand Command => new RootCommand(Description)
         {
             new Argument<string>("verb", () => "show").FromAmong("show", "delete"),
-            new Option<string>(new[] { "--id", "-i" }, "Id of the agent"),
+            new Option<string>(new[] { "--index", "-i" }, "Index of the agent (or name)"),
             new Option<bool>(new[] { "--all", "-a" }, "Apply to all agents"),
         };
 
@@ -55,8 +56,8 @@ namespace Commander.Commands.Agent
             table.Border(TableBorder.Rounded);
             // Add some columns
             table.AddColumn(new TableColumn("Index").Centered());
-            table.AddColumn(new TableColumn("Id").LeftAligned());
-            table.AddColumn(new TableColumn("Implant").LeftAligned());
+            //table.AddColumn(new TableColumn("Id").LeftAligned());
+            table.AddColumn(new TableColumn("Name").LeftAligned());
             table.AddColumn(new TableColumn("Active").LeftAligned());
             table.AddColumn(new TableColumn("User").LeftAligned());
             table.AddColumn(new TableColumn("Host").LeftAligned());
@@ -83,8 +84,8 @@ namespace Commander.Commands.Agent
 
                 table.AddRow(
                         SurroundIfDeadOrSelf(agent, context, index.ToString()),
-                        SurroundIfDeadOrSelf(agent, context, agent.Id),
-                        SurroundIfDeadOrSelf(agent, context, agent.Metadata?.ImplantId),
+                        //SurroundIfDeadOrSelf(agent, context, agent.Id),
+                        SurroundIfDeadOrSelf(agent, context, agent.Metadata?.Name),
                         SurroundIfDeadOrSelf(agent, context, activStr),
                         SurroundIfDeadOrSelf(agent, context, agent.Metadata?.UserName),
                         SurroundIfDeadOrSelf(agent, context, agent.Metadata?.Hostname),
@@ -122,13 +123,21 @@ namespace Commander.Commands.Agent
         {
             bool cmdRes = true;
             var agents = new List<Models.Agent>();
+
+
+
             if (context.Options.all)
             {
                 agents.AddRange(context.CommModule.GetAgents());
             }
             else
             {
-                var agt = context.CommModule.GetAgent(context.Options.id);
+                int index = 0;
+                Models.Agent agt = null;
+                if (int.TryParse(context.Options.index, out index))
+                    agt = context.CommModule.GetAgent(index);
+                else
+                    agt = context.CommModule.GetAgents().FirstOrDefault(a => a.Metadata.Name.ToLower().Equals(context.Options.index.ToLower()));
                 if (agt != null)
                     agents.Add(agt);
             }

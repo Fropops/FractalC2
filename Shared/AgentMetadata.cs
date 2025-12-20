@@ -26,7 +26,7 @@ namespace Shared
         [FieldOrder(0)]
         public string Id { get; set; }
         [FieldOrder(1)]
-        public string ImplantId { get; set; }
+        public string Name { get; set; }
         [FieldOrder(2)]
         public string Hostname { get; set; }
         [FieldOrder(3)]

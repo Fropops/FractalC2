@@ -7,7 +7,7 @@
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
-<PageTitle>Agent Info - @(agent?.Metadata?.ImplantId ?? "Unknown")</PageTitle>
+<PageTitle>Agent Info - @(agent?.Metadata?.Name ?? "Unknown")</PageTitle>
 
 @if (agent == null)
 {
@@ -35,8 +35,8 @@ else
                                     <td>@agent.Id</td>
                                 </tr>
                                 <tr>
-                                    <td class="fw-bold">Implant:</td>
-                                    <td>@agent.Metadata?.ImplantId</td>
+                                    <td class="fw-bold">Name:</td>
+                                    <td>@agent.Metadata?.Name</td>
                                 </tr>
                                 <tr>
                                     <td class="fw-bold">Description:</td>
