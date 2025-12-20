@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Shared;
 using WebCommander.Models;
 
 namespace WebCommander.Services.Commands

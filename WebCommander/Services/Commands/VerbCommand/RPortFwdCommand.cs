@@ -1,6 +1,7 @@
 using System.CommandLine;
 using WebCommander.Models;
 using System.Text;
+using Shared;
 
 namespace WebCommander.Services.Commands.VerbCommand
 {

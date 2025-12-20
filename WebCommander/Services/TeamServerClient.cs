@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using WebCommander.Models;
 using BinarySerializer;
+using Shared;
 
 namespace WebCommander.Services
 {

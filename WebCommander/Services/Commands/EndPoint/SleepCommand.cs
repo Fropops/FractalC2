@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using Shared;
 using WebCommander.Models;
 
 namespace WebCommander.Services.Commands.EndPoint

@@ -1,3 +1,5 @@
+using Shared;
+
 namespace WebCommander.Models
 {
     public class Agent
