@@ -288,7 +288,7 @@ function Release-FractalC2 {
     }
 
     # --- Partie Commander ---
-    if ($Target -in @("Commander")) {
+    if ($Target -in @("All","Commander")) {
         Write-Host "Mise à jour de la version de Commander..."
         Update-ProjectVersion -ProjectPath "$baseDir\Commander\Commander.csproj" -IncrementPart $IncrementPart
 

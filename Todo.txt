@@ -10,6 +10,7 @@ ScriptCommands
 # Web Commander
 
 # Commander 
+Remove implantId and rework script
 View as loot?
 Proxy
 

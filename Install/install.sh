@@ -104,6 +104,7 @@ case "$INSTALL_PART" in
     All)
         install_TeamServer
 		install_WebCommander
+		install_Commander
         ;;
     TeamServer)
         install_TeamServer
