@@ -3,7 +3,6 @@
 * BOF Loader .Net
 
 # Commanders
-rportfwd
 Commands To rework
 ScriptCommands
 
@@ -14,4 +13,8 @@ Remove implantId and rework script verb
 View as loot?
 
 # Install
-Commander Ok?
+-
+
+#Tests
+Proxy
+rportfwd

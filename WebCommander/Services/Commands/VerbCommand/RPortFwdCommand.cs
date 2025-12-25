@@ -43,6 +43,8 @@ namespace WebCommander.Services.Commands.VerbCommand
 
             try
             {
+                var parameters = new ParameterDictionary();
+
                 switch (verb.ToLower())
                 {
                     case "start":
@@ -53,18 +55,35 @@ namespace WebCommander.Services.Commands.VerbCommand
                         if (destPort == 0)
                             return cmdResult.Failed("[X] Destination Port is required to start the port forward!");
 
-                        await client.StartReversePortForwardAsync(agent.Metadata.Id, port, destHost, destPort);
-                        return cmdResult.Succeed($"[*] RPortFwd started on port {port} -> {destHost}:{destPort} !");
+                        parameters.AddParameter(ParameterId.Verb, (byte)CommandVerbs.Start);
+                        parameters.AddParameter(ParameterId.Port, port);
+                        parameters.AddParameter(ParameterId.Parameters, new ReversePortForwardDestination() { Hostname = destHost, Port = destPort });
+
+                        await client.TaskAgent("rportfwd", agent.Metadata.Id, CommandId.RportFwd, parameters);
+
+                        return cmdResult.Succeed($"[*] RPortFwd tasked to start on port {port} -> {destHost}:{destPort} !");
 
                     case "stop":
                         if (port == 0)
                             return cmdResult.Failed("[X] Port is required to stop the port forward!");
 
-                        await client.StopReversePortForwardAsync(agent.Metadata.Id, port);
-                        return cmdResult.Succeed($"[*] RPortFwd stopped on port {port} !");
+                        parameters.AddParameter(ParameterId.Verb, (byte)CommandVerbs.Stop);
+                        parameters.AddParameter(ParameterId.Port, port);
+
+                        await client.TaskAgent("rportfwd", agent.Metadata.Id, CommandId.RportFwd, parameters);
+
+                        return cmdResult.Succeed($"[*] RPortFwd tasked to stop on port {port} !");
+
+                    case "show":
+                        parameters.AddParameter(ParameterId.Verb, (byte)CommandVerbs.Show);
+
+                        await client.TaskAgent("rportfwd", agent.Metadata.Id, CommandId.RportFwd, parameters);
+
+                        // Usually showing results is asynchronous via TaskResult, so we just confirm tasking.
+                        return cmdResult.Succeed($"[*] RPortFwd tasked to show !");
 
                     default:
-                        return cmdResult.Failed($"Unknown verb: {verb}. Supported verbs: start, stop.");
+                        return cmdResult.Failed($"Unknown verb: {verb}. Supported verbs: start, stop, show.");
                 }
             }
             catch (Exception ex)
@@ -74,3 +93,4 @@ namespace WebCommander.Services.Commands.VerbCommand
         }
     }
 }
+
