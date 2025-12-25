@@ -12,14 +12,13 @@ using Common;
 using Common.Payload;
 using Shared;
 using Spectre.Console;
-using static System.Collections.Specialized.BitVector32;
 
 namespace Commander.Commands.Core
 {
     public class ImplantCommandOptions
     {
         public string action { get; set; } // show, generate, download, delete
-        public string id { get; set; } // for delete
+        public string name { get; set; } // for delete, download, script
         
         // Generation options
         public string listener { get; set; }
@@ -52,8 +51,8 @@ namespace Commander.Commands.Core
                 root.AddOption(new Option<string>(new[] { "--type", "-t" }, () => "exe", "exe | dll | rfl | svc | ps | bin | elf").FromAmong("exe", "dll", "rfl" , "svc", "ps", "bin", "elf"));
                 root.AddOption(new Option<string>(new[] { "--arch", "-a" }, () => "x64", "x64 | x86").FromAmong("x64", "x86"));
 
-                // Delete options
-                root.AddOption(new Option<string>(new[] { "--id", "-i" }, "Implant ID (for delete)"));
+                // Universal options
+                root.AddOption(new Option<string>(new[] { "--name", "-n" }, "Implant Name (for delete, download, script)"));
 
                 return root;
             }
@@ -89,7 +88,6 @@ namespace Commander.Commands.Core
             }
 
             var table = new Spectre.Console.Table();
-            table.AddColumn(new TableColumn("ID"));
             table.AddColumn(new TableColumn("Name"));
             table.AddColumn(new TableColumn("Type"));
             table.AddColumn(new TableColumn("Arch"));
@@ -104,7 +102,7 @@ namespace Commander.Commands.Core
                var endpoint = implant.Config?.Endpoint?.ToString() ?? "Unknown";
                var listener = implant.Config?.Listener?.ToString() ?? "Custom";
 
-               table.AddRow(implant.Id, name, type, arch, endpoint, listener);
+               table.AddRow(name, type, arch, endpoint, listener);
             }
 
             context.Terminal.Write(table);
@@ -186,7 +184,8 @@ namespace Commander.Commands.Core
                 
                 if (context.Options.download && result != null && !string.IsNullOrEmpty(result.Id))
                 {
-                    context.Options.id = result.Id;
+                    // For a freshly generated implant, we use the name from the config
+                    context.Options.name = result.ImplantName;
                     await this.DownloadImplant(context);
                 }
             }
@@ -199,17 +198,26 @@ namespace Commander.Commands.Core
 
         private async Task<bool> DownloadImplant(CommandContext<ImplantCommandOptions> context)
         {
-            var id = context.Options.id;
-            if (string.IsNullOrEmpty(id))
+            var name = context.Options.name;
+            if (string.IsNullOrEmpty(name))
             {
-                context.Terminal.WriteError("Implant ID is required for download.");
+                context.Terminal.WriteError("Implant Name is required for download.");
                 return false;
             }
 
             try
             {
-                context.Terminal.WriteInfo($"Downloading implant {id}...");
-                var implant = await context.CommModule.GetImplantBinary(id);
+                var implants = context.CommModule.GetImplants();
+                var implantInfo = implants.FirstOrDefault(i => string.Equals(i.Config?.ImplantName, name, StringComparison.OrdinalIgnoreCase));
+
+                if (implantInfo == null)
+                {
+                    context.Terminal.WriteError($"Implant with name '{name}' not found.");
+                    return false;
+                }
+
+                context.Terminal.WriteInfo($"Downloading implant {name}...");
+                var implant = await context.CommModule.GetImplantBinary(implantInfo.Id);
                 
                 if (string.IsNullOrEmpty(implant.Data))
                 {
@@ -235,32 +243,42 @@ namespace Commander.Commands.Core
 
         private async Task<bool> DeleteImplant(CommandContext<ImplantCommandOptions> context)
         {
-            var id = context.Options.id;
-            if (string.IsNullOrEmpty(id))
+            var name = context.Options.name;
+            if (string.IsNullOrEmpty(name))
             {
-                context.Terminal.WriteError("Implant ID is required for deletion.");
+                context.Terminal.WriteError("Implant Name is required for deletion.");
                 return false;
             }
 
-            await context.CommModule.DeleteImplant(id);
-            context.Terminal.WriteSuccess($"Implant {id} deleted.");
+            var implants = context.CommModule.GetImplants();
+            var implantInfo = implants.FirstOrDefault(i => string.Equals(i.Config?.ImplantName, name, StringComparison.OrdinalIgnoreCase));
+
+            if (implantInfo == null)
+            {
+                context.Terminal.WriteError($"Implant with name '{name}' not found.");
+                return false;
+            }
+
+            await context.CommModule.DeleteImplant(implantInfo.Id);
+            context.Terminal.WriteSuccess($"Implant {name} deleted.");
             return true;
         }
+
         private async Task<bool> GenerateScript(CommandContext<ImplantCommandOptions> context)
         {
-             var id = context.Options.id;
-             if (string.IsNullOrEmpty(id))
+             var name = context.Options.name;
+             if (string.IsNullOrEmpty(name))
              {
-                 context.Terminal.WriteError("Implant ID is required for script generation.");
+                 context.Terminal.WriteError("Implant Name is required for script generation.");
                  return false;
              }
 
              var implants = context.CommModule.GetImplants();
-             var selectedImplant = implants.FirstOrDefault(i => i.Id == id);
+             var selectedImplant = implants.FirstOrDefault(i => string.Equals(i.Config?.ImplantName, name, StringComparison.OrdinalIgnoreCase));
 
              if (selectedImplant == null)
              {
-                 context.Terminal.WriteError($"Implant {id} not found.");
+                 context.Terminal.WriteError($"Implant {name} not found.");
                  return false;
              }
 
