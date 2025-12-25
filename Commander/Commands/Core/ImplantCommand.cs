@@ -118,6 +118,8 @@ namespace Commander.Commands.Core
             
             ConnexionUrl connexionUrl = null;
 
+            var config = new ImplantConfig();
+
             if (!string.IsNullOrEmpty(listenerName))
             {
                 var listener = context.CommModule.GetListeners().FirstOrDefault(l => l.Name.Equals(listenerName, StringComparison.OrdinalIgnoreCase));
@@ -127,6 +129,7 @@ namespace Commander.Commands.Core
                     return false;
                 }
                 connexionUrl = ConnexionUrl.FromString(listener.EndPoint);
+                config.Listener = listener.Name;
             }
             else if (!string.IsNullOrEmpty(endpointStr))
             {
@@ -144,10 +147,7 @@ namespace Commander.Commands.Core
             }
 
 
-            var config = new ImplantConfig
-            {
-                 Endpoint = connexionUrl,
-            };
+            config.Endpoint = connexionUrl;
             var type = ImplantType.Executable;
             switch (typeStr)
             {
