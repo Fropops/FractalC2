@@ -548,7 +548,7 @@ namespace Commander.Communication
         #region Proxy
         public async Task<bool> StartProxy(string agentId, int port)
         {
-            var resp = await _client.GetAsync($"/Agents/{agentId}/startproxy?port={port}");
+            var resp = await _client.GetAsync($"/proxy/start?agentId={agentId}&port={port}");
             if (resp.IsSuccessStatusCode)
                 return true;
             else
@@ -557,9 +557,9 @@ namespace Commander.Communication
                 return false;
             }
         }
-        public async Task<bool> StopProxy(string agentId)
+        public async Task<bool> StopProxy(int port)
         {
-            var resp = await _client.GetAsync($"/Agents/{agentId}/stopproxy");
+            var resp = await _client.GetAsync($"/proxy/stop?port={port}");
             if (resp.IsSuccessStatusCode)
                 return true;
             else
@@ -571,7 +571,7 @@ namespace Commander.Communication
 
         public async Task<List<ProxyInfo>> ShowProxy()
         {
-            var response = await _client.GetAsync($"/Agents/proxy");
+            var response = await _client.GetAsync($"/proxy");
 
             if (!response.IsSuccessStatusCode)
                 throw new Exception($"{response}");

@@ -51,7 +51,7 @@ namespace Commander.Communication
 
 
         Task<bool> StartProxy(string agentId, int port);
-        Task<bool> StopProxy(string agentId);
+        Task<bool> StopProxy(int port);
         Task<List<ProxyInfo>> ShowProxy();
 
         Task CloseSession();

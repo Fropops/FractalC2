@@ -65,8 +65,13 @@ namespace Commander.Commands.Network
 
         protected async Task<bool> Stop(CommandContext<ProxyCommandOptions> context)
         {
-            var agent = context.Executor.CurrentAgent;
-            var res = await context.CommModule.StopProxy(agent.Metadata.Id);
+            if (!context.Options.port.HasValue)
+            {
+                context.Terminal.WriteError("[X] Port is required to stop the proxy!");
+                return false;
+            }
+
+            var res = await context.CommModule.StopProxy(context.Options.port.Value);
             if (!res)
             {
                 context.Terminal.WriteError("[X] Cannot stop proxy on the server!");

@@ -172,6 +172,11 @@ show_TeamServer() {
 	echo -e "\e[36m[*]\e[0m API Key : $USER_API_KEY"
 }
 
+show_Commander() {
+	echo -e "\e[32m[?]\e[0m Web Commander"
+	echo -e "\e[36m[*]\e[0m Running at http://127.0.0.1:5001"
+}
+
 case "$INSTALL_PART" in
 	All)
 		show_TeamServer
@@ -184,6 +189,7 @@ case "$INSTALL_PART" in
 		show_WebCommander
 		;;
 	Commander)
+		show_Commander
 		;;
 	*)
 	echo "Invalid option: $INSTALL_PART"
