@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,19 +9,55 @@ namespace Commander.Terminal
 {
     public class CommandHistory
     {
+        private const string HistoryFileName = "command_history.txt";
+
         private List<CommandDetail> History { get; set; } = new List<CommandDetail>();
 
         private int CurrentIndex = 0;
+
+        public CommandHistory()
+        {
+            if (File.Exists(HistoryFileName))
+            {
+                try
+                {
+                    var lines = File.ReadAllLines(HistoryFileName);
+                    foreach (var line in lines)
+                    {
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            this.History.Add(new CommandDetail(0, "$> ", line));
+                        }
+                    }
+                    this.CurrentIndex = this.History.Count;
+                }
+                catch
+                {
+                    //Best effort
+                }
+            }
+        }
 
         public void Register(CommandDetail cmd)
         {
             this.History.Add(cmd);
             this.CurrentIndex = this.History.Count - 1;
+
+            try
+            {
+                File.AppendAllText(HistoryFileName, cmd.Value + Environment.NewLine);
+            }
+            catch
+            {
+                //Best effort
+            }
         }
 
         public void Clear()
         {
             this.History.Clear();
+            if(File.Exists(HistoryFileName))
+                File.Delete(HistoryFileName);
         }
 
         public CommandDetail Previous()

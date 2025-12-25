@@ -9,7 +9,6 @@ ScriptCommands
 # Web Commander
 
 # Commander 
-Remove implantId and rework script verb
 View as loot?
 
 # Install
