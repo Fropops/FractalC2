@@ -49,11 +49,11 @@ namespace Commander.Commands.Composite
              new Option<string>(new[] { "--key", "-k" }, () => "c2s", "Name of the key to use"),
              new Option(new[] { "--verbose", "-v" }, "Show details of the command execution."),
              new Option<string>(new[] { "--pipe", "-n" }, () => "elev8","Name of the pipe used to pivot."),
-             new Option<string>(new[] { "--file", "-f" }, () => null,"Name of payload."),
+             new Option<string>(new[] { "--file", "-f" }, () => null,"FileName of payload."),
              new Option<string>(new[] { "--path", "-p" }, () => "c:\\windows\\tasks","Name of the folder to upload the payload."),
-             new Option(new[] { "--inject", "-i" }, "Îf the payload should be an injector"),
-             new Option<int>(new[] { "--injectDelay", "-id" },() => 30, "Delay before injection (AV evasion)"),
-             new Option<string>(new[] { "--injectProcess", "-ip" },() => null, "Process path used for injection"),
+             //new Option(new[] { "--inject", "-i" }, "Îf the payload should be an injector"),
+             //new Option<int>(new[] { "--injectDelay", "-id" },() => 30, "Delay before injection (AV evasion)"),
+             //new Option<string>(new[] { "--injectProcess", "-ip" },() => null, "Process path used for injection"),
              new Option(new[] { "--x86", "-x86" }, "Generate a x86 architecture executable"),
         };
 

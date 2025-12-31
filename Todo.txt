@@ -9,7 +9,6 @@ ScriptCommands
 # Web Commander
 
 # Commander 
-View as loot?
 
 # Install
 -
@@ -17,3 +16,4 @@ View as loot?
 #Tests
 Proxy
 rportfwd
+View as loot

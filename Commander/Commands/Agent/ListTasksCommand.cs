@@ -19,6 +19,7 @@ namespace Commander.Commands.Agent
         public int? index { get; set; }
         public int? Top { get; set; }
         public bool verbose { get; set; }
+        public bool loot { get; set; }
     }
 
     public class ViewTasksCommand : EnhancedCommand<ViewTasksCommandOptions>
@@ -33,6 +34,7 @@ namespace Commander.Commands.Agent
             {
                 new Argument<int?>("index", "index of the task to view"),
                 new Option<int?>(new[] { "--top", "-t" }, "The max number of taks retrieved (only when no index is set. Default is 10."),
+                new Option<bool>(new[] { "--loot", "-l" }, "Save the task result to loot."),
                 //new Option(new[] { "--verbose", "-v" }, "Show details of the command execution."),
             };
 
@@ -55,7 +57,35 @@ namespace Commander.Commands.Agent
                 if (result == null)
                     context.Terminal.WriteInfo($"Task : {task.Command} is queued.");
                 else
+                {
                     TaskPrinter.Print(task, result, context.Terminal);
+
+                    if (context.Options.loot)
+                    {
+                        try
+                        {
+                            var content = await LootOutputFormatter.FormatLootContent(context.Executor.CurrentAgent, task, result);
+                            var fileName = $"task_{task.Id}.txt";
+                            var loot = new Common.APIModels.Loot
+                            {
+                                AgentId = context.Executor.CurrentAgent.Id,
+                                FileName = fileName,
+                                Data = Convert.ToBase64String(content),
+                                IsImage = false
+                            };
+
+                            var success = await context.CommModule.CreateLootAsync(context.Executor.CurrentAgent.Id, loot);
+                            if (success)
+                                context.Terminal.WriteSuccess($"Task output saved to loot as {fileName}");
+                            else
+                                context.Terminal.WriteError("Failed to save loot.");
+                        }
+                        catch (Exception ex)
+                        {
+                            context.Terminal.WriteError($"Error saving loot: {ex.Message}");
+                        }
+                    }
+                }
 
                 return true;
             }
