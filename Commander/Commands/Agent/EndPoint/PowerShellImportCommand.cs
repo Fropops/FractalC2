@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Commander.Executor;
-using Shared;
-using System.Security.Cryptography;
-using BinarySerializer;
 using System.CommandLine;
 using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using BinarySerializer;
+using Commander.Executor;
+using Shared;
+using Spectre.Console;
 
 namespace Commander.Commands.Agent.EndPoint
 {
@@ -31,21 +32,7 @@ namespace Commander.Commands.Agent.EndPoint
 
         protected override void SpecifyParameters(CommandContext<PowershellImportCommandOptions> context)
         {
-            string script = string.Empty;
-            if (!string.IsNullOrEmpty(context.Options.path))
-                script = File.ReadAllText(context.Options.path);
-
-            context.AddParameter(ParameterId.File, script);
-        }
-
-        protected override async Task<bool> CheckParams(CommandContext<PowershellImportCommandOptions> context)
-        {
-            if (!File.Exists(context.Options.path))
-            {
-                context.Terminal.WriteError($"File {context.Options.path} not found");
-                return false;
-            }
-            return await base.CheckParams(context);
+            context.AddParameter(ParameterId.Name, Path.GetFileName(context.Options.path));
         }
     }
 }
