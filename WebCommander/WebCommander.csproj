@@ -5,9 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <PropertyGroup>
-    <Version>2.0.39.0</Version>
-    <AssemblyVersion>2.0.39.0</AssemblyVersion>
-    <FileVersion>2.0.39.0</FileVersion>
+    <Version>2.0.40.0</Version>
+    <AssemblyVersion>2.0.40.0</AssemblyVersion>
+    <FileVersion>2.0.40.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Shared\AgentMetadata.cs" Link="Models\AgentMetadata.cs" />
