@@ -87,6 +87,7 @@ namespace Commander.Commands.Scripted
             task.Parameters.AddParameter(ParameterId.Verb, CommandVerbs.Add);
             task.Parameters.AddParameter(ParameterId.Path, path);
             task.Parameters.AddParameter(ParameterId.Key, key);
+            this.context.Terminal.WriteInfo($"Key = {key}");
             task.Parameters.AddParameter(ParameterId.Value, value);
         }
 

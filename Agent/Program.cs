@@ -165,9 +165,7 @@ namespace EntryPoint
 
 #if WINDOWS
             var integrity = IntegrityLevel.Medium;
-            if (userName == "SYSTEM")
-                integrity = IntegrityLevel.System;
-
+            
             using (var identity = WindowsIdentity.GetCurrent())
             {
                 if (identity.User != identity.Owner)
@@ -175,6 +173,9 @@ namespace EntryPoint
                     integrity = IntegrityLevel.High;
                 }
             }
+
+            if (userName == "SYSTEM")
+                integrity = IntegrityLevel.System;
 #else
             var integrity = IntegrityLevel.Medium;
 

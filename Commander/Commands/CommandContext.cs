@@ -54,7 +54,7 @@ namespace Commander.Commands
             if (agent.Metadata == null)
                 return null;
 
-            if(agent.Metadata.SleepInterval == 0)
+            if (agent.Metadata.SleepInterval == 0)
             {
                 if (agent.LastSeen.AddSeconds(3) >= DateTime.UtcNow)
                     return true;
@@ -106,23 +106,28 @@ namespace Commander.Commands
             AnsiConsole.Status()
                     .Start($"[olive]Generating Payload {options.Type} for Endpoint {options.Endpoint} (arch = {options.Architecture}).[/]", ctx =>
                     {
-                if (string.IsNullOrEmpty(options.ImplantName))
-                    options.ImplantName = PayloadGenerator.GenerateImplantName();
-                
-                try
-                {
-                    context.Terminal.WriteInfo("Triggering server-side generation...");
-                    var result = context.CommModule.GenerateImplant(options).GetAwaiter().GetResult();
-                    // No return value from API expected by this method's caller for now.
-                }
-                catch (Exception ex)
-                {
-                    context.Terminal.WriteError($"[X] Generation Failed: {ex.Message}");
-                    if (verbose) context.Terminal.WriteError(ex.ToString());
-                }
+                        if (string.IsNullOrEmpty(options.ImplantName))
+                            options.ImplantName = PayloadGenerator.GenerateImplantName();
+
+                        try
+                        {
+                            context.Terminal.WriteInfo("Triggering server-side generation...");
+                            var result = context.CommModule.GenerateImplant(options).GetAwaiter().GetResult();
+                            // No return value from API expected by this method's caller for now.
+
+                            var implant = context.CommModule.GetImplantBinary(result.Id).GetAwaiter().GetResult();
+                            pay = Convert.FromBase64String(implant.Data);
+                        }
+                        catch (Exception ex)
+                        {
+                            context.Terminal.WriteError($"[X] Generation Failed: {ex.Message}");
+                            if (verbose) context.Terminal.WriteError(ex.ToString());
+                        }
                     });
 
-            return null;
+
+
+            return pay;
         }
     }
 }

