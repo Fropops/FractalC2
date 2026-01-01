@@ -26,12 +26,13 @@ namespace Agent.Commands
 
         protected async Task Add(AgentTask task, AgentCommandContext context)
         {
+            var key = string.Empty;
             task.ThrowIfParameterMissing(ParameterId.Path);
-            task.ThrowIfParameterMissing(ParameterId.Key);
             task.ThrowIfParameterMissing(ParameterId.Value);
 
             var path = task.GetParameter<string>(ParameterId.Path);
-            var key = task.GetParameter<string>(ParameterId.Key);
+            if(task.HasParameter(ParameterId.Key))
+                key = task.GetParameter<string>(ParameterId.Key);
             var value = task.GetParameter<string>(ParameterId.Value);
 
             RegistryKey rootKey = null;

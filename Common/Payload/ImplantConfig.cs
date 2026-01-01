@@ -24,6 +24,8 @@ namespace Common.Payload
         public int InjectionDelay { get; set; } = 60;
         public string InjectionProcess { get; set; }
 
+        public bool StoreImplant { get; set; } = true;
+
         public override string ToString()
         {
             var s = $"{Type.ToString()} {Architecture.ToString()} {Endpoint.ToString()}";

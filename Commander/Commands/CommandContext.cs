@@ -100,9 +100,9 @@ namespace Commander.Commands
         //    return fileId;
         //}
 
-        internal static byte[] GeneratePayloadAndDisplay(this CommandContext context, ImplantConfig options, bool verbose = false)
+        internal static Models.Implant GeneratePayloadAndDisplay(this CommandContext context, ImplantConfig options)
         {
-            byte[] pay = null;
+            Models.Implant pay = null;
             AnsiConsole.Status()
                     .Start($"[olive]Generating Payload {options.Type} for Endpoint {options.Endpoint} (arch = {options.Architecture}).[/]", ctx =>
                     {
@@ -114,14 +114,12 @@ namespace Commander.Commands
                             context.Terminal.WriteInfo("Triggering server-side generation...");
                             var result = context.CommModule.GenerateImplant(options).GetAwaiter().GetResult();
                             // No return value from API expected by this method's caller for now.
-
-                            var implant = context.CommModule.GetImplantBinary(result.Id).GetAwaiter().GetResult();
-                            pay = Convert.FromBase64String(implant.Data);
+                            pay = context.CommModule.GetImplantBinary(result.Id).GetAwaiter().GetResult();
                         }
                         catch (Exception ex)
                         {
                             context.Terminal.WriteError($"[X] Generation Failed: {ex.Message}");
-                            if (verbose) context.Terminal.WriteError(ex.ToString());
+                            if (options.IsVerbose) context.Terminal.WriteError(ex.ToString());
                         }
                     });
 

@@ -2,6 +2,9 @@
 * RunAsLoggedOn https://github.com/antonioCoco/RunasCs/blob/master/RunasCs.cs
 * BOF Loader .Net
 
+#Team Server
+Generate implant without storage
+
 # Commanders
 Commands To rework
 ScriptCommands
@@ -16,4 +19,3 @@ ScriptCommands
 #Tests
 Proxy
 rportfwd
-View as loot

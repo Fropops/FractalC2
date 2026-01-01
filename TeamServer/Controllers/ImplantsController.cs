@@ -62,7 +62,7 @@ namespace TeamServer.Controllers
         }
 
         [HttpGet("{implantId}")]
-        public IActionResult GetImplant(string implantId, [FromQuery]bool  withData = true)
+        public IActionResult GetImplant(string implantId, [FromQuery] bool withData = true)
         {
             var implant = _implantService.GetImplant(implantId);
             if (implant == null)
@@ -107,8 +107,11 @@ namespace TeamServer.Controllers
                 {
                     return this.Problem(logs);
                 }
-                _implantService.AddImplant(implant);
-                this._changeTrackingService.TrackChange(ChangingElement.Implant, implant.Id);
+                if (config.StoreImplant)
+                {
+                    _implantService.AddImplant(implant);
+                    this._changeTrackingService.TrackChange(ChangingElement.Implant, implant.Id);
+                }
             }
             catch (Exception ex)
             {
@@ -125,7 +128,7 @@ namespace TeamServer.Controllers
 
         private (string, Implant) GenerateImplant(ImplantConfig config)
         {
-             string logs = string.Empty;
+            string logs = string.Empty;
 
             var generator = new PayloadGenerator(this._config.FoldersConfigs(), this._config.SpawnConfigs());
             generator.MessageSent += (sender, message) =>
@@ -138,9 +141,9 @@ namespace TeamServer.Controllers
                 Config = config,
                 Data = Convert.ToBase64String(data),
             });
-            
+
         }
 
-       
+
     }
 }

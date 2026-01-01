@@ -57,7 +57,7 @@ public partial class PayloadGenerator
     {
         byte[] agentbytes = null;
         if(options.Type != ImplantType.Elf)
-            if (options.IsInjected  && options.Type != ImplantType.Library)
+            if (options.IsInjected && options.Type != ImplantType.Library)
             {
                 agentbytes = PrepareAgent(options, false);
                 agentbytes = PrepareInjectedAgent(options, agentbytes, options.Type == ImplantType.Service);
@@ -321,7 +321,7 @@ public partial class PayloadGenerator
                     {
                         { "Patcher", Encoding.UTF8.GetBytes(patcherb64) },
                         { "PatchKey", encPatcher.Secret },
-                        { "Implant", Encoding.UTF8.GetBytes(agentb64) },
+                        { "Payload", Encoding.UTF8.GetBytes(agentb64) },
                         { "Key", encAgent.Secret }
                     });
             var resultAgent = AssemblyEditor.ChangeName(service, "InstallSvc");
