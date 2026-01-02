@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BinarySerializer;
+using Commander.Models;
+using Common.Command;
 using Shared;
 
-namespace Commander.Commands.Scripted
+namespace Commander.Commands.Custom
 {
-    public class ScriptingAgent<T>
+    public class CustomCommandAgentAdaptater<T> : ICommandAgent
     {
         private CommandContext<T> context;
 
@@ -18,7 +21,7 @@ namespace Commander.Commands.Scripted
             get { return this.context.Executor.CurrentAgent.Metadata; }
         }
 
-        public ScriptingAgent(CommandContext<T> ctxt, List<AgentTask> taskList)
+        public CustomCommandAgentAdaptater(CommandContext<T> ctxt, List<AgentTask> taskList)
         {
             context = ctxt;
             tasks = taskList;
@@ -87,7 +90,6 @@ namespace Commander.Commands.Scripted
             task.Parameters.AddParameter(ParameterId.Verb, CommandVerbs.Add);
             task.Parameters.AddParameter(ParameterId.Path, path);
             task.Parameters.AddParameter(ParameterId.Key, key);
-            this.context.Terminal.WriteInfo($"Key = {key}");
             task.Parameters.AddParameter(ParameterId.Value, value);
         }
 
@@ -105,6 +107,21 @@ namespace Commander.Commands.Scripted
             task.Parameters.AddParameter(ParameterId.Path, path);
         }
 
-        
+        public List<AgentTask> GetTasks()
+        {
+            return this.tasks;
+        }
+
+        public void AddParameter<T>(ParameterId id, T item)
+        {
+            this.context.AddParameter(id, item);
+        }
+
+        public void AddParameter(ParameterId id, byte[] item)
+        {
+            this.context.AddParameter(id, item);
+        }
+
+
     }
 }

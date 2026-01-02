@@ -4,7 +4,7 @@ using Common.Payload;
 using Newtonsoft.Json;
 using TeamServer.Database;
 
-namespace TeamServer.Models.Implant
+namespace TeamServer.Models
 {
     public class Implant
     {

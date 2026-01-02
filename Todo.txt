@@ -7,11 +7,15 @@ Generate implant without storage
 
 # Commanders
 Commands To rework
-ScriptCommands
+Custom Commands
+ - jump psexec & jump winrm
+ - Auto Loader
+ - Web Commander dev
 
 # Web Commander
 
 # Commander 
+show script when generating stored implant
 
 # Install
 -

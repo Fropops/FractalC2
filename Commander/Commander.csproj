@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
@@ -27,7 +27,7 @@
     <Compile Remove="Commands\Agent\KillAgentCommand.cs" />
     <Compile Remove="Commands\Agent\PathCommand.cs" />
     <Compile Remove="Commands\Base64Command.cs" />
-    <Compile Remove="Commands\Scripted\AgentTask.cs" />
+    <Compile Remove="Commands\Custom\AgentTask.cs" />
     <Compile Remove="Commands\FilesCommand.cs" />
     <Compile Remove="Commands\GetCommand.cs" />
     <Compile Remove="Commands\PushCommand.cs" />

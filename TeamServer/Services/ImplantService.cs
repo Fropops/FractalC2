@@ -6,7 +6,6 @@ using Common.APIModels;
 using Shared;
 using TeamServer.Database;
 using TeamServer.Models;
-using TeamServer.Models.Implant;
 using TeamServer.Service;
 
 namespace TeamServer.Services

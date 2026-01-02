@@ -4,7 +4,7 @@ using Common.Payload;
 using Newtonsoft.Json;
 using Shared;
 using SQLite;
-using TeamServer.Models.Implant;
+using TeamServer.Models;
 
 namespace TeamServer.Database;
 
@@ -24,7 +24,7 @@ public sealed class ImplantDao : TeamServerDao
     [Column("isDeleted")]
     public bool IsDeleted { get; set; }
 
-    public static implicit operator ImplantDao(Implant implant)
+    public static implicit operator ImplantDao(Models.Implant implant)
     {
         return new ImplantDao
         {
@@ -38,11 +38,11 @@ public sealed class ImplantDao : TeamServerDao
 
     }
 
-    public static implicit operator Implant(ImplantDao dao)
+    public static implicit operator Models.Implant(ImplantDao dao)
     {
         if (dao == null) return null;
 
-        return new Implant(dao.Id)
+        return new Models.Implant(dao.Id)
         {
             Name = dao.Name,
             Data = Convert.ToBase64String(dao.Data),

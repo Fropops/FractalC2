@@ -11,6 +11,7 @@ using Spectre.Console;
 using Shared;
 using BinarySerializer;
 using System.IO;
+using Common.Models;
 
 namespace Commander.Commands
 {
@@ -46,7 +47,7 @@ namespace Commander.Commands
 
         public void WriteTaskSendToAgent(ExecutorCommand cmd)
         {
-            this.Terminal.WriteSuccess($"Command {cmd.Name} tasked to agent {this.Executor.CurrentAgent.Id}.");
+            this.Terminal.WriteSuccess($"Command {cmd.Name} tasked to agent {this.Executor.CurrentAgent?.Metadata?.Name}.");
         }
 
         public bool? IsAgentAlive(Models.Agent agent)
@@ -100,9 +101,9 @@ namespace Commander.Commands
         //    return fileId;
         //}
 
-        internal static Models.Implant GeneratePayloadAndDisplay(this CommandContext context, ImplantConfig options)
+        internal static Implant GeneratePayloadAndDisplay(this CommandContext context, ImplantConfig options)
         {
-            Models.Implant pay = null;
+            Implant pay = null;
             AnsiConsole.Status()
                     .Start($"[olive]Generating Payload {options.Type} for Endpoint {options.Endpoint} (arch = {options.Architecture}).[/]", ctx =>
                     {

@@ -11,7 +11,7 @@ using Shared;
 using Common.APIModels;
 using Common.Models;
 using TeamServer.Service;
-using TeamServer.Models.Implant;
+using TeamServer.Models;
 using Common.Payload;
 using Common.Config;
 using Common;
@@ -99,7 +99,7 @@ namespace TeamServer.Controllers
             config.ImplantName = PayloadGenerator.GenerateImplantName();
             config.ServerKey = _cryptoService.ServerKey;
             string logs = string.Empty;
-            Implant implant = null;
+            Models.Implant implant = null;
             try
             {
                 (logs, implant) = GenerateImplant(config);
@@ -126,7 +126,7 @@ namespace TeamServer.Controllers
             });
         }
 
-        private (string, Implant) GenerateImplant(ImplantConfig config)
+        private (string, Models.Implant) GenerateImplant(ImplantConfig config)
         {
             string logs = string.Empty;
 
@@ -136,7 +136,7 @@ namespace TeamServer.Controllers
                 logs += message.ToString() + Environment.NewLine;
             };
             var data = generator.GenerateImplant(config);
-            return (logs, new Implant(ShortGuid.NewGuid())
+            return (logs, new Models.Implant(ShortGuid.NewGuid())
             {
                 Config = config,
                 Data = Convert.ToBase64String(data),

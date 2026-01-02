@@ -1,18 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.CommandLine;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Commander.Commands.Agent;
+﻿using System.CommandLine;
 using Commander.Commands.Composite;
-using Commander.Commands.Scripted;
+using Commander.Commands.Custom;
 using Commander.Executor;
 using Common;
-using Common.Payload;
-using Shared;
-using Spectre.Console;
 
 namespace Commander.Commands.Agent.LateralMovement
 {
@@ -59,7 +49,7 @@ namespace Commander.Commands.Agent.LateralMovement
              new Option(new[] { "--x86", "-x86" }, "Generate a x86 architecture executable"),
         };
 
-        protected override void Run(ScriptingAgent<JumpPsExecCommandOptions> agent, ScriptingCommander<JumpPsExecCommandOptions> commander, ScriptingTeamServer<JumpPsExecCommandOptions> teamServer, JumpPsExecCommandOptions options, CommanderConfig config)
+        protected override void Run(CustomCommandAgentAdaptater<JumpPsExecCommandOptions> agent, CustomCommandCommanderAdaptater<JumpPsExecCommandOptions> commander, JumpPsExecCommandOptions options, CommanderConfig config)
         {
             //if (string.IsNullOrEmpty(options.endpoint))
             //{

@@ -18,6 +18,7 @@ namespace Commander.Commands
         public static string Commander { get; set; } = "Commander";
 
         public static string ToRework { get; set; } = "ToRework";
-        public static List<string> All { get; }  = new List<string> { Agent, Execution, LateralMovement, Media, Network, System, Token };
+        public static string Custom { get; set; } = "Custom";
+        public static List<string> All { get; }  = new List<string> { Agent, Execution, LateralMovement, Media, Network, System, Token, Custom };
     }
 }

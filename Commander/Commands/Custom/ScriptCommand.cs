@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BinarySerializer;
 using Commander.Commands.Agent;
-using Commander.Commands.Scripted;
+using Commander.Commands.Custom;
 using Commander.Executor;
 using Common;
 using Newtonsoft.Json;
@@ -22,7 +22,7 @@ namespace Commander.Commands.Composite
 
         protected List<AgentTask> Tasks { get; private set; } = new List<AgentTask>();
 
-        protected abstract void Run(ScriptingAgent<T> agent, ScriptingCommander<T> commander, ScriptingTeamServer<T> teamServer, T options, CommanderConfig config);
+        protected abstract void Run(CustomCommandAgentAdaptater<T> agent, CustomCommandCommanderAdaptater<T> commander, T options, CommanderConfig config);
 
 
         //protected void RegisterTask(string command, string arguments = null, string fileName = null, string fileId = null)
@@ -86,11 +86,10 @@ namespace Commander.Commands.Composite
         {
             this.Tasks.Clear();
 
-            var agent = new ScriptingAgent<T>(context, this.Tasks);
-            var commander = new ScriptingCommander<T>(context);
-            var teamServer = new ScriptingTeamServer<T>(context);
+            var agent = new CustomCommandAgentAdaptater<T>(context, this.Tasks);
+            var commander = new CustomCommandCommanderAdaptater<T>(context);
 
-            this.Run(agent, commander, teamServer, context.Options , context.Config);
+            this.Run(agent, commander, context.Options , context.Config);
 
             context.AddParameter(ParameterId.Parameters, this.Tasks);
             base.SpecifyParameters(context);

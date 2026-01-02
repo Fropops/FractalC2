@@ -3,16 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Common.Command;
+using Common.Models;
 using Common.Payload;
 using Shared;
 
-namespace Commander.Commands.Scripted
+namespace Commander.Commands.Custom
 {
-    public class ScriptingCommander<T>
+    public class CustomCommandCommanderAdaptater<T> : ICommandCommander
     {
         private CommandContext<T> context;
 
-        public ScriptingCommander(CommandContext<T> ctxt)
+        public CustomCommandCommanderAdaptater(CommandContext<T> ctxt)
         {
             context = ctxt;
         }
@@ -34,9 +36,17 @@ namespace Commander.Commands.Scripted
             this.context.Terminal.WriteInfo(message);
         }
 
-        public Models.Implant GeneratePayload(ImplantConfig options)
+        public Implant GeneratePayload(ImplantConfig options)
         {
             return context.GeneratePayloadAndDisplay(options);
+        }
+
+
+
+        public void CallEndPointCommand(string commandName, CommandId commandId)
+        {
+            context.CommModule.TaskAgent(context.CommandLabel, context.Executor.CurrentAgent.Id, commandId, context.Parameters).Wait();
+            context.Terminal.WriteSuccess($"Command {commandName} tasked to agent {context.Executor.CurrentAgent?.Metadata?.Name}.");
         }
     }
 }
