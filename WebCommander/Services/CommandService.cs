@@ -5,8 +5,8 @@ using System.CommandLine.Parsing;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using WebCommander.Commands;
 using WebCommander.Models;
-using WebCommander.Services.Commands;
 
 namespace WebCommander.Services
 {

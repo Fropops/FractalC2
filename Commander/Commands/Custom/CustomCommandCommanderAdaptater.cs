@@ -36,9 +36,9 @@ namespace Commander.Commands.Custom
             this.context.Terminal.WriteInfo(message);
         }
 
-        public Implant GeneratePayload(ImplantConfig options)
+        public Task<Implant> GeneratePayload(ImplantConfig options)
         {
-            return context.GeneratePayloadAndDisplay(options);
+            return Task.FromResult(context.GeneratePayloadAndDisplay(options));
         }
 
 

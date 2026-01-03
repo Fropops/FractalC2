@@ -22,7 +22,6 @@ using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using Shared;
 using Spectre.Console;
-using Implant = Common.Models.Implant;
 
 namespace Commander.Communication
 {

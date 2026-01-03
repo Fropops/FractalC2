@@ -93,7 +93,7 @@ namespace Common.Command.Custom
                 payloadOptions.InjectionProcess = options.injectProcess;
 
             commander.WriteInfo($"[>] Generating Payload!");
-            var implant = commander.GeneratePayload(payloadOptions);
+            var implant = await commander.GeneratePayload(payloadOptions);
             if (implant == null)
                 commander.WriteError($"[X] Generation Failed!");
             else

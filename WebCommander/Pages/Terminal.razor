@@ -1,11 +1,12 @@
 @page "/terminal/{AgentId}"
-@using Shared
-@using WebCommander.Models
-@using WebCommander.Models.ResultObjects
-@using WebCommander.Services
-@using WebCommander.Helpers
-@using WebCommander.Components
 @using System.Collections.Generic
+@using Shared
+@using Shared.ResultObjects
+@using WebCommander.Commands.EndPoint
+@using WebCommander.Components
+@using WebCommander.Helpers
+@using WebCommander.Models
+@using WebCommander.Services
 @inject AgentService AgentService
 @inject NavigationManager NavigationManager
 @inject CommandService CommandService
@@ -999,7 +1000,7 @@
         var (fileBytes, localName) = result.Value;
 
         var cmdBase = CommandService.GetCommand("upload", agent);
-        if (cmdBase is WebCommander.Services.Commands.UploadCommand uploadCmd)
+        if (cmdBase is UploadCommand uploadCmd)
         {
              uploadCmd.FileBytes = fileBytes;
              uploadCmd.LocalFileName = localName;

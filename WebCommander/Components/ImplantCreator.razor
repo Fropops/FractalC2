@@ -1,3 +1,6 @@
+@using Common
+@using Common.Payload
+@using Shared
 @using WebCommander.Models
 @using WebCommander.Services
 @using System.Text.RegularExpressions
@@ -330,10 +333,10 @@
             }
 
             // Create the implant - only pass the config
-            var (success, implantName, logs) = await Api.CreateImplantAsync(config);
+            var (success, result) = await Api.CreateImplantAsync(config);
             
             // Notify parent of success
-            await OnCreationResult.InvokeAsync((success, success ? $"Implant {implantName} created successfully." : "Failed to create implant.", logs));
+            await OnCreationResult.InvokeAsync((success, success ? $"Implant {result.ImplantName} created successfully." : "Failed to create implant.", result.Logs));
         }
         catch (HttpRequestException ex)
         {

@@ -1,4 +1,6 @@
 @page "/implants"
+@using Common.Models
+@using Common.Payload
 @using WebCommander.Models
 @using WebCommander.Services
 @using WebCommander.Components
@@ -103,13 +105,13 @@ else
                         var protocol = listener.Secured ? "https://" : "http://";
                         var listenerUrl = $"{protocol}{listener.Ip}:{listener.BindPort}";
                         var isSecured = listener.Secured;
-                        var implantUrl = $"{listenerUrl}/imp/{selectedImplant.Config?.ImplantName}{GetFileExtension(selectedImplant.Config?.Type ?? ImplantType.Executable)}";
-                        var fileName = $"{selectedImplant.Config?.ImplantName}{GetFileExtension(selectedImplant.Config?.Type ?? ImplantType.Executable)}";
+                        var implantUrl = $"{listenerUrl}/imp/{selectedImplant.Config?.ImplantName}{GetFileExtension(selectedImplant.Config?.Type ?? Common.Payload.ImplantType.Executable)}";
+                        var fileName = $"{selectedImplant.Config?.ImplantName}{GetFileExtension(selectedImplant.Config?.Type ?? Common.Payload.ImplantType.Executable)}";
 
                         <div class="mb-4">
                             <h6 class="text-primary">Listener: @listener.Name (@listenerUrl)</h6>
                             
-                            @if (selectedImplant.Config?.Type == ImplantType.PowerShell)
+                            @if (selectedImplant.Config?.Type == Common.Payload.ImplantType.PowerShell)
                             {
                                 <!-- PowerShell Script -->
                                 <div class="mb-3">

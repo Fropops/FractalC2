@@ -1,4 +1,7 @@
 @page "/task-result/{AgentId}/{TaskId}"
+@using Common.Models
+@using Shared
+@using Shared.ResultObjects
 @using WebCommander.Models
 @using WebCommander.Services
 @inject AgentService AgentService
@@ -100,7 +103,6 @@
     }
 </style>
 
-@using WebCommander.Models.ResultObjects
 @using WebCommander.Helpers
 
 @code {

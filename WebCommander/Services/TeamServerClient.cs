@@ -2,6 +2,10 @@ using System.Net.Http.Json;
 using WebCommander.Models;
 using BinarySerializer;
 using Shared;
+using Common.Payload;
+using Common.APIModels;
+using Common;
+using Common.Models;
 
 namespace WebCommander.Services
 {
@@ -233,7 +237,7 @@ namespace WebCommander.Services
             return await response.Content.ReadFromJsonAsync<Implant>();
         }
 
-        public async Task<(bool success, string implantName, string logs)> CreateImplantAsync(ImplantConfig config)
+        public async Task<(bool success, ImplantCreationResult result)> CreateImplantAsync(ImplantConfig config)
         {
             await EnsureConfiguredAsync();
             var response = await _client.PostAsJsonAsync("/Implants", config);
@@ -241,12 +245,12 @@ namespace WebCommander.Services
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ImplantCreationResult>();
-                return (true, result?.ImplantName ?? "Unknown", result?.Logs ?? string.Empty);
+                return (true, result);
             }
             else
             {
                 var errorDetails = await response.Content.ReadAsStringAsync();
-                return (false, string.Empty, errorDetails);
+                return (false, new ImplantCreationResult { Logs = errorDetails });
             }
         }
 

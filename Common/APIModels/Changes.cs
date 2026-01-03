@@ -10,9 +10,9 @@ namespace Common.APIModels
         public ChangingElement Element { get; set; }
         public string Id { get; set; }
 
-        public Change(ChangingElement elem, string id)
+        public Change(ChangingElement element, string id)
         {
-            this.Element = elem;
+            this.Element = element;
             this.Id = id;
         }
     }

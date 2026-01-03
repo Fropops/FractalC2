@@ -2,7 +2,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using BinarySerializer;
 using MiscUtil.IO;
-using WebCommander.Models.ResultObjects;
+using Shared;
+using Shared.ResultObjects;
 
 namespace WebCommander.Helpers
 {

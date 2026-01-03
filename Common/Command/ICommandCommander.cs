@@ -17,7 +17,7 @@ namespace Common.Command
 
         void WriteLine(string message);
         void WriteInfo(string message);
-        Implant GeneratePayload(ImplantConfig options);
+        Task<Implant> GeneratePayload(ImplantConfig options);
 
         void CallEndPointCommand(string commandName, CommandId commandId);
     }

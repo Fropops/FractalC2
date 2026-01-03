@@ -1,3 +1,6 @@
+using Common.APIModels;
+using Common.Models;
+using Shared;
 using WebCommander.Models;
 
 namespace WebCommander.Services
@@ -114,9 +117,9 @@ namespace WebCommander.Services
 
                 foreach (var change in changes)
                 {
-                    Console.WriteLine($"Processing change: {change.Type} for ID {change.Id}");
+                    Console.WriteLine($"Processing change: {change.Element} for ID {change.Id}");
                     
-                    if (change.Type == ChangingElement.Agent)
+                    if (change.Element == ChangingElement.Agent)
                     {
                         try
                         {
@@ -154,7 +157,7 @@ namespace WebCommander.Services
                             }
                         }
                     }
-                    else if (change.Type == ChangingElement.Listener)
+                    else if (change.Element == ChangingElement.Listener)
                     {
                         try
                         {
@@ -173,7 +176,7 @@ namespace WebCommander.Services
                             }
                         }
                     }
-                    else if (change.Type == ChangingElement.Result)
+                    else if (change.Element == ChangingElement.Result)
                     {
                         try
                         {
@@ -193,7 +196,7 @@ namespace WebCommander.Services
                             _taskResults.Remove(change.Id);
                         }
                     }
-                    else if (change.Type == ChangingElement.Task)
+                    else if (change.Element == ChangingElement.Task)
                     {
                         try
                         {
@@ -212,7 +215,7 @@ namespace WebCommander.Services
                             }
                         }
                     }
-                    else if (change.Type == ChangingElement.Implant)
+                    else if (change.Element == ChangingElement.Implant)
                     {
                         try
                         {

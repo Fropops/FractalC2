@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 
 namespace Common.Payload
 {
-    internal class Encrypter
+    public class Encrypter
     {
         public Encrypter()
         {
@@ -51,7 +51,7 @@ namespace Common.Payload
         }
     }
 
-    internal class EncryptResult
+    public class EncryptResult
     {
         public string Secret { get; private set; }
 
