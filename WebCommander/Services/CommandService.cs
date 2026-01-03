@@ -30,17 +30,24 @@ namespace WebCommander.Services
 
             foreach (var type in commandTypes)
             {
-                Console.WriteLine($"Loading command {type.Name}");
-                var commandBase = CreateCommand(type);
-                if (commandBase != null)
+                try
                 {
-                    Console.WriteLine($"Command {type.Name} loaded");
-                    _commands.Add(commandBase);
-                    _commandMap[commandBase.Name] = type;
-                    foreach (var alias in commandBase.Aliases)
+                    Console.WriteLine($"Loading command {type.Name}");
+                    var commandBase = CreateCommand(type);
+                    if (commandBase != null)
                     {
-                        _commandMap[alias] = type;
+                        Console.WriteLine($"Command {type.Name} loaded (Name: {commandBase.Name})");
+                        _commands.Add(commandBase);
+                        _commandMap[commandBase.Name] = type;
+                        foreach (var alias in commandBase.Aliases)
+                        {
+                            _commandMap[alias] = type;
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading command {type.Name}: {ex.Message}");
                 }
             }
         }

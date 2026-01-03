@@ -1,6 +1,7 @@
 # Agent
 * RunAsLoggedOn https://github.com/antonioCoco/RunasCs/blob/master/RunasCs.cs
 * BOF Loader .Net
+When link to another agent failed, should not continue to make believe the agent is still alive
 
 #Team Server
 Generate implant without storage
@@ -11,6 +12,7 @@ Custom Commands
  - jump psexec & jump winrm
  - Auto Loader
  - Web Commander dev
+ - Renamle to Composite?
 
 # Web Commander
 

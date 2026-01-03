@@ -14,6 +14,7 @@ namespace WebCommander.Models
         public static string Token { get; set; } = "Token";
         public static string UI { get; set; } = "UI";   
         public static string Agent { get; set; } = "Agent";   
+        public static string Custom { get; set; } = "Custom";
 
         public static List<string> All { get; } = new List<string> { Network, Services, LateralMovement, Media, Navigation, Agent, UI };
     }

@@ -4,6 +4,7 @@ using System.Reflection;
 using Common.Command;
 using Shared;
 using WebCommander.Commands;
+using WebCommander.Models;
 
 namespace WebCommander.Commands.Custom
 {
@@ -18,6 +19,8 @@ namespace WebCommander.Commands.Custom
         public override CommandId Id => CommandId.Script; 
         
         public override string[] Aliases => _customCommand.Alternate ?? Array.Empty<string>();
+        
+        public override string Category => CommandCategory.Custom;
 
         public override OsType[] SupportedOs => _customCommand.SupportedOs;
 
@@ -38,7 +41,10 @@ namespace WebCommander.Commands.Custom
             
             // 1. Parse Options
             var rootCommand = CommandGenerator.GenerateRootCommand<Opt>(Description);
-            //rootCommand.Name = Name; 
+            rootCommand.Add(new Argument<string>(this.Name)
+            {
+                Arity = ArgumentArity.ExactlyOne,
+            });
 
             var parseResult = rootCommand.Parse(commandLine);
             

@@ -42,6 +42,11 @@ namespace WebCommander.Commands
             sb.AppendLine("===================");
 
             var commands = _commandService.GetCommands().Where(c => c.Name != "help" && (_agent == null || c.SupportedOs.Contains(_agent.Metadata.OsType)));
+            foreach(var cmd in commands)
+            {
+                Console.WriteLine($"  {cmd.Name,-20} {cmd.Description}");
+            }
+            
             var groupedCommands = commands.GroupBy(c => c.Category).OrderBy(g => g.Key);
 
             foreach (var group in groupedCommands)
