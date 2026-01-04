@@ -68,7 +68,7 @@ namespace TeamServer.Controllers
             if (implant == null)
                 return NotFound();
 
-            return Ok(new TeamServerImplant()
+            return Ok(new APIImplant()
             {
                 Id = implant.Id,
                 Data = withData ? implant.Data : null,
@@ -118,10 +118,16 @@ namespace TeamServer.Controllers
                 return this.Problem(ex.ToString());
             }
 
-            return Ok(new ImplantCreationResult()
+            return Ok(new APIImplantCreationResult()
             {
-                Id = implant.Id,
-                ImplantName = config.ImplantName,
+                Implant = new APIImplant()
+                {
+                    Id = implant.Id,
+                    Data = config.StoreImplant ? string.Empty : implant.Data,
+                    Config = implant.Config,
+                    Name = implant.Name,
+                    Listener = implant.Listener,
+                },
                 Logs = logs,
             });
         }

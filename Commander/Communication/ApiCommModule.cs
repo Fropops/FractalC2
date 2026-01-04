@@ -33,7 +33,7 @@ namespace Commander.Communication
         public event EventHandler<Agent> AgentMetaDataUpdated;
         public event EventHandler<AgentTaskResult> TaskResultUpdated;
         public event EventHandler<Agent> AgentAdded;
-        public event EventHandler<Implant> ImplantAdded;
+        public event EventHandler<APIImplant> ImplantAdded;
 
         private CancellationTokenSource _tokenSource;
 
@@ -43,7 +43,7 @@ namespace Commander.Communication
         protected ConcurrentDictionary<string, Agent> _agents = new ConcurrentDictionary<string, Agent>();
         protected ConcurrentDictionary<string, TeamServerAgentTask> _tasks = new ConcurrentDictionary<string, TeamServerAgentTask>();
         protected ConcurrentDictionary<string, AgentTaskResult> _results = new ConcurrentDictionary<string, AgentTaskResult>();
-        protected ConcurrentDictionary<string, Implant> _implants = new ConcurrentDictionary<string, Implant>();
+        protected ConcurrentDictionary<string, APIImplant> _implants = new ConcurrentDictionary<string, APIImplant>();
 
 
         private ITerminal Terminal;
@@ -647,7 +647,7 @@ namespace Commander.Communication
             try
             {
                 var response = await _client.GetStringAsync($"Implants/{id}");
-                var implant = JsonConvert.DeserializeObject<Implant>(response);
+                var implant = JsonConvert.DeserializeObject<APIImplant>(response);
 
                 this._implants.AddOrUpdate(implant.Id, implant, (key, current) =>
                 {
@@ -671,19 +671,19 @@ namespace Commander.Communication
         }
 
         #region Implants
-        public List<Implant> GetImplants()
+        public List<APIImplant> GetImplants()
         {
             return this._implants.Values.ToList();
         }
 
-        public Implant GetImplant(string id)
+        public APIImplant GetImplant(string id)
         {
             if (this._implants.ContainsKey(id))
                 return this._implants[id];
             return null;
         }
 
-        public async Task<ImplantCreationResult> GenerateImplant(ImplantConfig config)
+        public async Task<APIImplantCreationResult> GenerateImplant(ImplantConfig config)
         {
             var requestContent = JsonConvert.SerializeObject(config);
             var response = await _client.PostAsync("/Implants", new StringContent(requestContent, UnicodeEncoding.UTF8, "application/json"));
@@ -695,18 +695,18 @@ namespace Commander.Communication
             }
 
             var json = await response.Content.ReadAsStringAsync();
-            var result = JsonConvert.DeserializeObject<ImplantCreationResult>(json);
+            var result = JsonConvert.DeserializeObject<APIImplantCreationResult>(json);
 
             if (config.IsVerbose && !string.IsNullOrEmpty(result.Logs))
             {
                 Terminal.WriteInfo(result.Logs);
             }
 
-            Terminal.WriteSuccess($"Generation of implant {result.ImplantName} succeeded!");
+            Terminal.WriteSuccess($"Generation of implant {result.Implant.Name} succeeded!");
             return result;
         }
 
-        public async Task<Implant> GetImplantBinary(string id)
+        public async Task<APIImplant> GetImplantBinary(string id)
         {
             var response = await _client.GetAsync($"/Implants/{id}?withData=true");
 
@@ -714,7 +714,7 @@ namespace Commander.Communication
                 return null;
 
             var json = await response.Content.ReadAsStringAsync();
-            var implant = JsonConvert.DeserializeObject<Implant>(json);
+            var implant = JsonConvert.DeserializeObject<APIImplant>(json);
             return implant;
         }
 

@@ -887,6 +887,7 @@
             // Track task ID if command was sent successfully
             if (taskId != null)
             {
+                Console.WriteLine($"Adding task ID {taskId}");
                 sentTaskIds.Add(taskId);
                 // Store command name (first word)
                 var cmdName = commandToSend.Split(' ')[0];

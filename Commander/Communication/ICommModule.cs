@@ -57,10 +57,10 @@ namespace Commander.Communication
         Task CloseSession();
 
         // Implants
-        List<Implant> GetImplants();
-        Implant GetImplant(string id);
-        Task<ImplantCreationResult> GenerateImplant(ImplantConfig config);
-        Task<Implant> GetImplantBinary(string id);
+        List<APIImplant> GetImplants();
+        APIImplant GetImplant(string id);
+        Task<APIImplantCreationResult> GenerateImplant(ImplantConfig config);
+        Task<APIImplant> GetImplantBinary(string id);
         Task DeleteImplant(string id);
 
         // Loot
@@ -75,6 +75,6 @@ namespace Commander.Communication
         Task<List<Tool>> GetTools(ToolType? type = null, string name = null);
         Task AddTool(string path);
 
-        event EventHandler<Implant> ImplantAdded;
+        event EventHandler<APIImplant> ImplantAdded;
     }
 }

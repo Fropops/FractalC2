@@ -56,7 +56,7 @@ namespace Common.Command.Custom
             var endpoint = ConnexionUrl.FromString($"pipe://*:{options.pipe}");
             var payloadOptions = new ImplantConfig()
             {
-                //StoreImplant = false,
+                StoreImplant = false,
                 Architecture =  options.x86 ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Endpoint = endpoint,
                 IsDebug = false,

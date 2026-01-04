@@ -10,7 +10,7 @@ namespace WebCommander.Services
         private readonly TeamServerClient _client;
         private readonly Dictionary<string, Agent> _agents = new();
         private readonly Dictionary<string, Listener> _listeners = new();
-        private readonly Dictionary<string, Implant> _implants = new();
+        private readonly Dictionary<string, APIImplant> _implants = new();
         private readonly Dictionary<string, AgentTaskResult> _taskResults = new();
         private readonly Dictionary<string, TeamServerAgentTask> _tasks = new();
         private System.Threading.Timer? _timer;
@@ -325,7 +325,7 @@ namespace WebCommander.Services
             return _listeners.Values.ToList();
         }
 
-        public List<Implant> GetImplants()
+        public List<APIImplant> GetImplants()
         {
             return _implants.Values.ToList();
         }

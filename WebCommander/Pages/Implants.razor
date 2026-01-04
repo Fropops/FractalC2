@@ -1,10 +1,11 @@
 @page "/implants"
+@using Common.APIModels
 @using Common.Models
 @using Common.Payload
-@using WebCommander.Models
-@using WebCommander.Services
 @using WebCommander.Components
 @using WebCommander.Helpers
+@using WebCommander.Models
+@using WebCommander.Services
 @inject AgentService AgentService
 @inject TeamServerClient Api
 @inject IJSRuntime JSRuntime
@@ -179,10 +180,10 @@ else
 <ActionToast @ref="toast" />
 
 @code {
-    private List<Implant> implants = new();
+    private List<APIImplant> implants = new();
     private bool showCreateModal = false;
     private bool showScriptsModal = false;
-    private Implant? selectedImplant = null;
+    private APIImplant? selectedImplant = null;
     private ActionToast toast;
 
     protected override void OnInitialized()
@@ -200,7 +201,7 @@ else
         InvokeAsync(StateHasChanged);
     }
 
-    private async Task DownloadImplant(Implant implant)
+    private async Task DownloadImplant(APIImplant implant)
     {
         try
         {
@@ -246,7 +247,7 @@ else
         };
     }
 
-    private async Task DeleteImplant(Implant implant)
+    private async Task DeleteImplant(APIImplant implant)
     {
         if (await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete implant {implant.Config?.ImplantName}?"))
         {
@@ -293,7 +294,7 @@ else
         }
     }
 
-    private void ShowScripts(Implant implant)
+    private void ShowScripts(APIImplant implant)
     {
         selectedImplant = implant;
         showScriptsModal = true;

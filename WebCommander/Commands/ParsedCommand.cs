@@ -62,13 +62,12 @@ namespace WebCommander.Commands
 
         protected virtual void AddCommandParameters(RootCommand command)
         {
-        } 
+        }
 
-        public override string GetUsage()
+        public static string GetUsage(RootCommand cmd)
         {
             var parts = new List<string>();
             var descs = new List<string>();
-            Command cmd = this.Command;
 
             // Nom de la commande
             parts.Add(cmd.Arguments.First().Name);
@@ -92,11 +91,11 @@ namespace WebCommander.Commands
                 string syntax = opt.Arity.MinimumNumberOfValues > 0
                     ? $"<{opt.Name}" + (aliases.Length > 0 ? (" (" + aliases + ")") : string.Empty) + ">"
                     : $"[{opt.Name}" + (aliases.Length > 0 ? (" (" + aliases + ")") : string.Empty) + "]";
-                
+
                 parts.Add(syntax);
             }
 
-            if(cmd.Arguments.Count > 1)
+            if (cmd.Arguments.Count > 1)
             {
                 descs.Add("Arguments:");
             }
@@ -109,7 +108,7 @@ namespace WebCommander.Commands
                 descs.Add("  " + syntax + " : " + arg.Description ?? string.Empty);
             }
 
-            if(cmd.Options.Count > 2)
+            if (cmd.Options.Count > 2)
             {
                 descs.Add("Options:");
             }
@@ -122,11 +121,16 @@ namespace WebCommander.Commands
                     ? ($"<{opt.Name}" + (aliases.Length > 0 ? $" ({aliases})" : "") + ">")
                     : $"[{opt.Name}" + (aliases.Length > 0 ? $" ({aliases})" : "") + "]";
                 syntax += " : " + opt.Description ?? string.Empty;
-                
+
                 descs.Add("  " +syntax);
             }
 
             return "Usage: " + string.Join(" ", parts) + "\n" + string.Join("\n", descs);
+        }
+
+        public override string GetUsage()
+        {
+            return GetUsage(this.Command);
         }
     }
 }

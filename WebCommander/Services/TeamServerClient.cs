@@ -220,37 +220,37 @@ namespace WebCommander.Services
             return agentTask.Id;
         }
 
-        public async Task<List<Implant>> GetImplantsAsync()
+        public async Task<List<APIImplant>> GetImplantsAsync()
         {   
             await EnsureConfiguredAsync();
-            var result = await _client.GetFromJsonAsync<List<Implant>>("/Implants");
-            return result ?? new List<Implant>();
+            var result = await _client.GetFromJsonAsync<List<APIImplant>>("/Implants");
+            return result ?? new List<APIImplant>();
         }
 
-        public async Task<Implant?> GetImplantAsync(string id)
+        public async Task<APIImplant?> GetImplantAsync(string id)
         {
             await EnsureConfiguredAsync();
             var response = await _client.GetAsync($"/Implants/{id}?withData=false");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<Implant>();
+            return await response.Content.ReadFromJsonAsync<APIImplant>();
         }
 
-        public async Task<(bool success, ImplantCreationResult result)> CreateImplantAsync(ImplantConfig config)
+        public async Task<(bool success, APIImplantCreationResult result)> CreateImplantAsync(ImplantConfig config)
         {
             await EnsureConfiguredAsync();
             var response = await _client.PostAsJsonAsync("/Implants", config);
             
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<ImplantCreationResult>();
+                var result = await response.Content.ReadFromJsonAsync<APIImplantCreationResult>();
                 return (true, result);
             }
             else
             {
                 var errorDetails = await response.Content.ReadAsStringAsync();
-                return (false, new ImplantCreationResult { Logs = errorDetails });
+                return (false, new APIImplantCreationResult { Logs = errorDetails });
             }
         }
 
@@ -261,14 +261,14 @@ namespace WebCommander.Services
             return response.IsSuccessStatusCode;
         }
 
-        public async Task<Implant?> GetImplantWithDataAsync(string id)
+        public async Task<APIImplant?> GetImplantWithDataAsync(string id)
         {
             await EnsureConfiguredAsync();
             var response = await _client.GetAsync($"/Implants/{id}?withData=true");
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<Implant>();
+            return await response.Content.ReadFromJsonAsync<APIImplant>();
         }
 
         // WebHost methods

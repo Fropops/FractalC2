@@ -31,7 +31,12 @@ namespace WebCommander.Commands.Custom
 
         public override string GetUsage()
         {
-            return Description;
+            var rootCommand = CommandGenerator.GenerateRootCommand<Opt>(Description);
+            rootCommand.Add(new Argument<string>(this.Name)
+            {
+                Arity = ArgumentArity.ExactlyOne,
+            });
+            return ParsedCommand.GetUsage(rootCommand);
         }
 
         public override async Task<CommandResult> ExecuteAsync(string commandLine)
@@ -52,6 +57,11 @@ namespace WebCommander.Commands.Custom
             {
                 result.Failed(string.Join("\n", parseResult.Errors.Select(e => e.Message)));
                 return result;
+            }
+
+            if (parseResult.Tokens.Any(t => t.Value == "-h" || t.Value == "--help" || t.Value == "/?"))
+            {
+                return new CommandResult().Succeed($"{this.GetUsage()}");
             }
 
             var options = new Opt();
@@ -86,6 +96,7 @@ namespace WebCommander.Commands.Custom
                 }
             }
 
+
             // 2. Prepare Adapters
             var agentAdapter = new CustomCommandAgentAdaptater<Opt>(_agent?.Metadata);
             var commanderAdapter = new CustomCommandCommanderAdaptater(_client, _agent, result);
@@ -111,26 +122,11 @@ namespace WebCommander.Commands.Custom
             // 4. Task Agent
             if (commanderAdapter.Tasked)
             {
-                var targetCmdId = (CommandId)(int)commanderAdapter.TargetCommandId;
-                var webParams = new ParameterDictionary();
-                
-                // Copy parameters
-                // Adapter.ContextParameters is Shared.ParameterDictionary
-                if (agentAdapter.ContextParameters != null)
-                {
-                    foreach (var kvp in agentAdapter.ContextParameters)
-                    {
-                        var pid = (ParameterId)(int)kvp.Key;
-                        webParams.Add(pid, kvp.Value);
-                    }
-                }
-                
                 // Send
                 try
                 {
-                    var taskId = await _client.TaskAgent(Name, _agent.Id, targetCmdId, webParams);
-                    result.TaskId = taskId;
-                    result.Succeed(result.Message ?? "Command tasked successfully.");
+                    var taskId = await _client.TaskAgent(Name, _agent.Id, commanderAdapter.TargetCommandId, agentAdapter.ContextParameters);
+                    result.Succeed(result.Message + Environment.NewLine + $"Command {commanderAdapter.TargetCommandName} tasked to agent : {agentAdapter.Metadata?.Name?.ToString()}", taskId);
                 }
                 catch(Exception ex)
                 {

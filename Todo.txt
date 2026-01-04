@@ -4,20 +4,18 @@
 When link to another agent failed, should not continue to make believe the agent is still alive
 
 #Team Server
-Generate implant without storage
 
 # Commanders
 Commands To rework
 Custom Commands
  - jump psexec & jump winrm
- - Auto Loader
- - Web Commander dev
- - Renamle to Composite?
+ - Auto Loader?
+ - Rename to Composite?
 
 # Web Commander
 
+
 # Commander 
-show script when generating stored implant
 
 # Install
 -
@@ -25,3 +23,10 @@ show script when generating stored implant
 #Tests
 Proxy
 rportfwd
+
+
+#Other
+Rework ClientAPI
+Rework AgentCommands
+Rework Client Models
+

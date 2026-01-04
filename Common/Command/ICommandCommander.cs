@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Common.Models;
+using Common.APIModels;
 using Common.Payload;
 using Shared;
 
@@ -17,7 +17,7 @@ namespace Common.Command
 
         void WriteLine(string message);
         void WriteInfo(string message);
-        Task<Implant> GeneratePayload(ImplantConfig options);
+        Task<APIImplant> GeneratePayload(ImplantConfig options);
 
         void CallEndPointCommand(string commandName, CommandId commandId);
     }

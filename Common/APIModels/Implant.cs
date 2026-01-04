@@ -1,8 +1,8 @@
 using Common.Payload;
 
-namespace Common.Models
+namespace Common.APIModels
 {
-    public class Implant
+    public class APIImplant
     {
         public string Id { get; set; }
         public string Name { get; set; }

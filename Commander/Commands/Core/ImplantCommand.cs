@@ -9,6 +9,7 @@ using Commander.Executor;
 using Commander.Helper;
 using Commander.Models;
 using Common;
+using Common.APIModels;
 using Common.Payload;
 using Shared;
 using Spectre.Console;
@@ -181,18 +182,23 @@ namespace Commander.Commands.Core
             {
                 context.Terminal.WriteInfo($"Generating {config.Architecture} {config.Type} implant for {config.Endpoint}...");
                 var result = await context.CommModule.GenerateImplant(config);
-                
-                if (context.Options.download && result != null && !string.IsNullOrEmpty(result.Id))
+
+                // For a freshly generated implant, we use the name from the config
+                context.Options.name = result.Implant.Name;
+                if (context.Options.download && result != null)
                 {
-                    // For a freshly generated implant, we use the name from the config
-                    context.Options.name = result.ImplantName;
                     await this.DownloadImplant(context);
                 }
+
+                await Script(result.Implant, context);
             }
             catch (Exception ex)
             {
                 context.Terminal.WriteError($"Generation failed: {ex.Message}");
             }
+
+            
+
             return true;
         }
 
@@ -282,23 +288,28 @@ namespace Commander.Commands.Core
                  return false;
              }
 
-             var listeners = context.CommModule.GetListeners();
-             // Filter by listener if one is specified in the implant config
-             if (!string.IsNullOrEmpty(selectedImplant.Config?.Listener))
-             {
-                 listeners = listeners.Where(l => l.Name == selectedImplant.Config.Listener).ToList();
-             }
-             else if(!string.IsNullOrEmpty(context.Options.listener))
-             {
-                 listeners = listeners.Where(l => l.Name == context.Options.listener).ToList();
-             }
+            await Script(selectedImplant, context);
+            return true;
+        }
 
-             if (!listeners.Any())
-             {
-                 context.Terminal.WriteInfo("No compatible listeners found.");
-                 return true;
-             }
-            
+        private async Task Script(APIImplant selectedImplant, CommandContext<ImplantCommandOptions> context)
+        {
+            var listeners = context.CommModule.GetListeners();
+            // Filter by listener if one is specified in the implant config
+            if (!string.IsNullOrEmpty(selectedImplant.Config?.Listener))
+            {
+                listeners = listeners.Where(l => l.Name == selectedImplant.Config.Listener).ToList();
+            }
+            else if (!string.IsNullOrEmpty(context.Options.listener))
+            {
+                listeners = listeners.Where(l => l.Name == context.Options.listener).ToList();
+            }
+
+            if (!listeners.Any())
+            {
+                context.Terminal.WriteInfo("No compatible listeners found.");
+            }
+
             foreach (var listener in listeners)
             {
                 var protocol = listener.Secured ? "https://" : "http://";
@@ -308,7 +319,7 @@ namespace Commander.Commands.Core
                 var fileName = $"{selectedImplant.Config?.ImplantName}{GetFileExtension(selectedImplant.Config?.Type ?? ImplantType.Executable)}";
 
                 context.Terminal.WriteInfo($"Listener: {listener.Name} ({listenerUrl})");
-                
+
                 if (selectedImplant.Config?.Type == ImplantType.PowerShell)
                 {
                     context.Terminal.Write("PowerShell Script (Clear):");
@@ -332,12 +343,11 @@ namespace Commander.Commands.Core
                     context.Terminal.Write(ScriptHelper.GeneratePowershellDownloadScript(implantUrl, fileName, isSecured));
                     context.Terminal.WriteLine();
                 }
-                
+
                 context.Terminal.Write(new Rule());
             }
-
-            return true;
         }
+
 
         private string GetFileExtension(ImplantType type)
         {

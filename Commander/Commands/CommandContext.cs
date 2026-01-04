@@ -11,7 +11,7 @@ using Spectre.Console;
 using Shared;
 using BinarySerializer;
 using System.IO;
-using Common.Models;
+using Common.APIModels;
 
 namespace Commander.Commands
 {
@@ -101,9 +101,9 @@ namespace Commander.Commands
         //    return fileId;
         //}
 
-        internal static Implant GeneratePayloadAndDisplay(this CommandContext context, ImplantConfig options)
+        internal static APIImplant GeneratePayloadAndDisplay(this CommandContext context, ImplantConfig options)
         {
-            Implant pay = null;
+            APIImplant implant = null;
             AnsiConsole.Status()
                     .Start($"[olive]Generating Payload {options.Type} for Endpoint {options.Endpoint} (arch = {options.Architecture}).[/]", ctx =>
                     {
@@ -114,8 +114,7 @@ namespace Commander.Commands
                         {
                             context.Terminal.WriteInfo("Triggering server-side generation...");
                             var result = context.CommModule.GenerateImplant(options).GetAwaiter().GetResult();
-                            // No return value from API expected by this method's caller for now.
-                            pay = context.CommModule.GetImplantBinary(result.Id).GetAwaiter().GetResult();
+                            implant = result.Implant;
                         }
                         catch (Exception ex)
                         {
@@ -126,7 +125,7 @@ namespace Commander.Commands
 
 
 
-            return pay;
+            return implant;
         }
     }
 }

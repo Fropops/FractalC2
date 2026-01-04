@@ -1,5 +1,5 @@
+using Common.APIModels;
 using Common.Command;
-using Common.Models;
 using Common.Payload;
 using Shared;
 using WebCommander.Commands;
@@ -48,7 +48,7 @@ namespace WebCommander.Commands.Custom
              WriteInfo(message);
         }
 
-        public async Task<Implant> GeneratePayload(ImplantConfig options)
+        public async Task<APIImplant> GeneratePayload(ImplantConfig options)
         {
              if(options.Endpoint != null)
                 options.Endpoint = ConnexionUrl.FromString(options.Endpoint.ToString());
@@ -62,9 +62,7 @@ namespace WebCommander.Commands.Custom
 
              if(creationResult == null) return null;
 
-             var implant = await _client.GetImplantWithDataAsync(creationResult.Id);
-
-             return implant;
+             return creationResult.Implant;
         }
 
         public void CallEndPointCommand(string commandName, CommandId commandId)

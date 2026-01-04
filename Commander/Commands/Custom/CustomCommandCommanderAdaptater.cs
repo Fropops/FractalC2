@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Common.APIModels;
 using Common.Command;
-using Common.Models;
 using Common.Payload;
 using Shared;
 
@@ -36,7 +36,7 @@ namespace Commander.Commands.Custom
             this.context.Terminal.WriteInfo(message);
         }
 
-        public Task<Implant> GeneratePayload(ImplantConfig options)
+        public Task<APIImplant> GeneratePayload(ImplantConfig options)
         {
             return Task.FromResult(context.GeneratePayloadAndDisplay(options));
         }

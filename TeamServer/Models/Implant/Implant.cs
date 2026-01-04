@@ -20,31 +20,5 @@ namespace TeamServer.Models
         public string Listener { get; set; }
 
         public bool IsDeleted { get; set; }
-
-        public static implicit operator TeamServerImplant(Implant implant)
-        {
-            return new TeamServerImplant
-            {
-                Id = implant.Id,
-                Name = implant.Name,
-                Data =implant.Data,
-                Config = implant.Config,
-                Listener = implant.Listener,
-            };
-
-        }
-
-        public static implicit operator Implant(TeamServerImplant dao)
-        {
-            if (dao == null) return null;
-
-            return new Implant(dao.Id)
-            {
-                Name = dao.Name,
-                Data = dao.Data,
-                Config = dao.Config,
-                Listener = dao.Listener,
-            };
-        }
     }
 }
