@@ -1,3 +1,3 @@
 @echo off
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& { . .\Release-FractalC2.ps1; Release-FractalC2 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& { . .\Release-FractalC2.ps1; Release-FractalC2 -IncrementPart minor }"
 PAUSE

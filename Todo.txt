@@ -1,9 +1,9 @@
 # Agent
 * RunAsLoggedOn https://github.com/antonioCoco/RunasCs/blob/master/RunasCs.cs
 * BOF Loader .Net
-When link to another agent failed, should not continue to make believe the agent is still alive
+- When link to another agent failed, should not continue to make believe the agent is still alive
 
-#Team Server
+# Team Server
 
 # Commanders
 Commands To rework
@@ -20,13 +20,14 @@ Custom Commands
 # Install
 -
 
-#Tests
+# Tests
 Proxy
 rportfwd
 
 
-#Other
+# Other
 Rework ClientAPI
 Rework AgentCommands
 Rework Client Models
 
+N° Version  for Full Release
