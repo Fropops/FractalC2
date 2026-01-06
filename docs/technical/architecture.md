@@ -16,25 +16,13 @@ These components interact via defined protocols (HTTP/REST) to enable remote con
 
 ```mermaid
 graph TD
-    User -->|HTTPS| Web[WebCommander]
-    User -->|Commands| CLI[Commander (CLI)]
-    Web -->|REST API| TS
+    User[Operator] -->|HTTPS| Web[WebCommander - Blazor WASM]
+    User[Operator] -->|Commands| CLI[Commander - CLI]
+    Web -->|REST API| TS[TeamServer - ASP.NET Core]
     CLI -->|REST API| TS
-    TS <-->|SQLite| DB
-    Agent1 <-->|HTTP/TCP Beacon| TS
-    Agent2 <-->|PIPE/TCP Beacon| Agent1
-```
-
-
-```mermaid
-graph TD
-    User[Operator] -->|HTTPS| Web[WebCommander (Blazor WASM)]
-    User[Operator] -->|HTTPS| CLI[Commander (CLI)]
-    Web -->|REST API| TS[TeamServer (ASP.NET Core)]
-    CLI -->|REST API| TS
-    TS <-->|SQLite| DB[(Database)]
-    Agent[Agent (.NET)] -->|HTTP/TCP Beacon| TS
-    Agent[Agent (.NET)] -->|PIPE/TCP Beacon| Agent
+    TS <-->|SQLite| DB - Database
+    Agent[Windows - .NET] <-->|HTTP/TCP Beacon| TS
+    Agent[Linux - .NET] <-->|PIPE/TCP Beacon| Agent
 ```
 
 ## Components
