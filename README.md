@@ -2,6 +2,10 @@
 
 **FractalC2** is a simple Command and Control (C2) framework built with .NET. It is designed for red team operations and security research, providing a robust TeamServer and multiple client interfaces (CLI and Web).
 
+> [!WARNING]
+> **⚠️ Disclaimer: Active Development**
+> This project is currently in **active development**. You may encounter bugs, instabilities, or breaking changes. We appreciate your understanding and feedback as we continue to improve the framework.
+
 ## 🚀 Quick Install
 
 FractalC2 provides an automated installation script for Debian-based systems (Kali, Ubuntu).
@@ -17,6 +21,7 @@ For more detailed instructions, troubleshooting, and manual installation, see th
 
 ### WebCommander
 ![WebCommander Dashboard](docs/images/webcommander_dashboard.png)
+![WebCommander Agent Interaction](docs/images/webcommander_agent_interaction.png)
 *Modern web interface for managing operations.*
 
 ### Commander CLI
