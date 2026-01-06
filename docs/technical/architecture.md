@@ -12,7 +12,19 @@ FractalC2 consists of four main components:
 
 These components interact via defined protocols (HTTP/REST) to enable remote control and task execution (HTTP/HTTPS, TCP, Named Pipes).
 
-![Architecture Diagram](../images/architecture_diagram.png)
+![Architecture Diagram](../images/architecture_diagram.jpg)
+
+```mermaid
+graph TD
+    User -->|HTTPS| Web
+    User -->|HTTPS| CLI
+    Web -->|REST API| TS
+    CLI -->|REST API| TS
+    TS <-->|SQLite| DB
+    Agent -->|HTTP/TCP Beacon| TS
+    Agent -->|PIPE/TCP Beacon| Agent
+```
+
 
 ```mermaid
 graph TD
