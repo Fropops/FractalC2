@@ -10,7 +10,9 @@ FractalC2 consists of four main components:
 3.  **TeamServer** : The central management server (C2 Server).
 4.  **Agent** : The implant deployed on target machines.
 
-These components interact via defined protocols (HTTP/REST) to enable remote control and task execution.
+These components interact via defined protocols (HTTP/REST) to enable remote control and task execution (HTTP/HTTPS, TCP, Named Pipes).
+
+![Architecture Diagram](../images/architecture_diagram.png)
 
 ```mermaid
 graph TD
