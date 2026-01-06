@@ -21,14 +21,14 @@ graph TD
     
     subgraph Core Preparation
         Base[Agent.exe] -->|Resource Patching| Configured[Configured Agent]
-        Configured -->|Encryption (AES)| Encrypted[Encrypted Agent]
-        Encrypted -->|Embed in Starter| Staged[Staged Agent (Starter.exe)]
+        Configured -->|Encryption| Encrypted[Encrypted Agent]
+        Encrypted -->|Embed in Starter| Staged[Staged Agent]
     end
     
     subgraph Encapsulation
-        Staged -->|Resource Replace| EXE[Executable (.exe)]
-        Staged -->|Base64 + Template| PS1[PowerShell (.ps1)]
-        AgentLinux -->|Binary Pattern Patch| ELF[Linux (.elf)]
+        Staged -->|Resource Replace| EXE[Executable - .exe]
+        Staged -->|Base64 + Template| PS1[PowerShell - .ps1]
+        AgentLinux -->|Binary Pattern Patch| ELF[Linux - .elf]
     end
 
     Generator -->|Binaries| TS

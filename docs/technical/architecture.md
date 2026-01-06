@@ -62,11 +62,6 @@ The component deployed on the target, written in **.NET** (Console App). It is d
     1.  Metadata generation (Host, User, Integrity, etc.).
     2.  Connection to TeamServer via a "Communicator" (via `CommunicationFactory`).
     3.  Main Loop: Polling for tasks -> Execution -> Sending results.
-*   **Internal Services**:
-    *   `ConfigService`: Agent configuration (Encryption keys, URL).
-    *   `NetworkService`, `FileService`: Basic capabilities.
-    *   `JobService`: Long-running job management.
-    *   `ProxyService`, `ReversePortForwardService`: Advanced network features.
 *   **Agent Names**: Randomly generated as "Quality-Animal" (e.g., "Brave-Lion").
 
 ## Data Flow
