@@ -1,7 +1,6 @@
 # Agent
 * RunAsLoggedOn https://github.com/antonioCoco/RunasCs/blob/master/RunasCs.cs
 * BOF Loader .Net
-- When link to another agent failed, should not continue to make believe the agent is still alive
 
 # Team Server
 
@@ -14,20 +13,20 @@ Custom Commands
 
 # Web Commander
 
-
 # Commander 
 
 # Install
--
 
 # Tests
-Proxy
 rportfwd
 
+#Bugs
+rportfwd show & stop from webcommander not working
+webcommander taksing powershell commande : show agentId instead of name
+When link to another agent failed, should not continue to make believe the agent is still alive
+Topology & map not welle working with P2P links
 
 # Other
+Rework AgentCommands & Commands
 Rework ClientAPI
-Rework AgentCommands
 Rework Client Models
-
-N° Version  for Full Release
