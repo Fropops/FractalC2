@@ -16,8 +16,8 @@ These components interact via defined protocols (HTTP/REST) to enable remote con
 
 ```mermaid
 graph TD
-    User -->|HTTPS| Web[Test]
-    User -->|HTTPS| CLI
+    User -->|HTTPS| Web[WebCommander]
+    User -->|HTTPS| CLI[Commander - CLI]
     Web -->|REST API| TS
     CLI -->|REST API| TS
     TS <-->|SQLite| DB
