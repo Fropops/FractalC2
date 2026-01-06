@@ -16,13 +16,13 @@ These components interact via defined protocols (HTTP/REST) to enable remote con
 
 ```mermaid
 graph TD
-    User -->|HTTPS| Web
+    User -->|HTTPS| Web[Test]
     User -->|HTTPS| CLI
     Web -->|REST API| TS
     CLI -->|REST API| TS
     TS <-->|SQLite| DB
-    Agent -->|HTTP/TCP Beacon| TS
-    Agent -->|PIPE/TCP Beacon| Agent
+    Agent1 <-->|HTTP/TCP Beacon| TS
+    Agent2 <-->|PIPE/TCP Beacon| Agent1
 ```
 
 
