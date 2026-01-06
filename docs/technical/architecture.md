@@ -20,7 +20,7 @@ graph TD
     User[Operator] -->|Commands| CLI[Commander - CLI]
     Web -->|REST API| TS[TeamServer - ASP.NET Core]
     CLI -->|REST API| TS
-    TS <-->|SQLite| DB - Database
+    TS <-->|SQLite| DB[Database]
     Agent[Windows - .NET] <-->|HTTP/TCP Beacon| TS
     Agent[Linux - .NET] <-->|PIPE/TCP Beacon| Agent
 ```
