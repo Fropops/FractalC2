@@ -21,8 +21,8 @@ graph TD
     Web -->|REST API| TS[TeamServer - ASP.NET Core]
     CLI -->|REST API| TS
     TS <-->|SQLite| DB[Database]
-    Agent[Windows - .NET] <-->|HTTP/TCP Beacon| TS
-    Agent[Linux - .NET] <-->|PIPE/TCP Beacon| Agent
+    Agent1[Windows - .NET] <-->|HTTP/TCP Beacon| TS
+    Agent2[Linux - .NET] <-->|PIPE/TCP Beacon| Agent1
 ```
 
 ## Components
