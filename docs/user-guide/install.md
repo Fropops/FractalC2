@@ -12,17 +12,17 @@ This guide describes how to install FractalC2 using the provided installation sc
 The easiest way to install FractalC2 is to use the automated script hosted on GitHub.
 
 ### Full Installation (TeamServer + WebCommander + Commander)
-This command installs all components and dependencies.
+This command installs all components and dependencies. **Run as root (sudo)**.
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/main/Install/install.sh | bash -s -- All
+wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/main/Install/install.sh | sudo bash -s -- All
 ```
 
 ### Full Installation (Without auto-start)
 Installs all components but does not launch them immediately after installation.
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/main/Install/install.sh | bash -s -- All noRun
+wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/main/Install/install.sh | sudo bash -s -- All noRun
 ```
 
 ### Component-Specific Installation
@@ -31,17 +31,17 @@ If you only need specific components, you can install them individually.
 
 **Install only WebCommander:**
 ```bash
-wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/main/Install/install.sh | bash -s -- WebCommander
+wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/main/Install/install.sh | sudo bash -s -- WebCommander
 ```
 
 **Install only TeamServer:**
 ```bash
-wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/main/Install/install.sh | bash -s -- TeamServer
+wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/main/Install/install.sh | sudo bash -s -- TeamServer
 ```
 
 **Install only Commander (CLI):**
 ```bash
-wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/main/Install/install.sh | bash -s -- Commander
+wget -qO- https://raw.githubusercontent.com/Fropops/FractalC2/refs/heads/main/Install/install.sh | sudo bash -s -- Commander
 ```
 
 ## Post-Installation
@@ -63,7 +63,9 @@ If you installed with `noRun` or need to restart the services later, you can fin
 ```
 
 **Start WebCommander**:
-Launch a web server pointing to the `Web` directory.
+```bash
+./WebCommanderHost/WebCommanderHost
+```
 
 **Start Commander**:
 ```bash
