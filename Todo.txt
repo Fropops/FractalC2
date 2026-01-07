@@ -21,8 +21,6 @@ Custom Commands
 rportfwd
 
 #Bugs
-rportfwd show & stop from webcommander not working
-webcommander taksing powershell commande : show agentId instead of name
 When link to another agent failed, should not continue to make believe the agent is still alive
 Topology & map not welle working with P2P links
 
