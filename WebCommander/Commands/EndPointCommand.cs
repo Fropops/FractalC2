@@ -18,7 +18,7 @@ namespace WebCommander.Commands
                 await FillParametersAsync(parseResult, parms);
             
                 var taskId = await client.TaskAgent(this.CommandLine, agent.Id, this.Id, parms);
-                return cmdResult.Succeed($"Command {this.Name} tasked to agent {agent.Metadata?.Name}.", taskId);
+                return cmdResult.Succeed($"Command {this.CommandLine} tasked to agent {agent.Metadata?.Name}.", taskId);
             }
             catch (Exception ex)
             {
