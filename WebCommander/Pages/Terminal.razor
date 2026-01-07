@@ -457,6 +457,32 @@
                     }
                 }
             }
+            // Check if this is a rportfwd command with Objects data
+            else if (commandName.StartsWith("rportfwd") && result.Objects != null && result.Objects.Length > 0)
+            {
+                try
+                {
+                    var rportfwdResults = await ResultObjectHelper.DeserializeReversePortForwardResults(result.Objects);
+                    if (rportfwdResults.Count > 0)
+                    {
+                        // Add rportfwd table output
+                        AddRportFwdTable(rportfwdResults);
+                    }
+                    else if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Terminal] Error deserializing rportfwd results: {ex.Message}");
+                    // Fallback to normal output
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+            }
             else if (!string.IsNullOrEmpty(result.Output))
             {
                 AddNormal(result.Output);
@@ -701,6 +727,58 @@
                     { "IsLinkRow", "true" },
                     { "ChildId", link.ChildId },
                     { "Binding", link.Binding }
+                }
+            };
+            outputLines.Add(line);
+        }
+        
+        _ = SaveHistory();
+        _ = ScrollToBottom();
+    }
+
+    private void AddRportFwdTable(List<ReversePortForwarResult> results)
+    {
+        // Add table header
+        var headerLine = new TerminalLine
+        {
+            Text = string.Format("{0,-10} {1,-30} {2}", "Port", "DestHost", "DestPort"),
+            Type = TerminalLineType.Info,
+            Metadata = new Dictionary<string, string>
+            {
+                { "IsRportFwdHeader", "true" }
+            }
+        };
+        outputLines.Add(headerLine);
+        
+        var separatorLine = new TerminalLine
+        {
+            Text = new string('-', 60),
+            Type = TerminalLineType.Info,
+            Metadata = new Dictionary<string, string>
+            {
+                { "IsRportFwdHeader", "false" }
+            }
+        };
+        outputLines.Add(separatorLine);
+        
+        // Add each result
+        foreach (var res in results)
+        {
+            var lineText = string.Format("{0,-10} {1,-30} {2}", 
+                res.Port, 
+                res.DestHost,
+                res.DestPort);
+            
+            var line = new TerminalLine
+            {
+                Text = lineText,
+                Type = TerminalLineType.Normal,
+                Metadata = new Dictionary<string, string>
+                {
+                    { "IsRportFwdRow", "true" },
+                    { "Port", res.Port.ToString() },
+                    { "DestHost", res.DestHost },
+                    { "DestPort", res.DestPort.ToString() }
                 }
             };
             outputLines.Add(line);

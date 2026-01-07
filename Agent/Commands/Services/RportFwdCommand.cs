@@ -28,7 +28,7 @@ namespace Agent.Commands
                 return;
             }
             var list = new List<ReversePortForwarResult>();
-            foreach(var rfwd in servers)
+            foreach (var rfwd in servers)
             {
                 list.Add(new ReversePortForwarResult()
                 {
@@ -50,6 +50,8 @@ namespace Agent.Commands
 
             if (!await this.Service.StartServer(port, context.Agent, dest))
                 context.Error($"Unable to start Reverse Port Forward (port = {port})");
+            else
+                context.AppendResult($"Reverse Port Forward started on port {port}");
 
             return;
         }
@@ -62,6 +64,8 @@ namespace Agent.Commands
 
             if (!await this.Service.StopServer(port))
                 context.Error($"Unable to stop Reverse Port Forward (port = {port})");
+            else
+                context.AppendResult($"Reverse Port Forward stopped on port {port}");
 
             return;
         }

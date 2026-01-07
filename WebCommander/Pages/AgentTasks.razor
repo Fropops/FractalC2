@@ -275,6 +275,31 @@ else
                 }
                 catch { }
             }
+            // Try to deserialize as rportfwd command
+            else if (task.Command.StartsWith("rportfwd"))
+            {
+                try
+                {
+                    var rportfwdResults = await ResultObjectHelper.DeserializeReversePortForwardResults(result.Objects);
+                    if (rportfwdResults.Count > 0)
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        sb.AppendLine(string.Format("{0,-10} {1,-30} {2}", "Port", "DestHost", "DestPort"));
+                        sb.AppendLine(new string('-', 60));
+                        
+                        foreach (var res in rportfwdResults)
+                        {
+                            sb.AppendLine(string.Format("{0,-10} {1,-30} {2}", 
+                                res.Port, 
+                                res.DestHost,
+                                res.DestPort));
+                        }
+                        
+                        outputContent = sb.ToString();
+                    }
+                }
+                catch { }
+            }
         }
 
         header.Append(outputContent);

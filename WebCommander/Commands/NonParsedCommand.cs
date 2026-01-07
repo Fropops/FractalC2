@@ -33,7 +33,7 @@ namespace WebCommander.Commands
                     parms.AddParameter(ParameterId.Command, actualCmdLine);
                 
                 var taskId = await this._client.TaskAgent(this.CommandLine, this._agent.Id, Id, parms);
-                return cmdResult.Succeed($"Command {this.Name} tasked to agent {this._agent.Id}.", taskId);
+                return cmdResult.Succeed($"Command {this.Name} tasked to agent {this._agent.Metadata?.Name}.", taskId);
             }
             catch (Exception ex)
             {

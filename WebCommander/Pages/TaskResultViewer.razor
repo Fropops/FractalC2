@@ -239,6 +239,32 @@
                     }
                 }
             }
+            // Check if this is a rportfwd command with Objects data
+            else if (task.Command.StartsWith("rportfwd") && result.Objects != null && result.Objects.Length > 0)
+            {
+                try
+                {
+                    var rportfwdResults = await ResultObjectHelper.DeserializeReversePortForwardResults(result.Objects);
+                    if (rportfwdResults.Count > 0)
+                    {
+                        // Add rportfwd table output
+                        AddRportFwdTable(rportfwdResults);
+                    }
+                    else if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[TaskResultViewer] Error deserializing rportfwd results: {ex.Message}");
+                    // Fallback to normal output
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+            }
             else if (!string.IsNullOrEmpty(result.Output))
             {
                 AddNormal(result.Output);
@@ -356,6 +382,24 @@
                 link.ParentId, 
                 link.ChildId,
                 link.Binding);
+            AddNormal(line);
+        }
+    }
+
+    private void AddRportFwdTable(List<ReversePortForwarResult> results)
+    {
+        // Add table header
+        var header = string.Format("{0,-10} {1,-30} {2}", "Port", "DestHost", "DestPort");
+        AddInfo(header);
+        AddInfo(new string('-', 60));
+        
+        // Add each result
+        foreach (var res in results)
+        {
+            var line = string.Format("{0,-10} {1,-30} {2}", 
+                res.Port, 
+                res.DestHost,
+                res.DestPort);
             AddNormal(line);
         }
     }

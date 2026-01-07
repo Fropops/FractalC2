@@ -69,6 +69,21 @@ namespace WebCommander.Helpers
             }
         }
 
+        public static async Task<List<ReversePortForwarResult>> DeserializeReversePortForwardResults(byte[] data)
+        {
+            if (data == null || data.Length == 0)
+                return new List<ReversePortForwarResult>();
+
+            try 
+            {
+                return await data.BinaryDeserializeAsync<List<ReversePortForwarResult>>();
+            }
+            catch
+            {
+                return new List<ReversePortForwarResult>();
+            }
+        }
+
         public static string FormatFileSize(long bytes)
         {
             string[] sizes = { "B", "KB", "MB", "GB", "TB" };

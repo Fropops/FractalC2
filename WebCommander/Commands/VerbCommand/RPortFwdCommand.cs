@@ -22,11 +22,11 @@ namespace WebCommander.Commands.VerbCommand
 
         protected override void AddCommandParameters(RootCommand command)
         {
-            command.Arguments.Add(new Argument<string>(VerbArg) { Description = "The action to perform (start, stop)" });
+            command.Arguments.Add(new Argument<string>(VerbArg) { Description = "The action to perform (show, start, stop)" });
             
             command.Options.Add(new Option<int>(PortOpt, new[] { "--port", "-p" }) { Description = "Port to use on the agent" });
-            command.Options.Add(new Option<string>(DestHostOpt, new[] { "--destHost", "-h" }) { Description = "Host to use as destination" });
-            command.Options.Add(new Option<int>(DestPortOpt, new[] { "--destPort", "-d" }) { Description = "Port to use as destination" });
+            command.Options.Add(new Option<string>(DestHostOpt, new[] { "--destHost", "-dh" }) { Description = "Host to use as destination" });
+            command.Options.Add(new Option<int>(DestPortOpt, new[] { "--destPort", "-dp" }) { Description = "Port to use as destination" });
         }
 
         public override async Task<CommandResult> ExecuteAsync(ParseResult parseResult, TeamServerClient client, Agent agent)
@@ -40,12 +40,13 @@ namespace WebCommander.Commands.VerbCommand
 
             if (string.IsNullOrEmpty(verb))
             {
-                return cmdResult.Failed("Verb is required (start, stop).");
+                verb = "show";
             }
 
             try
             {
                 var parameters = new ParameterDictionary();
+                string taskId = string.Empty;
 
                 switch (verb.ToLower())
                 {
@@ -61,9 +62,9 @@ namespace WebCommander.Commands.VerbCommand
                         parameters.AddParameter(ParameterId.Port, port);
                         parameters.AddParameter(ParameterId.Parameters, new ReversePortForwardDestination() { Hostname = destHost, Port = destPort });
 
-                        await client.TaskAgent("rportfwd", agent.Metadata.Id, CommandId.RportFwd, parameters);
+                        taskId = await client.TaskAgent(this.CommandLine, agent.Metadata.Id, CommandId.RportFwd, parameters);
 
-                        return cmdResult.Succeed($"[*] RPortFwd tasked to start on port {port} -> {destHost}:{destPort} !");
+                        return cmdResult.Succeed($"{this.CommandLine} tasked to agent {agent?.Metadata?.Name}", taskId);
 
                     case "stop":
                         if (port == 0)
@@ -72,17 +73,17 @@ namespace WebCommander.Commands.VerbCommand
                         parameters.AddParameter(ParameterId.Verb, (byte)CommandVerbs.Stop);
                         parameters.AddParameter(ParameterId.Port, port);
 
-                        await client.TaskAgent("rportfwd", agent.Metadata.Id, CommandId.RportFwd, parameters);
+                        taskId = await client.TaskAgent(this.CommandLine, agent.Metadata?.Id, CommandId.RportFwd, parameters);
 
-                        return cmdResult.Succeed($"[*] RPortFwd tasked to stop on port {port} !");
+                        return cmdResult.Succeed($"{this.CommandLine} tasked to agent {agent?.Metadata?.Name}", taskId);
 
                     case "show":
                         parameters.AddParameter(ParameterId.Verb, (byte)CommandVerbs.Show);
 
-                        await client.TaskAgent("rportfwd", agent.Metadata.Id, CommandId.RportFwd, parameters);
+                        taskId = await client.TaskAgent(this.CommandLine, agent.Metadata?.Id, CommandId.RportFwd, parameters);
 
                         // Usually showing results is asynchronous via TaskResult, so we just confirm tasking.
-                        return cmdResult.Succeed($"[*] RPortFwd tasked to show !");
+                        return cmdResult.Succeed($"{this.CommandLine} tasked to agent {agent?.Metadata?.Name}", taskId);
 
                     default:
                         return cmdResult.Failed($"Unknown verb: {verb}. Supported verbs: start, stop, show.");
