@@ -28,7 +28,10 @@ namespace Common.AgentCommands
         where TOption : CommandOption
     {
         public abstract CommandId CommandId { get; }
-        public async Task<bool> Execute(AgentCommandContext context, TOption options)
+
+        public virtual Shared.OsType[] SupportedOs { get; protected set; } = new Shared.OsType[] { OsType.Windows };
+
+        public virtual async Task<bool> Execute(AgentCommandContext context, TOption options)
         {
             this.CallEndPointCommand(context, options);
             return true;

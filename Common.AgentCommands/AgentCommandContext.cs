@@ -37,8 +37,8 @@ namespace Common.AgentCommands
         void TaskAgent(string commandLine, CommandId commandId);
 
         void TaskAgent(string commandLine, CommandId commandId, ParameterDictionary parameters);
-
-     
+        
+        AgentMetadata Metadata { get; }
     }
     public class AgentCommandContext : CommandContext, IAgentCommandContext
     {
@@ -157,5 +157,7 @@ namespace Common.AgentCommands
         {
             this.Adapter.WriteSuccess(message);
         }
+
+        public AgentMetadata Metadata => this.Adapter.Metadata;
     }
 }

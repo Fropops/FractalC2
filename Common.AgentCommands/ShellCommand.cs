@@ -15,7 +15,7 @@ namespace Common.AgentCommands
         public string RawArgs { get; set; }
     }
 
-    [Command("shell", "Send a command to be executed by the agent", Category = AgentCommandCategories.System)]
+    [Command("shell", "Send a command to be executed by the agent", Category = AgentCommandCategories.Execution)]
     public class ShellCommand : AgentCommand<AgentShellCommandOption>
     {
         public override CommandId CommandId => CommandId.Shell;

@@ -8,7 +8,7 @@ using Shared;
 
 namespace Common.AgentCommands
 {
-    [Command("run", "Run an executable, capturing output", Category = "ToRework")]
+    [Command("run", "Run an executable, capturing output", Category = AgentCommandCategories.Execution)]
     public class RunCommand : AgentCommand<AgentShellCommandOption>
     {
         public override CommandId CommandId => CommandId.Run;

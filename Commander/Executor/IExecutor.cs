@@ -1,10 +1,11 @@
-﻿using Commander.Commands;
-using Commander.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Commander.Commands;
+using Commander.Models;
+using Common.CommandLine.Execution;
 
 namespace Commander.Executor
 {
@@ -14,9 +15,7 @@ namespace Commander.Executor
         Agent CurrentAgent { get; set; }
         void InputHandled(ExecutorCommand cmd, bool cmdResult);
 
-        IEnumerable<ExecutorCommand> GetCommandsInMode(ExecutorMode mode);
-
-        ExecutorCommand GetCommandInMode(ExecutorMode mode, string commandName);
+        List<CommandDefinition> GetAllCommands();
 
         void Start();
         void Stop();

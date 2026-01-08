@@ -8,7 +8,7 @@ using Shared;
 
 namespace Common.AgentCommands
 {
-    [Command("start", "Start an executable, without capturing output", Category = AgentCommandCategories.System)]
+    [Command("start", "Start an executable, without capturing output", Category = AgentCommandCategories.Execution)]
     public class StartCommand : AgentCommand<AgentShellCommandOption>
     {
         public override CommandId CommandId => CommandId.Start;

@@ -65,8 +65,6 @@ namespace Commander.Executor
         private ICommModule CommModule { get; set; }
         public ITerminal Terminal { get; set; }
 
-        private Dictionary<ExecutorMode, List<ExecutorCommand>> _commands = new Dictionary<ExecutorMode, List<ExecutorCommand>>();
-
         private CancellationTokenSource _tokenSource = new CancellationTokenSource();
 
         public bool IsBusy { get; private set; }
@@ -99,6 +97,11 @@ namespace Commander.Executor
             this.CommModule.AgentMetaDataUpdated += CommModule_AgentMetadataUpdated;
             this.CommModule.AgentAdded +=CommModule_AgentAdded;
             //end events
+        }
+
+        public List<CommandDefinition> GetAllCommands()
+        {
+            return this.CommandExecutor.RegisteredCommands;
         }
 
         private void CommModule_AgentAdded(object sender, Agent e)
@@ -210,59 +213,6 @@ namespace Commander.Executor
         private void Instance_InputValidated(object sender, string e)
         {
             this.HandleInput(e);
-        }
-
-        public void LoadCommands()
-        {
-            var self = Assembly.GetExecutingAssembly();
-            foreach (var type in self.GetTypes())
-            {
-                if (type.IsSubclassOf(typeof(ExecutorCommand)) && !type.IsAbstract)
-                {
-                    var instance = Activator.CreateInstance(type) as ExecutorCommand;
-
-                    if (!this._commands.ContainsKey(instance.AvaliableIn))
-                    {
-                        var list = new List<ExecutorCommand>() { instance };
-                        this._commands.Add(instance.AvaliableIn, list);
-                    }
-                    else
-                    {
-                        this._commands[instance.AvaliableIn].Add(instance);
-                    }
-                }
-            }
-        }
-
-        public IEnumerable<ExecutorCommand> GetCommandsInMode(ExecutorMode mode)
-        {
-            if (!this._commands.ContainsKey(mode))
-                return new List<ExecutorCommand>();
-
-            return this._commands[mode];
-        }
-
-        public ExecutorCommand GetCommandInMode(ExecutorMode mode, string commandName)
-        {
-            if (!this._commands.ContainsKey(mode))
-            {
-                return null;
-            }
-
-            var list = this._commands[mode];
-            if (list == null || list.Count == 0)
-            {
-                return null;
-            }
-
-            var command = list.FirstOrDefault(c => c.Name == commandName || (c.Alternate != null && c.Alternate.Contains(commandName)));
-
-            if (command is null)
-            {
-                return null;
-            }
-
-            return command;
         }
 
         public void HandleInput(string input)
