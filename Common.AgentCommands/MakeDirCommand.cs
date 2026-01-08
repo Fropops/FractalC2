@@ -18,6 +18,7 @@ namespace Common.AgentCommands
     public class MakeDirCommand : AgentCommand<MakeDirCommandOptions>
     {
         public override CommandId CommandId => CommandId.MkDir;
+        public override OsType[] SupportedOs => new Shared.OsType[] { OsType.Windows, OsType.Linux };
 
         protected override void SpecifyParameters(AgentCommandContext context, MakeDirCommandOptions options)
         {

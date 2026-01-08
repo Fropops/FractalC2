@@ -18,6 +18,7 @@ namespace Common.AgentCommands
     public class LsCommand : AgentCommand<AgentLsCommandOptions>
     {
         public override CommandId CommandId => CommandId.Ls;
+        public override OsType[] SupportedOs => new Shared.OsType[] { OsType.Windows, OsType.Linux };
 
         protected override void SpecifyParameters(AgentCommandContext context, AgentLsCommandOptions options)
         {

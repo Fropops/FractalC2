@@ -19,6 +19,7 @@ namespace Common.AgentCommands
     public class ShellCommand : AgentCommand<AgentShellCommandOption>
     {
         public override CommandId CommandId => CommandId.Shell;
+        public override OsType[] SupportedOs => new Shared.OsType[] { OsType.Windows, OsType.Linux };
 
         protected override void SpecifyParameters(AgentCommandContext context, AgentShellCommandOption options)
         {

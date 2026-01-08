@@ -229,7 +229,7 @@ namespace Commander.Executor
                     return;
                 }
 
-                if(typeof(Common.AgentCommands.AgentCommand).IsAssignableFrom(commandDef.CommandType) && this.CurrentAgent == null)
+                if(typeof(Common.AgentCommands.AgentCommandBase).IsAssignableFrom(commandDef.CommandType) && this.CurrentAgent == null)
                 {
                     this.Terminal.WriteLine("No agent selected. Use 'interact' command to select an agent.");
                     return;

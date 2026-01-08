@@ -12,5 +12,6 @@ namespace Common.AgentCommands
     public class PwdCommand : AgentCommand<CommandOption>
     {
         public override CommandId CommandId => CommandId.Pwd;
+        public override OsType[] SupportedOs => new Shared.OsType[] { OsType.Windows, OsType.Linux };
     }
 }

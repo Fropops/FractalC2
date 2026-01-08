@@ -19,6 +19,8 @@ namespace Common.AgentCommands
     {
         public override CommandId CommandId => CommandId.Cat;
 
+        public override OsType[] SupportedOs => new Shared.OsType[] { OsType.Windows, OsType.Linux };
+
         protected override void SpecifyParameters(AgentCommandContext context, CatCommandOptions options)
         {
             context.AddParameter(ParameterId.Path, options.Path);

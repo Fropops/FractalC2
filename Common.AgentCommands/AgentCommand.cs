@@ -19,17 +19,17 @@ namespace Common.AgentCommands
         public const string Execution = "Agent - Execution";
     }
 
-    public abstract class AgentCommand
-    {
-
-    }
-
-    public abstract class AgentCommand<TOption> : AgentCommand, ICommand<AgentCommandContext, TOption>
-        where TOption : CommandOption
+    public abstract class AgentCommandBase
     {
         public abstract CommandId CommandId { get; }
 
         public virtual Shared.OsType[] SupportedOs { get; protected set; } = new Shared.OsType[] { OsType.Windows };
+    }
+
+    public abstract class AgentCommand<TOption> : AgentCommandBase, ICommand<AgentCommandContext, TOption>
+        where TOption : CommandOption
+    {
+        
 
         public virtual async Task<bool> Execute(AgentCommandContext context, TOption options)
         {

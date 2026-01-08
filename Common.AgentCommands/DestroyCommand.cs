@@ -12,5 +12,6 @@ namespace Common.AgentCommands
     public class DestroyCommand : AgentCommand<CommandOption>
     {
         public override CommandId CommandId => CommandId.Exit;
+        public override OsType[] SupportedOs => new Shared.OsType[] { OsType.Windows, OsType.Linux };
     }
 }

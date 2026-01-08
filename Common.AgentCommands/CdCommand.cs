@@ -18,6 +18,7 @@ namespace Common.AgentCommands
     public class CdCommand : AgentCommand<AgentCdCommandOptions>
     {
         public override CommandId CommandId => CommandId.Cd;
+        public override OsType[] SupportedOs => new Shared.OsType[] { OsType.Windows, OsType.Linux };
 
         protected override void SpecifyParameters(AgentCommandContext context, AgentCdCommandOptions options)
         {

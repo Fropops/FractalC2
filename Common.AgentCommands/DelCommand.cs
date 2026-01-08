@@ -18,6 +18,7 @@ namespace Common.AgentCommands
     public class DelCommand : AgentCommand<DelCommandOptions>
     {
         public override CommandId CommandId => CommandId.Del;
+        public override OsType[] SupportedOs => new Shared.OsType[] { OsType.Windows, OsType.Linux };
 
         protected override void SpecifyParameters(AgentCommandContext context, DelCommandOptions options)
         {

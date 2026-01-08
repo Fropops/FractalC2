@@ -13,5 +13,6 @@ namespace Common.AgentCommands
     public class WhoamiCommand : AgentCommand<CommandOption>
     {
         public override CommandId CommandId => CommandId.Whoami;
+        public override OsType[] SupportedOs => new Shared.OsType[] { OsType.Windows, OsType.Linux };
     }
 }

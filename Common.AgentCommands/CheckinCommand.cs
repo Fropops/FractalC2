@@ -12,5 +12,6 @@ namespace Common.AgentCommands
     public class CheckinCommand : AgentCommand<CommandOption>
     {
         public override CommandId CommandId => CommandId.CheckIn;
+        public override OsType[] SupportedOs => new Shared.OsType[] { OsType.Windows, OsType.Linux };
     }
 }

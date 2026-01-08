@@ -1,17 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Commander.CommanderCommand;
 using Commander.Commands;
+using Commander.Commands.Agent;
 using Commander.Communication;
 using Commander.Executor;
 using Commander.Terminal;
+using Common.AgentCommands;
 using Common.CommandLine.Core;
 using Common.CommandLine.Execution;
 using Spectre.Console;
-using System.Reflection;
 
 
 namespace Commander.CommanderCommand
@@ -29,8 +31,23 @@ namespace Commander.CommanderCommand
 
             var categories = new List<string> { CommandCategory.Commander };
 
+            var availableCommands = new List<CommandDefinition>();
+            foreach (var cmdDef in cmds)
+            {
+                if (typeof(Common.AgentCommands.AgentCommandBase).IsAssignableFrom(cmdDef.CommandType))
+                {
+                    var cmd = (AgentCommandBase)Activator.CreateInstance(cmdDef.CommandType);
+                    if (context.Executor.CurrentAgent != null && cmd.SupportedOs.Contains(context.Executor.CurrentAgent.Metadata.OsType))
+                    {
+                        availableCommands.Add(cmdDef);
+                    }
+                }
+                else
+                    availableCommands.Add(cmdDef);
+            }
 
-            categories.AddRange(cmds.Select(c => c.CommandType.GetCustomAttribute<CommandAttribute>().Category).Distinct().Where(c => c != CommandCategory.Commander).OrderBy(cat => cat));
+            categories.AddRange(availableCommands.Select(c => c.CommandType.GetCustomAttribute<CommandAttribute>().Category).Distinct().Where(c => c != CommandCategory.Commander).OrderBy(cat => cat));
+
 
             foreach (var cat in categories)
             {
@@ -40,12 +57,7 @@ namespace Commander.CommanderCommand
                 table.AddColumn(new TableColumn("Name").LeftAligned());
                 table.AddColumn(new TableColumn("Description").LeftAligned());
 
-                var tmpCmds = cmds.Where(c => c.CommandType.GetCustomAttribute<CommandAttribute>().Category == cat);
-
-                //if (mode == ExecutorMode.AgentInteraction && context.Executor.CurrentAgent != null && context.Executor.CurrentAgent.Metadata != null)
-                //{
-                //    tmpCmds = tmpCmds.Where(c => c.SupportedOs == null || !c.SupportedOs.Any() || c.SupportedOs.Contains(context.Executor.CurrentAgent.Metadata.OsType));
-                //}
+                var tmpCmds = availableCommands.Where(c => c.CommandType.GetCustomAttribute<CommandAttribute>().Category == cat);
 
                 if (!tmpCmds.Any())
                     continue;

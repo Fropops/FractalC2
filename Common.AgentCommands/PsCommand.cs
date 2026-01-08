@@ -18,6 +18,7 @@ namespace Common.AgentCommands
     public class PsCommand : AgentCommand<PSCommandOptions>
     {
         public override CommandId CommandId => CommandId.ListProcess;
+        public override OsType[] SupportedOs => new Shared.OsType[] { OsType.Windows, OsType.Linux };
 
         protected override void SpecifyParameters(AgentCommandContext context, PSCommandOptions options)
         {

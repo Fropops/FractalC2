@@ -18,6 +18,7 @@ namespace Common.AgentCommands
     public class RemoveDirCommand : AgentCommand<RemoveDirCommandOptions>
     {
         public override CommandId CommandId => CommandId.RmDir;
+        public override OsType[] SupportedOs => new Shared.OsType[] { OsType.Windows, OsType.Linux };
 
         protected override void SpecifyParameters(AgentCommandContext context, RemoveDirCommandOptions options)
         {
