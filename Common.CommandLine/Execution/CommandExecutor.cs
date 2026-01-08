@@ -16,7 +16,7 @@ namespace Common.CommandLine.Execution
         private readonly CommandBinder _binder;
 
         private List<CommandDefinition> _commands = new List<CommandDefinition>();
-        private Dictionary<Type, CommandContext> _contexts = new Dictionary<Type, CommandContext>();
+        private Dictionary<Type, Func<CommandContext>> _contextFactories = new Dictionary<Type, Func<CommandContext>>();
 
         public CommandExecutor()
         {
@@ -32,9 +32,9 @@ namespace Common.CommandLine.Execution
             _commands.AddRange(_loader.LoadCommands(assembly));
         }
 
-        public void RegisterContext<T>(T context) where T : CommandContext
+        public void RegisterContextFactory<T>(Func<T> factory) where T : CommandContext
         {
-            _contexts[typeof(T)] = context;
+            _contextFactories[typeof(T)] = factory;
         }
 
         public async Task<CommandDefinition> GetCommand(string commandeLine)
@@ -77,12 +77,15 @@ namespace Common.CommandLine.Execution
                     return false;
                 }
 
-                // Get Context
-                if (!_contexts.TryGetValue(commandDef.ContextType, out var context))
+                // Get Context Factory
+                if (!_contextFactories.TryGetValue(commandDef.ContextType, out var factory))
                 {
-                    Console.WriteLine($"Error: Context of type '{commandDef.ContextType.Name}' is not registered.");
+                    Console.WriteLine($"Error: Context factory for type '{commandDef.ContextType.Name}' is not registered.");
                     return false;
                 }
+
+                // Create Fresh Context
+                var context = factory.Invoke();
 
                 // Create and Bind Options
                 var options = (CommandOption)Activator.CreateInstance(commandDef.OptionsType);

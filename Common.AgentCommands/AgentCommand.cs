@@ -13,6 +13,10 @@ namespace Common.AgentCommands
     public static class AgentCommandCategories
     {
         public const string System = "Agent - System";
+        public const string Token = "Agent - Token";
+        public const string Media = "Agent - Media";
+        public const string LateralMovement = "Agent - LateralMovement";
+        public const string Execution = "Agent - Execution";
     }
 
     public abstract class AgentCommand

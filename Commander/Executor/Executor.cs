@@ -80,12 +80,12 @@ namespace Commander.Executor
 
             // Register Context(s)
             var context = new CommanderCommandContext(this.CommModule, this.Terminal, this);
-            this.CommandExecutor.RegisterContext(context);
-            this.CommandExecutor.RegisterContext(new AgentCommandContext(new AgentCommandAdapter(this, this.Terminal, this.CommModule)));
+            this.CommandExecutor.RegisterContextFactory(() => new CommanderCommandContext(this.CommModule, this.Terminal, this));
+            this.CommandExecutor.RegisterContextFactory(() => new AgentCommandContext(new AgentCommandAdapter(this, this.Terminal, this.CommModule)));
 
+            //Force the assembly to be loaded.
             var whoami = new Common.AgentCommands.WhoamiCommand();
             // Load Commands
-            //this.CommandExecutor.LoadCommands(Assembly.GetExecutingAssembly());
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 this.CommandExecutor.LoadCommands(assembly);
