@@ -26,6 +26,7 @@ namespace Common.CommandLine.Core
         public int Order { get; }
         public object DefaultValue { get; set; }
         public object[] AllowedValues { get; set; }
+        public bool IsRemainder { get; set; } = false;
 
         public ArgumentAttribute(string name, string description, int order)
         {

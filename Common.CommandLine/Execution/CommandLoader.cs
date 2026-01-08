@@ -32,7 +32,7 @@ namespace Common.CommandLine.Execution
                 try
                 {
                     ValidateOptions(optionsType);
-                    
+
                     validCommands.Add(new CommandDefinition
                     {
                         Metadata = commandAttr,
@@ -43,8 +43,8 @@ namespace Common.CommandLine.Execution
                 }
                 catch (Exception ex)
                 {
-                   // Log or ignore invalid command
-                   Console.WriteLine($"Command '{commandAttr.Name}' rejected: {ex.Message}");
+                    // Log or ignore invalid command
+                    Console.WriteLine($"Command '{commandAttr.Name}' rejected: {ex.Message}");
                 }
             }
 
@@ -53,31 +53,53 @@ namespace Common.CommandLine.Execution
 
         private void ValidateOptions(Type optionsType)
         {
-             var properties = optionsType.GetProperties();
-             var arguments = properties
-                .Select(p => p.GetCustomAttribute<ArgumentAttribute>())
-                .Where(a => a != null)
-                .OrderBy(a => a.Order)
-                .ToList();
+            var properties = optionsType.GetProperties();
+            var arguments = properties
+               .Select(p => p.GetCustomAttribute<ArgumentAttribute>())
+               .Where(a => a != null)
+               .OrderBy(a => a.Order)
+               .ToList();
 
-             // Rule: Required argument cannot be after an optional argument
-             bool foundOptional = false;
-             foreach (var arg in arguments)
-             {
-                 if (arg.IsRequired)
-                 {
-                     if (foundOptional)
-                     {
-                         throw new InvalidOperationException($"Required argument '{arg.Name}' cannot appear after optional arguments.");
-                     }
-                 }
-                 else
-                 {
-                     foundOptional = true;
-                 }
-             }
+            // Rule: Required argument cannot be after an optional argument
+            bool foundOptional = false;
+            bool hasRemainder = false;
+            var optionProperties = properties.Where(p => p.GetCustomAttribute<OptionAttribute>() != null).ToList();
 
-             // Additional validation if needed (e.g. duplicate Aliases in Options, etc.)
+            for (int i = 0; i < arguments.Count; i++)
+            {
+                var arg = arguments[i];
+
+                // Validate Remainder
+                if (arg.IsRemainder)
+                {
+                    if (i != arguments.Count - 1)
+                    {
+                        throw new InvalidOperationException($"Remainder argument '{arg.Name}' must be the last argument.");
+                    }
+                    hasRemainder = true;
+                }
+
+                if (arg.IsRequired)
+                {
+                    if (foundOptional)
+                    {
+                        throw new InvalidOperationException($"Required argument '{arg.Name}' cannot appear after optional arguments.");
+                    }
+                }
+                else
+                {
+                    foundOptional = true;
+                }
+            }
+
+            // Rule: If Remainder is used, NO Options are allowed?
+            // User Request: "incompatible with any options"
+            if (hasRemainder && optionProperties.Any())
+            {
+                throw new InvalidOperationException($"Command uses a Remainder argument which is incompatible with options.");
+            }
+
+            // Additional validation if needed (e.g. duplicate Aliases in Options, etc.)
         }
     }
 }
