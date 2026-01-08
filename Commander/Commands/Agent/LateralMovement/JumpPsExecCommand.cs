@@ -1,5 +1,4 @@
 ﻿using System.CommandLine;
-using Commander.Commands.Composite;
 using Commander.Commands.Custom;
 using Commander.Executor;
 using Common;
@@ -25,7 +24,7 @@ namespace Commander.Commands.Agent.LateralMovement
 
 
     }
-    public class JumpPsExecCommand : ScriptCommand<JumpPsExecCommandOptions>
+   /* public class JumpPsExecCommand : ScriptCommand<JumpPsExecCommandOptions>
     {
         public override string Category => CommandCategory.ToRework;
         public override string Description => "Obtain system agent using Services";
@@ -213,5 +212,5 @@ namespace Commander.Commands.Agent.LateralMovement
 
         //    return true;
         //}
-    }
+    }*/
 }

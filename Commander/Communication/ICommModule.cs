@@ -16,7 +16,6 @@ namespace Commander.Communication
     public interface ICommModule
     {
         event EventHandler<ConnectionStatus> ConnectionStatusChanged;
-        event EventHandler<List<TeamServerAgentTask>> RunningTaskChanged;
         event EventHandler<AgentTaskResult> TaskResultUpdated;
         event EventHandler<Agent> AgentMetaDataUpdated;
         event EventHandler<Agent> AgentAdded;

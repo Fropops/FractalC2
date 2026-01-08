@@ -1,82 +1,70 @@
-using Commander.Commands.Agent;
-using Commander.Communication;
-using Commander.Executor;
-using Commander.Helper;
-using Commander.Terminal;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Commander.CommanderCommand.Abstract;
+using Commander.Commands;
+using Commander.Commands.Core;
+using Common.CommandLine.Core;
 using Common.Models;
 using Newtonsoft.Json;
 using Shared;
 using Spectre.Console;
-using Spectre.Console.Rendering;
-using System;
-using System.Collections.Generic;
-using System.CommandLine;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace Commander.Commands.Core
+namespace Commander.CommanderCommand
 {
-    public class ListenerCommandOptions : VerbAwareCommandOptions
+    public class ManageListenerCommandOptions : VerbCommandOption
     {
+        [Argument("Verb", "actions available", 0, DefaultValue = CommandVerbs.Show, AllowedValues = new object[] { CommandVerbs.Start, CommandVerbs.Stop, CommandVerbs.Show }, IsRequired = true)]
+        public override string verb { get; set; }
+        [Option("n", "name", "Name of the listener", DefaultValue = "Local")]
         public string name { get; set; }
+        [Option("p", "port", "The listening address", DefaultValue = null)]
         public int? port { get; set; }
+        [Option("a", "address", "The listening address", DefaultValue = "127.0.0.1")]
         public string address { get; set; }
+        [Option("s", "secured", "HTTPS if secured else HTTP", DefaultValue = true)]
         public bool secured { get; set; }
     }
 
-    public class ListenerCommand : VerbAwareCommand<ListenerCommandOptions>
+    [Command("listener", "Manager TeamServer Listeners", Category = "Commander", Aliases = new string[] { "implants" })]
+    public class ManageListenerCommand : VerbCommand<CommanderCommandContext, ManageListenerCommandOptions>
     {
-        public override string Category => CommandCategory.Commander;
-        public override string Description => "Manage listeners";
-        public override string Name => "listener";
-
-        public override string[] Alternate => new string[] { "listeners" };
-
-        public override ExecutorMode AvaliableIn => ExecutorMode.All;
-
-        public override RootCommand Command => new RootCommand(Description)
-            {
-                new Argument<string>("verb", () => CommandVerbs.Show.Command()).FromAmong(CommandVerbs.Start.Command(), CommandVerbs.Stop.Command(), CommandVerbs.Show.Command()),
-                new Option<string>(new[] { "--name", "-n" }, "name of the listener"),
-                new Option<string>(new[] { "--address", "-a" }, () => "127.0.0.1", "The listening address."),
-                new Option<int?>(new[] { "--port", "-p" }, () => null, "The listening port."),
-                new Option<bool>(new[] { "--secured", "-s" }, () => true, "HTTPS if secured else HTTP"),
-            };
-
         protected override void RegisterVerbs()
         {
-            base.RegisterVerbs();
-            Register("start", Start);
-            Register("stop", Stop);
-            Register("show", Show);
+            this.Register(CommandVerbs.Start.ToString(), Start);
+            this.Register(CommandVerbs.Stop.ToString(), Stop);
+            this.Register(CommandVerbs.Show.ToString(), Show);
         }
 
-        protected async Task<bool> Start(CommandContext<ListenerCommandOptions> context)
+        protected async Task<bool> Start(CommanderCommandContext context, ManageListenerCommandOptions options)
         {
-            if (string.IsNullOrEmpty(context.Options.name))
+            if (string.IsNullOrEmpty(options.name))
             {
                 context.Terminal.WriteError("[X] Name is required to start a listener!");
                 return false;
             }
 
-            if (!context.Options.port.HasValue)
+            if (!options.port.HasValue)
             {
-                if (context.Options.secured)
-                    context.Options.port = 443;
+                if (options.secured)
+                    options.port = 443;
                 else
-                    context.Options.port = 80;
+                    options.port = 80;
             }
 
-            if (context.CommModule.GetListeners().Any(l => l.Name.ToLower().Equals(context.Options.name.ToLower())))
+            if (context.CommModule.GetListeners().Any(l => l.Name.ToLower().Equals(options.name.ToLower())))
             {
-                context.Terminal.WriteError($"A listener with the name {context.Options.name} already exists !");
+                context.Terminal.WriteError($"A listener with the name {options.name} already exists !");
                 return false;
             }
 
-            var result = await context.CommModule.CreateListener(context.Options.name, context.Options.port.Value, context.Options.address, context.Options.secured);
+            var result = await context.CommModule.CreateListener(options.name, options.port.Value, options.address, options.secured);
             if (!result.IsSuccessStatusCode)
             {
-                context.Terminal.WriteError("An error occured : " + result.StatusCode);
+                var body = await result.Content.ReadAsStringAsync();
+                context.Terminal.WriteError("An error occured : " + result.StatusCode + Environment.NewLine + body);
                 return false;
             }
 
@@ -87,18 +75,18 @@ namespace Commander.Commands.Core
             return true;
         }
 
-        protected async Task<bool> Stop(CommandContext<ListenerCommandOptions> context)
+        protected async Task<bool> Stop(CommanderCommandContext context, ManageListenerCommandOptions options)
         {
-            if (string.IsNullOrEmpty(context.Options.name))
+            if (string.IsNullOrEmpty(options.name))
             {
                 context.Terminal.WriteError("[X] Name is required to stop a listener!");
                 return false;
             }
 
-            var listener = context.CommModule.GetListeners().FirstOrDefault(l => l.Name.ToLower().Equals(context.Options.name.ToLower()));
+            var listener = context.CommModule.GetListeners().FirstOrDefault(l => l.Name.ToLower().Equals(options.name.ToLower()));
             if (listener == null)
             {
-                context.Terminal.WriteError($"Cannot find listener with the name {context.Options.name} !");
+                context.Terminal.WriteError($"Cannot find listener with the name {options.name} !");
                 return false;
             }
 
@@ -113,7 +101,7 @@ namespace Commander.Commands.Core
             return true;
         }
 
-        protected async Task<bool> Show(CommandContext<ListenerCommandOptions> context)
+        protected async Task<bool> Show(CommanderCommandContext context, ManageListenerCommandOptions options)
         {
             var result = context.CommModule.GetListeners();
             if (result.Count() == 0)
@@ -152,4 +140,6 @@ namespace Commander.Commands.Core
             return true;
         }
     }
+
+    
 }

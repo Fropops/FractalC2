@@ -1,85 +1,56 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading.Tasks;
+using Commander.CommanderCommand.Abstract;
+using Commander.Commands;
 using Commander.Executor;
 using Commander.Helper;
-using Commander.Models;
-using Common;
 using Common.APIModels;
+using Common.CommandLine.Core;
 using Common.Payload;
 using Shared;
 using Spectre.Console;
 
-namespace Commander.Commands.Core
+namespace Commander.CommanderCommand
 {
-    public class ImplantCommandOptions
+    public class ManageImplantCommandOptions : VerbCommandOption
     {
-        public string action { get; set; } // show, generate, download, delete
+        [Argument("Verb", "actions available", 0, DefaultValue = CommandVerbs.Show, AllowedValues = new object[] { CommandVerbs.Show, "Download", "Generate", "Script", "Delete" }, IsRequired = true)]
+        public override string verb { get; set; }
+        [Option("n", "name", "Name of the Implant")]
         public string name { get; set; } // for delete, download, script
-        
+
         // Generation options
+        [Option("l", "listener", "Listener to connect to (for generate)")]
         public string listener { get; set; }
+        [Option("b", "bind", "Endpoint URL (for generate, e.g. http://10.10.10.10:80)")]
         public string endpoint { get; set; }
+        [Option("d", "download", "Download implant after generation")]
         public bool download { get; set; }
-        public string type { get; set; } = "exe";
-        public string arch { get; set; } = "x64";
+        [Option("t", "type", "exe | dll | rfl | svc | ps | bin | elf", DefaultValue = "exe", AllowedValues = new object[] { "exe", "dll", "rfl", "svc", "ps", "bin", "elf" })]
+        public string type { get; set; }
+        [Option("a", "arch", "x64 | x86", DefaultValue = "exe", AllowedValues = new object[] { "x64", "x86" })]
+        public string arch { get; set; }
     }
 
-    public class ImplantCommand : EnhancedCommand<ImplantCommandOptions>
+    [Command("implant", "Manager TeamServer Listeners", Category = "Commander", Aliases = new string[] { "implants" } )]
+    public class ManageImplantCommand : VerbCommand<CommanderCommandContext, ManageImplantCommandOptions>
     {
-        public override string Category => CommandCategory.Commander;
-        public override string Description => "Manage Implants";
-        public override string Name => "implant";
-        public override ExecutorMode AvaliableIn => ExecutorMode.All;
-
-        public override string[] Alternate => new string[] { "implants" };
-
-        public override RootCommand Command
+        protected override void RegisterVerbs()
         {
-            get
-            {
-                var root = new RootCommand(Description);
-                root.AddArgument(new Argument<string>("action", () => "show", "Action to perform: show, generate, download, delete, script").FromAmong("show", "generate", "download", "delete", "script"));
-                
-                // Generated options
-                root.AddOption(new Option<string>(new[] { "--listener", "-l" }, "Listener to connect to (for generate)"));
-                root.AddOption(new Option<string>(new[] { "--endpoint", "-b" }, "Endpoint URL (for generate, e.g. http://10.10.10.10:80)"));
-                root.AddOption(new Option<bool>(new[] { "--download", "-d" }, "Download implant after generation"));
-                root.AddOption(new Option<string>(new[] { "--type", "-t" }, () => "exe", "exe | dll | rfl | svc | ps | bin | elf").FromAmong("exe", "dll", "rfl" , "svc", "ps", "bin", "elf"));
-                root.AddOption(new Option<string>(new[] { "--arch", "-a" }, () => "x64", "x64 | x86").FromAmong("x64", "x86"));
-
-                // Universal options
-                root.AddOption(new Option<string>(new[] { "--name", "-n" }, "Implant Name (for delete, download, script)"));
-
-                return root;
-            }
+            this.Register(CommandVerbs.Show.ToString(), this.ShowImplants);
+            this.Register("download", this.DownloadImplant);
+            this.Register("generate", this.GenerateImplant);
+            this.Register("delete", this.DeleteImplant);
+            this.Register("script", this.GenerateScript);
         }
 
-        protected override async Task<bool> HandleCommand(CommandContext<ImplantCommandOptions> context)
-        {
-            var action = context.Options.action?.ToLower() ?? "show";
-            switch (action)
-            {
-                case "show":
-                    return await this.ShowImplants(context);
-                case "download":
-                    return await this.DownloadImplant(context);
-                case "generate":
-                    return await this.GenerateImplant(context);
-                case "delete":
-                    return await this.DeleteImplant(context);
-                case "script":
-                    return await this.GenerateScript(context);
-                default:
-                    return await this.ShowImplants(context);
-            }
-        }
-
-        private async Task<bool> ShowImplants(CommandContext<ImplantCommandOptions> context)
+        private async Task<bool> ShowImplants(CommanderCommandContext context, ManageImplantCommandOptions options)
         {
             var implants = context.CommModule.GetImplants();
             if (implants == null || !implants.Any())
@@ -97,26 +68,26 @@ namespace Commander.Commands.Core
 
             foreach (var implant in implants)
             {
-               var type = implant.Config?.Type.ToString() ?? "Unknown";
-               var name = implant.Config?.ImplantName.ToString() ?? "Unknown";
-               var arch = implant.Config?.Architecture.ToString() ?? "Unknown";
-               var endpoint = implant.Config?.Endpoint?.ToString() ?? "Unknown";
-               var listener = implant.Config?.Listener?.ToString() ?? "Custom";
+                var type = implant.Config?.Type.ToString() ?? "Unknown";
+                var name = implant.Config?.ImplantName.ToString() ?? "Unknown";
+                var arch = implant.Config?.Architecture.ToString() ?? "Unknown";
+                var endpoint = implant.Config?.Endpoint?.ToString() ?? "Unknown";
+                var listener = implant.Config?.Listener?.ToString() ?? "Custom";
 
-               table.AddRow(name, type, arch, endpoint, listener);
+                table.AddRow(name, type, arch, endpoint, listener);
             }
 
             context.Terminal.Write(table);
             return true;
         }
 
-        private async Task<bool> GenerateImplant(CommandContext<ImplantCommandOptions> context)
+        private async Task<bool> GenerateImplant(CommanderCommandContext context, ManageImplantCommandOptions options)
         {
-            var listenerName = context.Options.listener;
-            var endpointStr = context.Options.endpoint;
-            var typeStr = context.Options.type;
-            var archStr = context.Options.arch;
-            
+            var listenerName = options.listener;
+            var endpointStr = options.endpoint;
+            var typeStr = options.type;
+            var archStr = options.arch;
+
             ConnexionUrl connexionUrl = null;
 
             var config = new ImplantConfig();
@@ -153,7 +124,7 @@ namespace Commander.Commands.Core
             switch (typeStr)
             {
                 case "exe":
-                    type = ImplantType.Executable; break ;
+                    type = ImplantType.Executable; break;
                 case "dll":
                     type = ImplantType.Library; break;
                 case "rfl":
@@ -170,41 +141,41 @@ namespace Commander.Commands.Core
                     type = ImplantType.Executable; break;
             }
 
-          
+
             config.Type = type;
 
             if (Enum.TryParse<ImplantArchitecture>(archStr, true, out var archEnum))
                 config.Architecture = archEnum;
             else
                 config.Architecture = ImplantArchitecture.x64;
-            
+
             try
             {
                 context.Terminal.WriteInfo($"Generating {config.Architecture} {config.Type} implant for {config.Endpoint}...");
                 var result = await context.CommModule.GenerateImplant(config);
 
                 // For a freshly generated implant, we use the name from the config
-                context.Options.name = result.Implant.Name;
-                if (context.Options.download && result != null)
+                options.name = result.Implant.Name;
+                if (options.download && result != null)
                 {
-                    await this.DownloadImplant(context);
+                    await this.DownloadImplant(context, options);
                 }
 
-                await Script(result.Implant, context);
+                await Script(result.Implant, context, options);
             }
             catch (Exception ex)
             {
                 context.Terminal.WriteError($"Generation failed: {ex.Message}");
             }
 
-            
+
 
             return true;
         }
 
-        private async Task<bool> DownloadImplant(CommandContext<ImplantCommandOptions> context)
+        private async Task<bool> DownloadImplant(CommanderCommandContext context, ManageImplantCommandOptions options)
         {
-            var name = context.Options.name;
+            var name = options.name;
             if (string.IsNullOrEmpty(name))
             {
                 context.Terminal.WriteError("Implant Name is required for download.");
@@ -224,7 +195,7 @@ namespace Commander.Commands.Core
 
                 context.Terminal.WriteInfo($"Downloading implant {name}...");
                 var implant = await context.CommModule.GetImplantBinary(implantInfo.Id);
-                
+
                 if (string.IsNullOrEmpty(implant.Data))
                 {
                     context.Terminal.WriteError("No data found for this implant.");
@@ -247,9 +218,9 @@ namespace Commander.Commands.Core
         }
 
 
-        private async Task<bool> DeleteImplant(CommandContext<ImplantCommandOptions> context)
+        private async Task<bool> DeleteImplant(CommanderCommandContext context, ManageImplantCommandOptions options)
         {
-            var name = context.Options.name;
+            var name = options.name;
             if (string.IsNullOrEmpty(name))
             {
                 context.Terminal.WriteError("Implant Name is required for deletion.");
@@ -270,29 +241,29 @@ namespace Commander.Commands.Core
             return true;
         }
 
-        private async Task<bool> GenerateScript(CommandContext<ImplantCommandOptions> context)
+        private async Task<bool> GenerateScript(CommanderCommandContext context, ManageImplantCommandOptions options)
         {
-             var name = context.Options.name;
-             if (string.IsNullOrEmpty(name))
-             {
-                 context.Terminal.WriteError("Implant Name is required for script generation.");
-                 return false;
-             }
+            var name = options.name;
+            if (string.IsNullOrEmpty(name))
+            {
+                context.Terminal.WriteError("Implant Name is required for script generation.");
+                return false;
+            }
 
-             var implants = context.CommModule.GetImplants();
-             var selectedImplant = implants.FirstOrDefault(i => string.Equals(i.Config?.ImplantName, name, StringComparison.OrdinalIgnoreCase));
+            var implants = context.CommModule.GetImplants();
+            var selectedImplant = implants.FirstOrDefault(i => string.Equals(i.Config?.ImplantName, name, StringComparison.OrdinalIgnoreCase));
 
-             if (selectedImplant == null)
-             {
-                 context.Terminal.WriteError($"Implant {name} not found.");
-                 return false;
-             }
+            if (selectedImplant == null)
+            {
+                context.Terminal.WriteError($"Implant {name} not found.");
+                return false;
+            }
 
-            await Script(selectedImplant, context);
+            await Script(selectedImplant, context, options);
             return true;
         }
 
-        private async Task Script(APIImplant selectedImplant, CommandContext<ImplantCommandOptions> context)
+        private async Task Script(APIImplant selectedImplant, CommanderCommandContext context, ManageImplantCommandOptions options)
         {
             var listeners = context.CommModule.GetListeners();
             // Filter by listener if one is specified in the implant config
@@ -300,9 +271,9 @@ namespace Commander.Commands.Core
             {
                 listeners = listeners.Where(l => l.Name == selectedImplant.Config.Listener).ToList();
             }
-            else if (!string.IsNullOrEmpty(context.Options.listener))
+            else if (!string.IsNullOrEmpty(options.listener))
             {
-                listeners = listeners.Where(l => l.Name == context.Options.listener).ToList();
+                listeners = listeners.Where(l => l.Name == options.listener).ToList();
             }
 
             if (!listeners.Any())
@@ -359,7 +330,7 @@ namespace Commander.Commands.Core
                 case ImplantType.PowerShell:
                     return ".ps1";
                 case ImplantType.Elf:
-                    return ""; 
+                    return "";
                 case ImplantType.Library:
                 case ImplantType.ReflectiveLibrary:
                     return ".dll";

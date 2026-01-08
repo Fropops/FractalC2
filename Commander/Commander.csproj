@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
@@ -53,6 +53,8 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.28.1" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Common.AgentCommands\Common.AgentCommands.csproj" />
+    <ProjectReference Include="..\Common.CommandLine\Common.CommandLine.csproj" />
     <ProjectReference Include="..\Common.Payload.Generation\Common.Payload.Generation.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>

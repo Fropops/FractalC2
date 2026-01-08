@@ -1,0 +1,50 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.Design;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using Common.CommandLine.Core;
+using Shared;
+
+namespace Common.AgentCommands
+{
+    public static class AgentCommandCategories
+    {
+        public const string System = "Agent - System";
+    }
+
+    public abstract class AgentCommand
+    {
+
+    }
+
+    public abstract class AgentCommand<TOption> : AgentCommand, ICommand<AgentCommandContext, TOption>
+        where TOption : CommandOption
+    {
+        public abstract CommandId CommandId { get; }
+        public async Task<bool> Execute(AgentCommandContext context, TOption options)
+        {
+            this.CallEndPointCommand(context, options);
+            return true;
+        }
+
+        protected void CallEndPointCommand(AgentCommandContext context, TOption options)
+        {
+            if (!this.CheckParams(context, options))
+                return;
+            this.SpecifyParameters(context, options);
+            context.TaskAgent(options.CommandLine, this.CommandId);
+        }
+
+        protected virtual void SpecifyParameters(AgentCommandContext context, TOption options)
+        {
+        }
+
+        protected virtual bool CheckParams(AgentCommandContext context, TOption options)
+        {
+            return true;
+        }
+    }
+}

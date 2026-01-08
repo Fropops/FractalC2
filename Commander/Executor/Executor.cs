@@ -1,12 +1,4 @@
-﻿using BinarySerializer;
-using Commander.Commands;
-using Commander.Communication;
-using Commander.Helper;
-using Commander.Models;
-using Commander.Terminal;
-using Common.Models;
-using Shared;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,12 +6,28 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using BinarySerializer;
+using Commander.CommanderCommand;
+using Commander.Commands;
+using Commander.Commands.Agent;
+using Commander.Commands.Agent.EndPoint;
+using Commander.Commands.Custom;
+using Commander.Communication;
+using Commander.Helper;
+using Commander.Models;
+using Commander.Terminal;
+using Common.AgentCommands;
+using Common.CommandLine.Execution;
+using Common.Models;
+using Shared;
 
 namespace Commander.Executor
 {
 
     public class Executor : IExecutor
     {
+
+
         public ExecutorMode Mode { get; set; } = ExecutorMode.None;
 
         public bool IsRunning
@@ -63,18 +71,30 @@ namespace Commander.Executor
 
         public bool IsBusy { get; private set; }
 
+        private CommandExecutor CommandExecutor = new CommandExecutor();
+
         public Executor(ITerminal terminal, ICommModule commModule)
         {
             this.CommModule = commModule;
             this.Terminal = terminal;
 
-            this.LoadCommands();
+            // Register Context(s)
+            var context = new CommanderCommandContext(this.CommModule, this.Terminal, this);
+            this.CommandExecutor.RegisterContext(context);
+            this.CommandExecutor.RegisterContext(new AgentCommandContext(new AgentCommandAdapter(this, this.Terminal, this.CommModule)));
+
+            var whoami = new Common.AgentCommands.WhoamiCommand();
+            // Load Commands
+            //this.CommandExecutor.LoadCommands(Assembly.GetExecutingAssembly());
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                this.CommandExecutor.LoadCommands(assembly);
+            }
 
             //suscribe to events
             this.Terminal.InputValidated += Instance_InputValidated;
 
             this.CommModule.ConnectionStatusChanged +=CommModule_ConnectionStatusChanged;
-            this.CommModule.RunningTaskChanged += CommModule_RunningTaskChanged;
             this.CommModule.TaskResultUpdated += CommModule_TaskResultUpdated;
             this.CommModule.AgentMetaDataUpdated += CommModule_AgentMetadataUpdated;
             this.CommModule.AgentAdded +=CommModule_AgentAdded;
@@ -84,9 +104,6 @@ namespace Commander.Executor
         private void CommModule_AgentAdded(object sender, Agent e)
         {
             Terminal.Interrupt();
-            //string userName = e.Metadata.UserName;
-            //if (e.Metadata.Integrity == "High")
-            //    userName += "*";
 
             var index = this.CommModule.GetAgents().OrderBy(a => a.FirstSeen).ToList().IndexOf(e);
             Terminal.WriteInfo($"New Agent Checking in : {e.Id} ({index})");
@@ -97,7 +114,6 @@ namespace Commander.Executor
         {
             if (this.CurrentAgent != null && e.Id == this.CurrentAgent.Id)
             {
-                //this.CurrentAgent = this.CommModule.GetAgent(this.CurrentAgent.Id);
                 this.UpdateAgentPrompt();
             }
         }
@@ -160,62 +176,6 @@ namespace Commander.Executor
             this.Terminal.Restore();
         }
 
-        private void CommModule_RunningTaskChanged(object sender, List<TeamServerAgentTask> tasks)
-        {
-            //if(this.CurrentAgent == null)
-            //{
-            //    if(lastRunningCount != 0)
-            //    {
-            //        Terminal.CanHandleInput = false;
-            //        Terminal.SaveCursorPosition();
-            //        Terminal.SetCursorPosition(0, 0);
-            //        Terminal.DrawBackGround(TerminalConstants.DefaultBackGroundColor, lastRunningCount + 1);
-            //        Terminal.ResetCursorPosition();
-            //        Terminal.CanHandleInput = true;
-            //    }
-            //    return;
-            //}
-            //tasks = tasks.Where(t => t.AgentId == this.CurrentAgent.Metadata.Id).ToList();
-            //if (tasks.Count == 0 && lastRunningCount == 0)
-            //    return;
-
-            //Terminal.CanHandleInput = false;
-
-            //Terminal.SaveCursorPosition();
-            //Terminal.SetCursorPosition(0, 0);
-            //Terminal.DrawBackGround(TerminalConstants.DefaultBackGroundColor, lastRunningCount + 1);
-
-            //lastRunningCount = tasks.Count;
-            //if (tasks.Any())
-            //{
-            //    Terminal.SetCursorPosition(0, 0);
-            //    Terminal.DrawBackGround(ConsoleColor.Cyan, tasks.Count + 1);
-
-            //    Terminal.SetBackGroundColor(ConsoleColor.Cyan);
-            //    Terminal.SetForeGroundColor(ConsoleColor.Black);
-
-            //    Terminal.SetCursorPosition(0, 0);
-            //    Terminal.WriteLine("Running Commands :");
-            //    int index = 0;
-            //    foreach (var task in tasks.OrderBy(t => t.RequestDate))
-            //    {
-            //        index++;
-            //        int completion = 0;
-            //        var res = this.CommModule.GetTaskResult(task.Id);
-            //        if (res != null)
-            //            completion = res.Completion;
-
-            //        Terminal.Write($" #{index} {task.FullCommand} - {completion}%");
-            //        Terminal.WriteLine();
-            //    }
-            //}
-
-            //Terminal.SetForeGroundColor(TerminalConstants.DefaultForeGroundColor);
-            //Terminal.SetBackGroundColor(TerminalConstants.DefaultBackGroundColor);
-            //Terminal.ResetCursorPosition();
-
-            //Terminal.CanHandleInput = true;
-        }
 
         private void CommModule_ConnectionStatusChanged(object sender, ConnectionStatus e)
         {
@@ -249,19 +209,7 @@ namespace Commander.Executor
 
         private void Instance_InputValidated(object sender, string e)
         {
-            string command = string.Empty;
-            string parms = string.Empty;
-
-            int limitIndex = e.IndexOf(' ');
-            if (limitIndex == -1)
-                command = e;
-            else
-            {
-                command = e.Substring(0, limitIndex);
-                parms = e.Substring(limitIndex+1, e.Length - limitIndex - 1);
-            }
-
-            this.HandleInput(command, parms);
+            this.HandleInput(e);
         }
 
         public void LoadCommands()
@@ -317,29 +265,35 @@ namespace Commander.Executor
             return command;
         }
 
-        public void HandleInput(string input, string parms)
+        public void HandleInput(string input)
         {
             this.Terminal.CanHandleInput = false;
             string error = $"Command {input} is unknow.";
 
-            var cmd = this.GetCommandInMode(this.Mode, input);
-            if (cmd == null)
-                cmd = this.GetCommandInMode(ExecutorMode.All, input);
-
-            if (cmd is null)
-            {
-                this.Terminal.WriteError(error);
-                this.InputHandled(null, false);
-                return;
-            }
-
             try
             {
-                cmd.Execute(parms);
+                var commandDef = this.CommandExecutor.GetCommand(input).Result;
+                if(commandDef == null)
+                {
+                    this.Terminal.WriteLine(error);
+                    return;
+                }
+
+                if(typeof(Common.AgentCommands.AgentCommand).IsAssignableFrom(commandDef.CommandType) && this.CurrentAgent == null)
+                {
+                    this.Terminal.WriteLine("No agent selected. Use 'interact' command to select an agent.");
+                    return;
+                }
+
+                this.CommandExecutor.Execute(input).Wait();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 this.Terminal.WriteError($"An Error occurred : {ex}");
+            }
+            finally
+            {
+                this.InputHandled(null, false);
             }
         }
 
