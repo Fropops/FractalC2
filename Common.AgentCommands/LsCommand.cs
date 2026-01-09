@@ -10,7 +10,7 @@ namespace Common.AgentCommands
 {
     public class AgentLsCommandOptions : CommandOption
     {
-        [Argument("path", "Path of the directory to list", 0, IsRequired = true)]
+        [Argument("path", "Path of the directory to list", 0)]
         public string Path { get; set; } = string.Empty;
     }
 

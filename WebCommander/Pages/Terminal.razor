@@ -343,6 +343,7 @@
 		if (result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error)
 		{
 			var commandName = task.Command;
+			var commandId = task.CommandId;
 
 			Console.WriteLine($"[Terminal] Command: {commandName}, Status: {result.Status}, Error: {result.Error}, Output length: {result.Output?.Length ?? 0}");
 
@@ -359,111 +360,91 @@
 			}
 
 			// Check if this is an ls command with Objects data
-			if ((commandName == "ls" || commandName == "dir") && result.Objects != null && result.Objects.Length > 0)
+			if (commandId == CommandId.Ls && result.Objects != null && result.Objects.Length > 0)
 			{
 				try
 				{
+					if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
 					var listResult = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
 					if (listResult != null && listResult.Lines.Count > 0)
 					{
 						// Add table output
 						AddLsTable(listResult);
 					}
-					else if (!string.IsNullOrEmpty(result.Output))
-					{
-						AddNormal(result.Output);
-					}
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine($"[Terminal] Error deserializing ls results: {ex.Message}");
-					// Fallback to normal output
+				}
+			}
+			// Check if this is a ps command with Objects data
+			else if (commandId == CommandId.ListProcess && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
 					if (!string.IsNullOrEmpty(result.Output))
 					{
 						AddNormal(result.Output);
 					}
-				}
-			}
-			// Check if this is a ps command with Objects data
-			else if (commandName == "ps" && result.Objects != null && result.Objects.Length > 0)
-			{
-				try
-				{
 					var processResults = await ResultObjectHelper.DeserializeListProcessResults(result.Objects);
 					if (processResults.Count > 0)
 					{
 						// Add process tree output
 						AddPsTable(processResults);
 					}
-					else if (!string.IsNullOrEmpty(result.Output))
-					{
-						AddNormal(result.Output);
-					}
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine($"[Terminal] Error deserializing ps results: {ex.Message}");
-					// Fallback to normal output
+				}
+			}
+			// Check if this is a job command with Objects data
+			else if (commandId == CommandId.Job && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
 					if (!string.IsNullOrEmpty(result.Output))
 					{
 						AddNormal(result.Output);
 					}
-				}
-			}
-			// Check if this is a job command with Objects data
-			else if (commandName == "job" && result.Objects != null && result.Objects.Length > 0)
-			{
-				try
-				{
 					var jobResults = await ResultObjectHelper.DeserializeJobResults(result.Objects);
 					if (jobResults.Count > 0)
 					{
 						// Add job table output
 						AddJobTable(jobResults);
 					}
-					else if (!string.IsNullOrEmpty(result.Output))
-					{
-						AddNormal(result.Output);
-					}
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine($"[Terminal] Error deserializing job results: {ex.Message}");
-					// Fallback to normal output
+				}
+			}
+			// Check if this is a link command with Objects data
+			else if (commandId == CommandId.Link && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
 					if (!string.IsNullOrEmpty(result.Output))
 					{
 						AddNormal(result.Output);
 					}
-				}
-			}
-			// Check if this is a link command with Objects data
-			else if (commandName == "link" && result.Objects != null && result.Objects.Length > 0)
-			{
-				try
-				{
 					var linkResults = await ResultObjectHelper.DeserializeLinkInfoResults(result.Objects);
 					if (linkResults.Count > 0)
 					{
 						// Add link table output
 						AddLinkTable(linkResults);
 					}
-					else if (!string.IsNullOrEmpty(result.Output))
-					{
-						AddNormal(result.Output);
-					}
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine($"[Terminal] Error deserializing link results: {ex.Message}");
-					// Fallback to normal output
-					if (!string.IsNullOrEmpty(result.Output))
-					{
-						AddNormal(result.Output);
-					}
 				}
 			}
 			// Check if this is a rportfwd command with Objects data
-			else if (commandName.StartsWith("rportfwd") && result.Objects != null && result.Objects.Length > 0)
+			else if (commandId == CommandId.RportFwd && result.Objects != null && result.Objects.Length > 0)
 			{
 				try
 				{
@@ -999,6 +980,9 @@
 		if (string.IsNullOrWhiteSpace(commandToSend) || agent == null)
 			return;
 
+		// Clear input
+		currentCommand = string.Empty;
+
 		// Add to history (at the beginning of the list)
 		commandHistory.Insert(0, commandToSend);
 		historyIndex = -1; // Reset history navigation
@@ -1037,11 +1021,13 @@
 
 		}
 
-		if (!string.IsNullOrEmpty(result.Error))
-			AddError(result.Error);
-
-		// Clear input
-		currentCommand = string.Empty;
+		if (!string.IsNullOrEmpty(result.Message))
+		{
+			if (result.Succeed)
+				AddNormal(result.Message);
+			else
+				AddError(result.Message);
+		}
 
 		StateHasChanged();
 

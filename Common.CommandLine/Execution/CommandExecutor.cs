@@ -76,8 +76,7 @@ namespace Common.CommandLine.Execution
                     // We still print Help to console as it is "Output", not "Error". 
                     // Or should we return it? The user said "retourner les erreur".
                     // Help is usually normal output.
-                    Console.WriteLine(helpGen.GenerateUsage(commandDef));
-                    return CommandResult.Success();
+                    return CommandResult.Success(helpGen.GenerateUsage(commandDef));
                 }
 
                 // Get Context Factory

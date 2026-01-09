@@ -14,7 +14,8 @@ namespace Shared
         [FieldOrder(1)]
         public CommandId CommandId { get; set; }
         [FieldOrder(2)]
-        public ParameterDictionary Parameters { get; set; } = new ParameterDictionary();
+        public ParameterDictionary Parameters { get; set; } = 
+            new ParameterDictionary();
 
 
         public bool HasParameter(ParameterId id)

@@ -25,6 +25,13 @@ When link to another agent failed, should not continue to make believe the agent
 Topology & map not welle working with P2P links
 
 # Other
-Rework AgentCommands & Commands
 Rework ClientAPI
 Rework Client Models
+
+
+# Rework AgentCommands & Commands
+Upload Command not working
+Elevate command not working
+Start : Error in CreateProcessW : 2
+keylog
+job command

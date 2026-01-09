@@ -224,9 +224,13 @@ namespace Commander.Executor
                 }
 
                 var result = this.CommandExecutor.ExecuteAsync(input).Result;
-                if(result.Failed && !string.IsNullOrEmpty(result.Error))
+                if(result.Failed && !string.IsNullOrEmpty(result.Message))
                 {
-                    this.Terminal.WriteError($"{result.Error}");
+                    this.Terminal.WriteError($"{result.Message}");
+                }
+                if (result.Succeed && !string.IsNullOrEmpty(result.Message))
+                {
+                    this.Terminal.WriteLine($"{result.Message}");
                 }
             }
             catch (Exception ex)
