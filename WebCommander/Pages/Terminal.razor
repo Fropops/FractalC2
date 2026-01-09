@@ -1,8 +1,9 @@
 @page "/terminal/{AgentId}"
 @using System.Collections.Generic
+@using Common.Models
 @using Shared
 @using Shared.ResultObjects
-@using WebCommander.Commands.EndPoint
+
 @using WebCommander.Components
 @using WebCommander.Helpers
 @using WebCommander.Models
@@ -172,12 +173,11 @@
     private Agent? agent;
     private string currentCommand = string.Empty;
     private List<TerminalLine> outputLines = new();
-    private HashSet<string> sentTaskIds = new();
     private Dictionary<string, string> taskCommands = new();
     private TerminalOutput terminalOutputComponent;
     private ElementReference inputElement;
     private FileUploadModal fileUploadModal;
-    
+
     // Command history
     private List<string> commandHistory = new();
     private int historyIndex = -1;
@@ -188,7 +188,7 @@
     protected override async Task OnInitializedAsync()
     {
         agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
-        
+
         if (agent != null)
         {
             var history = await TerminalHistoryService.LoadHistoryAsync(AgentId);
@@ -196,7 +196,6 @@
             {
                 outputLines = history.OutputLines;
                 commandHistory = history.CommandHistory;
-                sentTaskIds = history.SentTaskIds;
                 taskCommands = history.TaskCommands;
                 // Scroll to bottom after loading
                 shouldScrollToBottom = true;
@@ -231,23 +230,21 @@
         {
             // Agent has changed, reload terminal for new agent
             agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
-            
+
             if (agent != null)
             {
                 // Clear current terminal
                 outputLines.Clear();
                 commandHistory.Clear();
-                sentTaskIds.Clear();
                 taskCommands.Clear();
                 historyIndex = -1;
-                
+
                 // Load history for new agent
                 var history = await TerminalHistoryService.LoadHistoryAsync(AgentId);
                 if (history != null && history.OutputLines.Any())
                 {
                     outputLines = history.OutputLines;
                     commandHistory = history.CommandHistory;
-                    sentTaskIds = history.SentTaskIds;
                     taskCommands = history.TaskCommands;
                     shouldScrollToBottom = true;
                 }
@@ -260,11 +257,11 @@
                     AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
                     AddNormal("");
                 }
-                
+
                 StateHasChanged();
             }
         }
-        
+
         previousAgentId = AgentId;
     }
 
@@ -321,24 +318,16 @@
 
 
 
-    private async void HandleAgentResult(AgentTaskResult result)
+    private async void HandleAgentResult(AgentTaskResult result, TeamServerAgentTask task)
     {
         Console.WriteLine($"[Terminal] Received result for task {result.Id}, Status: {result.Status}");
-        
-        // Only display results for tasks sent by this terminal
-        if (!sentTaskIds.Contains(result.Id))
-        {
-            Console.WriteLine($"[Terminal] Task {result.Id} not sent by this terminal, ignoring");
-            return;
-        }
 
         Console.WriteLine($"[Terminal] Processing result for task {result.Id}");
-        
+
         if (result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error)
         {
-            // Get command name if available
-            var commandName = taskCommands.TryGetValue(result.Id, out var cmd) ? cmd : "unknown";
-            
+            var commandName = task.Command;
+
             Console.WriteLine($"[Terminal] Command: {commandName}, Status: {result.Status}, Error: {result.Error}, Output length: {result.Output?.Length ?? 0}");
             
             // Display header with appropriate color
@@ -966,7 +955,6 @@
             if (taskId != null)
             {
                 Console.WriteLine($"Adding task ID {taskId}");
-                sentTaskIds.Add(taskId);
                 // Store command name (first word)
                 var cmdName = commandToSend.Split(' ')[0];
                 taskCommands[taskId] = cmdName;
@@ -1004,7 +992,6 @@
         {
             OutputLines = outputLines,
             CommandHistory = commandHistory,
-            SentTaskIds = sentTaskIds,
             TaskCommands = taskCommands
         };
 
@@ -1041,7 +1028,6 @@
         // Track task ID if command was sent successfully
         if (taskId != null)
         {
-            sentTaskIds.Add(taskId);
             // Store command name (first word)
             var cmdName = commandToSend.Split(' ')[0];
             taskCommands[taskId] = cmdName;
@@ -1078,19 +1064,14 @@
 
         var (fileBytes, localName) = result.Value;
 
-        var cmdBase = CommandService.GetCommand("upload", agent);
-        if (cmdBase is UploadCommand uploadCmd)
+        string finalCommand = commandLine;
+        var tokens = commandLine.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 1) // Just "upload"
         {
-             uploadCmd.FileBytes = fileBytes;
-             uploadCmd.LocalFileName = localName;
-             
-             Console.WriteLine($"Command: upload created (with file {localName})");
-             var cmdResult = await uploadCmd.ExecuteAsync(commandLine);
-             Console.WriteLine($"Command: upload executed");
-             return (cmdResult.Message, cmdResult.Error, cmdResult.TaskId);
+             finalCommand = $"{commandLine} \"{localName}\"";
         }
         
-        return (null, "Failed to create upload command or command not found.", null);
+        return await CommandService.ParseAndSendAsync(finalCommand, agent, fileBytes);
     }
 
     private void Close()

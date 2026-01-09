@@ -26,7 +26,7 @@ namespace WebCommander.Services
         public event Action? OnImplantsUpdated;
         public event Action? OnLoadingStateChanged;
         public event Action<Agent>? OnNewAgent;
-        public event Action<AgentTaskResult>? OnAgentResult;
+        public event Action<AgentTaskResult, TeamServerAgentTask>? OnAgentResult;
         public event Action? OnTasksUpdated;
         public event Action? OnProgressUpdated;
         public event Action? OnConnectionStatusChanged;
@@ -187,7 +187,10 @@ namespace WebCommander.Services
                                 
                                 if ((result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error) && !_isInitialLoading)
                                 {
-                                    OnAgentResult?.Invoke(result);
+                                    if(!this._tasks.ContainsKey(result.Id))
+                                        return;
+                                    var task = this._tasks[result.Id];
+                                    OnAgentResult?.Invoke(result, task);
                                 }
                             }
                         }

@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.CommandLine;
-using System.CommandLine.Parsing;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Common.AgentCommands;
+using Common.CommandLine.Execution;
 using WebCommander.Commands;
 using WebCommander.Models;
 
@@ -13,91 +13,79 @@ namespace WebCommander.Services
     public class CommandService
     {
         private readonly TeamServerClient _client;
-        private readonly Dictionary<string, Type> _commandMap = new();
-        private readonly List<CommandBase> _commands = new();
+        private readonly CommandExecutor _commandExecutor;
+        
+        // This property allows passing file bytes for the current command execution context
+        private byte[]? _currentFileBytes;
+        private Agent? _currentAgent;
 
         public CommandService(TeamServerClient client)
         {
             _client = client;
+            _commandExecutor = new CommandExecutor();
             InitializeCommands();
         }
 
         private void InitializeCommands()
         {
-            var commandTypes = Assembly.GetExecutingAssembly()
-                .GetTypes()
-                .Where(t => t.IsSubclassOf(typeof(CommandBase)) && !t.IsAbstract);
-
-            foreach (var type in commandTypes)
+            // Register Context Factories
+             
+            // Register the WebAgentCommandAdapter factory
+            _commandExecutor.RegisterContextFactory(() => 
             {
-                try
+                if (_currentAgent == null)
+                    throw new InvalidOperationException("No current agent set for command execution context.");
+                    
+                var adapter = new WebAgentCommandAdapter(_client, _currentAgent, _currentFileBytes);
+                if (_currentFileBytes != null)
                 {
-                    Console.WriteLine($"Loading command {type.Name}");
-                    var commandBase = CreateCommand(type);
-                    if (commandBase != null)
-                    {
-                        Console.WriteLine($"Command {type.Name} loaded (Name: {commandBase.Name})");
-                        _commands.Add(commandBase);
-                        _commandMap[commandBase.Name] = type;
-                        foreach (var alias in commandBase.Aliases)
-                        {
-                            _commandMap[alias] = type;
-                        }
-                    }
+                    adapter.AddParameter(Shared.ParameterId.File, _currentFileBytes);
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error loading command {type.Name}: {ex.Message}");
-                }
-            }
+                    
+                return new AgentCommandContext(adapter);
+            });
+
+            // Load Common Commands
+            // We need to load commands from Common assembly (e.g. WhoamiCommand)
+            var commonAssembly = typeof(WhoamiCommand).Assembly;
+            _commandExecutor.LoadCommands(commonAssembly);
+            
+            // Load WebCommander Commands (e.g. UploadCommand)
+            var webAssembly = Assembly.GetExecutingAssembly();
+            _commandExecutor.LoadCommands(webAssembly);
         }
 
-        public CommandBase GetCommand(string cmdName, Agent agent = null)
-        {
-            if (_commandMap.TryGetValue(cmdName, out var commandType))
-            {
-                return CreateCommand(commandType, agent);
-            }
-            Console.WriteLine($"Command {cmdName} not found");
-            return null;
-        }
-
-        public CommandBase CreateCommand(Type type, Agent agent = null)
-        {
-            if (Activator.CreateInstance(type) is CommandBase commandBase)
-            {
-                commandBase.Initialize(_client, agent, this);
-                return commandBase;
-            }
-            Console.WriteLine($"Command {type.Name} not created");
-            return null;
-        }
-
-        public List<CommandBase> GetCommands()
-        {
-            return _commands;
-        }
-
-        public async Task<(string? message, string? error, string? taskId)> ParseAndSendAsync(string rawInput, Agent agent)
+        public async Task<(string? message, string? error, string? taskId)> ParseAndSendAsync(string rawInput, Agent agent, byte[]? fileBytes = null)
         {
             if (string.IsNullOrWhiteSpace(rawInput))
                 return (null, null, null);
 
-            //juste pour récupérer le nom de la commande qui nous intéresse
-            var parseResult = new RootCommand().Parse(rawInput);
-            string cmdName = parseResult.Tokens.FirstOrDefault().Value;
+            _currentAgent = agent;
+            _currentFileBytes = fileBytes;
 
-            Console.WriteLine($"Command: {cmdName}");
-            var commandBase = GetCommand(cmdName, agent);
-            if (commandBase != null)
+            try
             {
-                Console.WriteLine($"Command: {commandBase.Name} created");
-                var cmdResult = await commandBase.ExecuteAsync(rawInput);
-                Console.WriteLine($"Command: {cmdName} executed");
-                return (cmdResult.Message, cmdResult.Error, cmdResult.TaskId);
+                var result = await _commandExecutor.ExecuteAsync(rawInput);
+                
+                string? message = result.Result ? "Command executed successfully." : null;
+                string? error = result.Failed ? result.Error : null;
+                
+                return (message, error, null);
             }
-
-            return (null, $"[Error] Unknown command or not implemented.", null);
+            catch (Exception ex)
+            {
+                return (null, $"[Error] {ex.Message}", null);
+            }
+            finally
+            {
+                _currentAgent = null;
+                _currentFileBytes = null;
+            }
+        }
+        
+        public List<CommandDefinition> GetCommands()
+        {
+            return _commandExecutor.RegisteredCommands;
         }
     }
 }

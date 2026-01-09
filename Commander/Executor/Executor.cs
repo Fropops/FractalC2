@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using BinarySerializer;
 using Commander.Commands;
@@ -70,13 +71,11 @@ namespace Commander.Executor
             this.CommandExecutor.RegisterContextFactory(() => new CommanderCommandContext(this.CommModule, this.Terminal, this));
             this.CommandExecutor.RegisterContextFactory(() => new AgentCommandContext(new AgentCommandAdapter(this, this.Terminal, this.CommModule)));
 
-            //Force the assembly to be loaded.
-            var whoami = new Common.AgentCommands.WhoamiCommand();
-            // Load Commands
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                this.CommandExecutor.LoadCommands(assembly);
-            }
+            var commonAssembly = typeof(WhoamiCommand).Assembly;
+            this.CommandExecutor.LoadCommands(commonAssembly);
+
+            var webAssembly = Assembly.GetExecutingAssembly();
+            this.CommandExecutor.LoadCommands(webAssembly);
 
             //suscribe to events
             this.Terminal.InputValidated += Instance_InputValidated;

@@ -18,6 +18,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\Common.AgentCommands\Common.AgentCommands.csproj" />
+    <ProjectReference Include="..\Common.CommandLine\Common.CommandLine.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="BinarySerializer">
