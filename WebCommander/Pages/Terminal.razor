@@ -1,9 +1,13 @@
 @page "/terminal/{AgentId}"
 @using System.Collections.Generic
+@using Common.AgentCommands
+@using Common.CommandLine.Execution
 @using Common.Models
 @using Shared
 @using Shared.ResultObjects
 
+@using System.Reflection
+@using WebCommander.Commands
 @using WebCommander.Components
 @using WebCommander.Helpers
 @using WebCommander.Models
@@ -17,1065 +21,1066 @@
 <PageTitle>Terminal - @(agent?.Metadata?.Name ?? "Unknown")</PageTitle>
 
 <div class="terminal-page-container">
-    @if (agent == null)
-    {
-        <p>Agent not found</p>
-    }
-    else
-    {
-        <div class="container-fluid">
-            <AgentHeader Agent="@agent" ActivePage="terminal" />
-        </div>
-        
-        <div class="terminal-container">
-            <TerminalOutput @ref="terminalOutputComponent" 
-                            Lines="@outputLines" 
-                            OnDownloadFile="DownloadFile"
-                            OnDeleteFile="DeleteFile"
-                            OnDeleteDirectory="DeleteDirectory"
-                            OnListDirectory="ListDirectory"
-                            OnEnterDirectory="EnterDirectory"
-                            OnMigrateProcess="MigrateProcess"
-                            OnKillJob="KillJob"
-                            OnUnlinkAgent="UnlinkAgent"
-                            AgentOsType="@(agent?.Metadata?.OsType ?? OsType.Windows)" />
-            
-            <div class="terminal-input-container">
-                <span class="terminal-prompt">@(agent.Metadata?.Name ?? "Unknown") &gt;</span>
-                <input type="text" 
-                       class="terminal-input" 
-                       @bind="currentCommand" 
-                       @bind:event="oninput"
-                       @onkeydown="HandleKeyDown"
-                       @ref="inputElement"
-                       placeholder="Type a command..." />
-            </div>
-        </div>
-    }
+	@if (agent == null)
+	{
+		<p>Agent not found</p>
+	}
+	else
+	{
+		<div class="container-fluid">
+			<AgentHeader Agent="@agent" ActivePage="terminal" />
+		</div>
+
+		<div class="terminal-container">
+			<TerminalOutput @ref="terminalOutputComponent"
+							Lines="@outputLines"
+							OnDownloadFile="DownloadFile"
+							OnDeleteFile="DeleteFile"
+							OnDeleteDirectory="DeleteDirectory"
+							OnListDirectory="ListDirectory"
+							OnEnterDirectory="EnterDirectory"
+							OnMigrateProcess="MigrateProcess"
+							OnKillJob="KillJob"
+							OnUnlinkAgent="UnlinkAgent"
+							AgentOsType="@(agent?.Metadata?.OsType ?? OsType.Windows)" />
+
+			<div class="terminal-input-container">
+				<span class="terminal-prompt">@(agent.Metadata?.Name ?? "Unknown") &gt;</span>
+				<input type="text"
+					   class="terminal-input"
+					   @bind="currentCommand"
+					   @bind:event="oninput"
+					   @onkeydown="HandleKeyDown"
+					   @ref="inputElement"
+					   placeholder="Type a command..." />
+			</div>
+		</div>
+	}
 </div>
 
 <FileUploadModal @ref="fileUploadModal" />
 
 
 <style>
-    .terminal-page-container {
-        height: calc(100vh - 60px);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
+	.terminal-page-container {
+		height: calc(100vh - 60px);
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
 
-    .terminal-container {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        background-color: #1e1e1e;
-        color: #d4d4d4;
-        font-family: 'Consolas', 'Courier New', monospace;
-        margin: 0 1rem 1rem 1rem;
-        border-radius: 4px;
-        overflow: hidden;
-        min-height: 0;
-        max-height: calc(100vh - 275px);
-        min-width: 0; /* Important for flex child to shrink */
-    }
+	.terminal-container {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		background-color: #1e1e1e;
+		color: #d4d4d4;
+		font-family: 'Consolas', 'Courier New', monospace;
+		margin: 0 1rem 1rem 1rem;
+		border-radius: 4px;
+		overflow: hidden;
+		min-height: 0;
+		max-height: calc(100vh - 275px);
+		min-width: 0; /* Important for flex child to shrink */
+	}
 
-    .terminal-output {
-        flex: 1;
-        overflow-y: auto;
-        overflow-x: hidden; /* Prevent horizontal scroll */
-        padding: 20px;
-        font-size: 14px;
-        line-height: 1.5;
-        min-height: 0;
-    }
+	.terminal-output {
+		flex: 1;
+		overflow-y: auto;
+		overflow-x: hidden; /* Prevent horizontal scroll */
+		padding: 20px;
+		font-size: 14px;
+		line-height: 1.5;
+		min-height: 0;
+	}
 
-    .terminal-line {
-        margin-bottom: 5px;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        word-break: break-all; /* Force break on long words/paths */
-        overflow-wrap: anywhere; /* Ensure wrapping happens anywhere if needed */
-    }
+	.terminal-line {
+		margin-bottom: 5px;
+		white-space: pre-wrap;
+		word-wrap: break-word;
+		word-break: break-all; /* Force break on long words/paths */
+		overflow-wrap: anywhere; /* Ensure wrapping happens anywhere if needed */
+	}
 
-    .terminal-line.error {
-        color: #f48771;
-    }
+		.terminal-line.error {
+			color: #f48771;
+		}
 
-    .terminal-line.warning {
-        color: #dcdcaa;
-    }
+		.terminal-line.warning {
+			color: #dcdcaa;
+		}
 
-    .terminal-line.info {
-        color: #4ec9b0;
-    }
 
-    .terminal-line.normal {
-        color: #d4d4d4;
-    }
+		.terminal-line.info {
+			color: #4ec9b0;
+		}
 
-    .terminal-line.command {
-        color: #569cd6;
-    }
+		.terminal-line.success {
+			color: #98c379;
+		}
 
-    .terminal-input-container {
-        background-color: #2d2d30;
-        padding: 10px 20px;
-        border-top: 1px solid #3e3e42;
-        display: flex;
-        align-items: center;
-    }
+		.terminal-line.normal {
+			color: #d4d4d4;
+		}
 
-    .terminal-prompt {
-        color: #4ec9b0;
-        margin-right: 10px;
-        font-weight: bold;
-        white-space: nowrap;
-    }
+		.terminal-line.command {
+			color: #569cd6;
+		}
 
-    .terminal-input {
-        flex: 1;
-        background-color: transparent;
-        border: none;
-        color: #d4d4d4;
-        font-family: 'Consolas', 'Courier New', monospace;
-        font-size: 14px;
-        outline: none;
-        min-width: 0; /* Allow input to shrink if needed */
-    }
+	.terminal-input-container {
+		background-color: #2d2d30;
+		padding: 10px 20px;
+		border-top: 1px solid #3e3e42;
+		display: flex;
+		align-items: center;
+	}
 
-    .terminal-input::placeholder {
-        color: #6a6a6a;
-    }
+	.terminal-prompt {
+		color: #4ec9b0;
+		margin-right: 10px;
+		font-weight: bold;
+		white-space: nowrap;
+	}
 
-    .terminal-output::-webkit-scrollbar {
-        width: 10px;
-    }
+	.terminal-input {
+		flex: 1;
+		background-color: transparent;
+		border: none;
+		color: #d4d4d4;
+		font-family: 'Consolas', 'Courier New', monospace;
+		font-size: 14px;
+		outline: none;
+		min-width: 0; /* Allow input to shrink if needed */
+	}
 
-    .terminal-output::-webkit-scrollbar-track {
-        background: #1e1e1e;
-    }
+		.terminal-input::placeholder {
+			color: #6a6a6a;
+		}
 
-    .terminal-output::-webkit-scrollbar-thumb {
-        background: #3e3e42;
-        border-radius: 5px;
-    }
+	.terminal-output::-webkit-scrollbar {
+		width: 10px;
+	}
 
-    .terminal-output::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
+	.terminal-output::-webkit-scrollbar-track {
+		background: #1e1e1e;
+	}
+
+	.terminal-output::-webkit-scrollbar-thumb {
+		background: #3e3e42;
+		border-radius: 5px;
+	}
+
+		.terminal-output::-webkit-scrollbar-thumb:hover {
+			background: #555;
+		}
 </style>
 
 @code {
-    [Parameter]
-    public string AgentId { get; set; } = string.Empty;
+	[Parameter]
+	public string AgentId { get; set; } = string.Empty;
 
-    private Agent? agent;
-    private string currentCommand = string.Empty;
-    private List<TerminalLine> outputLines = new();
-    private Dictionary<string, string> taskCommands = new();
-    private TerminalOutput terminalOutputComponent;
-    private ElementReference inputElement;
-    private FileUploadModal fileUploadModal;
+	private Agent? agent;
+	private string currentCommand = string.Empty;
+	private List<TerminalLine> outputLines = new();
+	private Dictionary<string, string> taskCommands = new();
+	private TerminalOutput terminalOutputComponent;
+	private ElementReference inputElement;
+	private FileUploadModal fileUploadModal;
 
-    // Command history
-    private List<string> commandHistory = new();
-    private int historyIndex = -1;
-    private bool shouldExecuteCommand = false;
-    private string? commandToExecute = null;
-    private bool shouldSetCursorToEnd = false;
+	// Command history
+	private List<string> commandHistory = new();
+	private int historyIndex = -1;
+	private bool shouldExecuteCommand = false;
+	private string? commandToExecute = null;
+	private bool shouldSetCursorToEnd = false;
 
-    protected override async Task OnInitializedAsync()
-    {
-        agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
+	protected override async Task OnInitializedAsync()
+	{
+		agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
 
-        if (agent != null)
-        {
-            var history = await TerminalHistoryService.LoadHistoryAsync(AgentId);
-            if (history != null && history.OutputLines.Any())
-            {
-                outputLines = history.OutputLines;
-                commandHistory = history.CommandHistory;
-                taskCommands = history.TaskCommands;
-                // Scroll to bottom after loading
-                shouldScrollToBottom = true;
-            }
-            else
-            {
-                AddInfo($"Connected to agent {agent.Metadata?.Name ?? "Unknown"}");
-                AddInfo($"User: {agent.Metadata?.Desc}");
-                AddInfo($"Architecture: {agent.Metadata?.Architecture}");
-                AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
-                AddNormal("");
-            }
-        }
+		if (agent != null)
+		{
+			var history = await TerminalHistoryService.LoadHistoryAsync(AgentId);
+			if (history != null && history.OutputLines.Any())
+			{
+				outputLines = history.OutputLines;
+				commandHistory = history.CommandHistory;
+				taskCommands = history.TaskCommands;
+				// Scroll to bottom after loading
+				shouldScrollToBottom = true;
+			}
+			else
+			{
+				AddInfo($"Connected to agent {agent.Metadata?.Name ?? "Unknown"}");
+				AddInfo($"User: {agent.Metadata?.Desc}");
+				AddInfo($"Architecture: {agent.Metadata?.Architecture}");
+				AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
+				AddNormal("");
+			}
+		}
 
-        AgentService.OnAgentsUpdated += RefreshAgent;
-        AgentService.OnAgentResult += HandleAgentResult;
+		AgentService.OnAgentsUpdated += RefreshAgent;
+		AgentService.OnAgentResult += HandleAgentResult;
 
-        // Auto-execute command if provided via navigation state
-        if (NavigationManager.HistoryEntryState is string command && !string.IsNullOrWhiteSpace(command))
-        {
-            shouldExecuteCommand = true;
-            commandToExecute = command;
-        }
-    }
+		// Auto-execute command if provided via navigation state
+		if (NavigationManager.HistoryEntryState is string command && !string.IsNullOrWhiteSpace(command))
+		{
+			shouldExecuteCommand = true;
+			commandToExecute = command;
+		}
+	}
 
-    private string? previousAgentId = null;
+	private string? previousAgentId = null;
 
-    protected override async Task OnParametersSetAsync()
-    {
-        // Check if AgentId has changed (e.g., when clicking Interact on a different agent while already on terminal page)
-        if (previousAgentId != null && previousAgentId != AgentId)
-        {
-            // Agent has changed, reload terminal for new agent
-            agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
+	protected override async Task OnParametersSetAsync()
+	{
+		// Check if AgentId has changed (e.g., when clicking Interact on a different agent while already on terminal page)
+		if (previousAgentId != null && previousAgentId != AgentId)
+		{
+			// Agent has changed, reload terminal for new agent
+			agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
 
-            if (agent != null)
-            {
-                // Clear current terminal
-                outputLines.Clear();
-                commandHistory.Clear();
-                taskCommands.Clear();
-                historyIndex = -1;
+			if (agent != null)
+			{
+				// Clear current terminal
+				outputLines.Clear();
+				commandHistory.Clear();
+				taskCommands.Clear();
+				historyIndex = -1;
 
-                // Load history for new agent
-                var history = await TerminalHistoryService.LoadHistoryAsync(AgentId);
-                if (history != null && history.OutputLines.Any())
-                {
-                    outputLines = history.OutputLines;
-                    commandHistory = history.CommandHistory;
-                    taskCommands = history.TaskCommands;
-                    shouldScrollToBottom = true;
-                }
-                else
-                {
-                    // Show agent info
-                    AddInfo($"Connected to agent {agent.Metadata?.Name ?? "Unknown"}");
-                    AddInfo($"User: {agent.Metadata?.Desc}");
-                    AddInfo($"Architecture: {agent.Metadata?.Architecture}");
-                    AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
-                    AddNormal("");
-                }
+				// Load history for new agent
+				var history = await TerminalHistoryService.LoadHistoryAsync(AgentId);
+				if (history != null && history.OutputLines.Any())
+				{
+					outputLines = history.OutputLines;
+					commandHistory = history.CommandHistory;
+					taskCommands = history.TaskCommands;
+					shouldScrollToBottom = true;
+				}
+				else
+				{
+					// Show agent info
+					AddInfo($"Connected to agent {agent.Metadata?.Name ?? "Unknown"}");
+					AddInfo($"User: {agent.Metadata?.Desc}");
+					AddInfo($"Architecture: {agent.Metadata?.Architecture}");
+					AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
+					AddNormal("");
+				}
 
-                StateHasChanged();
-            }
-        }
+				StateHasChanged();
+			}
+		}
 
-        previousAgentId = AgentId;
-    }
+		previousAgentId = AgentId;
+	}
 
-    private void RefreshAgent()
-    {
-        var updatedAgent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
-        if (updatedAgent != null)
-        {
-            agent = updatedAgent;
-            InvokeAsync(StateHasChanged);
-        }
-    }
+	private void RefreshAgent()
+	{
+		var updatedAgent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
+		if (updatedAgent != null)
+		{
+			agent = updatedAgent;
+			InvokeAsync(StateHasChanged);
+		}
+	}
 
-    public void Dispose()
-    {
-        AgentService.OnAgentsUpdated -= RefreshAgent;
-        AgentService.OnAgentResult -= HandleAgentResult;
-    }
+	public void Dispose()
+	{
+		AgentService.OnAgentsUpdated -= RefreshAgent;
+		AgentService.OnAgentResult -= HandleAgentResult;
+	}
 
-    private void AddNormal(string text)
-    {
-        outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Normal });
-        _ = SaveHistory();
-        _ = ScrollToBottom();
-    }
+	private void AddNormal(string text)
+	{
+		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Normal });
+		_ = SaveHistory();
+		_ = ScrollToBottom();
+	}
 
-    private void AddError(string text)
-    {
-        outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Error });
-        _ = SaveHistory();
-        _ = ScrollToBottom();
-    }
+	private void AddError(string text)
+	{
+		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Error });
+		_ = SaveHistory();
+		_ = ScrollToBottom();
+	}
 
-    private void AddWarning(string text)
-    {
-        outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Warning });
-        _ = SaveHistory();
-        _ = ScrollToBottom();
-    }
+	private void AddWarning(string text)
+	{
+		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Warning });
+		_ = SaveHistory();
+		_ = ScrollToBottom();
+	}
 
-    private void AddInfo(string text)
-    {
-        outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Info });
-        _ = SaveHistory();
-        _ = ScrollToBottom();
-    }
+	private void AddSuccess(string text)
+	{
+		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Success });
+		_ = SaveHistory();
+		_ = ScrollToBottom();
+	}
 
-    private void AddCommand(string text)
-    {
-        outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Command });
-        _ = SaveHistory();
-        _ = ScrollToBottom();
-    }
+	private void AddInfo(string text)
+	{
+		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Info });
+		_ = SaveHistory();
+		_ = ScrollToBottom();
+	}
+
+	private void AddCommand(string text)
+	{
+		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Command });
+		_ = SaveHistory();
+		_ = ScrollToBottom();
+	}
 
 
 
-    private async void HandleAgentResult(AgentTaskResult result, TeamServerAgentTask task)
-    {
-        Console.WriteLine($"[Terminal] Received result for task {result.Id}, Status: {result.Status}");
+	private async void HandleAgentResult(AgentTaskResult result, TeamServerAgentTask task)
+	{
+		Console.WriteLine($"[Terminal] Received result for task {result.Id}, Status: {result.Status}");
 
-        Console.WriteLine($"[Terminal] Processing result for task {result.Id}");
+		Console.WriteLine($"[Terminal] Processing result for task {result.Id}");
 
-        if (result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error)
-        {
-            var commandName = task.Command;
+		if (result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error)
+		{
+			var commandName = task.Command;
 
-            Console.WriteLine($"[Terminal] Command: {commandName}, Status: {result.Status}, Error: {result.Error}, Output length: {result.Output?.Length ?? 0}");
-            
-            // Display header with appropriate color
-            if (result.Status == AgentResultStatus.Error)
-            {
-                AddError($"Task {commandName} failed with status: {result.Status}");
-                AddError("-------------------------------------------");
-            }
-            else
-            {
-                AddInfo($"Task {commandName} is {result.Status}");
-                AddInfo("-------------------------------------------");
-            }
-            
-            // Check if this is an ls command with Objects data
-            if ((commandName == "ls" || commandName == "dir") && result.Objects != null && result.Objects.Length > 0)
-            {
-                try
-                {
-                    var listResult = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
-                    if (listResult != null && listResult.Lines.Count > 0)
-                    {
-                        // Add table output
-                        AddLsTable(listResult);
-                    }
-                    else if (!string.IsNullOrEmpty(result.Output))
-                    {
-                        AddNormal(result.Output);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Terminal] Error deserializing ls results: {ex.Message}");
-                    // Fallback to normal output
-                    if (!string.IsNullOrEmpty(result.Output))
-                    {
-                        AddNormal(result.Output);
-                    }
-                }
-            }
-            // Check if this is a ps command with Objects data
-            else if (commandName == "ps" && result.Objects != null && result.Objects.Length > 0)
-            {
-                try
-                {
-                    var processResults = await ResultObjectHelper.DeserializeListProcessResults(result.Objects);
-                    if (processResults.Count > 0)
-                    {
-                        // Add process tree output
-                        AddPsTable(processResults);
-                    }
-                    else if (!string.IsNullOrEmpty(result.Output))
-                    {
-                        AddNormal(result.Output);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Terminal] Error deserializing ps results: {ex.Message}");
-                    // Fallback to normal output
-                    if (!string.IsNullOrEmpty(result.Output))
-                    {
-                        AddNormal(result.Output);
-                    }
-                }
-            }
-            // Check if this is a job command with Objects data
-            else if (commandName == "job" && result.Objects != null && result.Objects.Length > 0)
-            {
-                try
-                {
-                    var jobResults = await ResultObjectHelper.DeserializeJobResults(result.Objects);
-                    if (jobResults.Count > 0)
-                    {
-                        // Add job table output
-                        AddJobTable(jobResults);
-                    }
-                    else if (!string.IsNullOrEmpty(result.Output))
-                    {
-                        AddNormal(result.Output);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Terminal] Error deserializing job results: {ex.Message}");
-                    // Fallback to normal output
-                    if (!string.IsNullOrEmpty(result.Output))
-                    {
-                        AddNormal(result.Output);
-                    }
-                }
-            }
-            // Check if this is a link command with Objects data
-            else if (commandName == "link" && result.Objects != null && result.Objects.Length > 0)
-            {
-                try
-                {
-                    var linkResults = await ResultObjectHelper.DeserializeLinkInfoResults(result.Objects);
-                    if (linkResults.Count > 0)
-                    {
-                        // Add link table output
-                        AddLinkTable(linkResults);
-                    }
-                    else if (!string.IsNullOrEmpty(result.Output))
-                    {
-                        AddNormal(result.Output);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Terminal] Error deserializing link results: {ex.Message}");
-                    // Fallback to normal output
-                    if (!string.IsNullOrEmpty(result.Output))
-                    {
-                        AddNormal(result.Output);
-                    }
-                }
-            }
-            // Check if this is a rportfwd command with Objects data
-            else if (commandName.StartsWith("rportfwd") && result.Objects != null && result.Objects.Length > 0)
-            {
-                try
-                {
-                    var rportfwdResults = await ResultObjectHelper.DeserializeReversePortForwardResults(result.Objects);
-                    if (rportfwdResults.Count > 0)
-                    {
-                        // Add rportfwd table output
-                        AddRportFwdTable(rportfwdResults);
-                    }
-                    else if (!string.IsNullOrEmpty(result.Output))
-                    {
-                        AddNormal(result.Output);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Terminal] Error deserializing rportfwd results: {ex.Message}");
-                    // Fallback to normal output
-                    if (!string.IsNullOrEmpty(result.Output))
-                    {
-                        AddNormal(result.Output);
-                    }
-                }
-            }
-            else if (!string.IsNullOrEmpty(result.Output))
-            {
-                AddNormal(result.Output);
-            }
-            
-            if (!string.IsNullOrEmpty(result.Error))
-            {
-                AddError(result.Error);
-            }
-            AddNormal("");
-            StateHasChanged();
-            _ = ScrollToBottom();
-        }
-        else
-        {
-            Console.WriteLine($"[Terminal] Unhandled status: {result.Status}");
-        }
-    }
+			Console.WriteLine($"[Terminal] Command: {commandName}, Status: {result.Status}, Error: {result.Error}, Output length: {result.Output?.Length ?? 0}");
 
-    private void AddLsTable(ListDirectoryResult result)
-    {
-        // Add table header
-        var header = string.Format("{0,-10} {1,-15} {2}", "Type", "Size", "Name");
-        var separatorLine = new TerminalLine
-        {
-            Text = header,
-            Type = TerminalLineType.Info,
-            Metadata = new Dictionary<string, string>
-            {
-                { "IsLsHeader", "true" }
-            }
-        };
-        outputLines.Add(separatorLine);
-        AddInfo(new string('-', 80));
-        
-        // Add each item
-        foreach (var item in result.Lines)
-        {
-            var type = item.IsFile ? "[FILE]" : "[DIR] ";
-            var size = item.IsFile ? ResultObjectHelper.FormatFileSize(item.Length) : "";
-            var lineText = string.Format("{0,-10} {1,-15} {2}", type, size, item.Name);
-            
-            // Determine path separator
-            var separator = agent?.Metadata?.OsType == OsType.Linux ? '/' : '\\';
-            var directory = result.Directory.TrimEnd(separator);
-            var fullPath = $"{directory}{separator}{item.Name}";
-            
-            var line = new TerminalLine
-            {
-                Text = lineText,
-                Type = TerminalLineType.Normal,
-                Metadata = new Dictionary<string, string>
-                {
-                    { "IsLsRow", "true" },
-                    { "Name", fullPath }, // Use full path here
+			// Display header with appropriate color
+			if (result.Status == AgentResultStatus.Error)
+			{
+				AddError($"Task {commandName} failed with status: {result.Status}");
+				AddError("-------------------------------------------");
+			}
+			else
+			{
+				AddInfo($"Task {commandName} is {result.Status}");
+				AddInfo("-------------------------------------------");
+			}
+
+			// Check if this is an ls command with Objects data
+			if ((commandName == "ls" || commandName == "dir") && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
+					var listResult = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
+					if (listResult != null && listResult.Lines.Count > 0)
+					{
+						// Add table output
+						AddLsTable(listResult);
+					}
+					else if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"[Terminal] Error deserializing ls results: {ex.Message}");
+					// Fallback to normal output
+					if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+				}
+			}
+			// Check if this is a ps command with Objects data
+			else if (commandName == "ps" && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
+					var processResults = await ResultObjectHelper.DeserializeListProcessResults(result.Objects);
+					if (processResults.Count > 0)
+					{
+						// Add process tree output
+						AddPsTable(processResults);
+					}
+					else if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"[Terminal] Error deserializing ps results: {ex.Message}");
+					// Fallback to normal output
+					if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+				}
+			}
+			// Check if this is a job command with Objects data
+			else if (commandName == "job" && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
+					var jobResults = await ResultObjectHelper.DeserializeJobResults(result.Objects);
+					if (jobResults.Count > 0)
+					{
+						// Add job table output
+						AddJobTable(jobResults);
+					}
+					else if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"[Terminal] Error deserializing job results: {ex.Message}");
+					// Fallback to normal output
+					if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+				}
+			}
+			// Check if this is a link command with Objects data
+			else if (commandName == "link" && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
+					var linkResults = await ResultObjectHelper.DeserializeLinkInfoResults(result.Objects);
+					if (linkResults.Count > 0)
+					{
+						// Add link table output
+						AddLinkTable(linkResults);
+					}
+					else if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"[Terminal] Error deserializing link results: {ex.Message}");
+					// Fallback to normal output
+					if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+				}
+			}
+			// Check if this is a rportfwd command with Objects data
+			else if (commandName.StartsWith("rportfwd") && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
+					var rportfwdResults = await ResultObjectHelper.DeserializeReversePortForwardResults(result.Objects);
+					if (rportfwdResults.Count > 0)
+					{
+						// Add rportfwd table output
+						AddRportFwdTable(rportfwdResults);
+					}
+					else if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"[Terminal] Error deserializing rportfwd results: {ex.Message}");
+					// Fallback to normal output
+					if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+				}
+			}
+			else if (!string.IsNullOrEmpty(result.Output))
+			{
+				AddNormal(result.Output);
+			}
+
+			if (!string.IsNullOrEmpty(result.Error))
+			{
+				AddError(result.Error);
+			}
+			AddNormal("");
+			StateHasChanged();
+			_ = ScrollToBottom();
+		}
+		else
+		{
+			Console.WriteLine($"[Terminal] Unhandled status: {result.Status}");
+		}
+	}
+
+	private void AddLsTable(ListDirectoryResult result)
+	{
+		// Add table header
+		var header = string.Format("{0,-10} {1,-15} {2}", "Type", "Size", "Name");
+		var separatorLine = new TerminalLine
+		{
+			Text = header,
+			Type = TerminalLineType.Info,
+			Metadata = new Dictionary<string, string>
+			{
+				{ "IsLsHeader", "true" }
+			}
+		};
+		outputLines.Add(separatorLine);
+		AddInfo(new string('-', 80));
+
+		// Add each item
+		foreach (var item in result.Lines)
+		{
+			var type = item.IsFile ? "[FILE]" : "[DIR] ";
+			var size = item.IsFile ? ResultObjectHelper.FormatFileSize(item.Length) : "";
+			var lineText = string.Format("{0,-10} {1,-15} {2}", type, size, item.Name);
+
+			// Determine path separator
+			var separator = agent?.Metadata?.OsType == OsType.Linux ? '/' : '\\';
+			var directory = result.Directory.TrimEnd(separator);
+			var fullPath = $"{directory}{separator}{item.Name}";
+
+			var line = new TerminalLine
+			{
+				Text = lineText,
+				Type = TerminalLineType.Normal,
+				Metadata = new Dictionary<string, string>
+				{
+					{ "IsLsRow", "true" },
+					{ "Name", fullPath }, // Use full path here
                     { "IsFile", item.IsFile.ToString().ToLower() }
-                }
-            };
-            outputLines.Add(line);
-        }
-    }
+				}
+			};
+			outputLines.Add(line);
+		}
+	}
 
-    private void AddPsTable(List<ListProcessResult> processes)
-    {
-        // Add table header with Action column
-        var headerLine = new TerminalLine
-        {
-            Text = string.Format("{0,-6} {1,-6} {2,-30} {3,-10} {4,-20} {5}", "PID", "PPID", "Name", "Arch", "Owner", "Session"),
-            Type = TerminalLineType.Info,
-            Metadata = new Dictionary<string, string>
-            {
-                { "IsPsHeader", "true" }
-            }
-        };
-        outputLines.Add(headerLine);
-        
-        var separatorLine = new TerminalLine
-        {
-            Text = new string('-', 100),
-            Type = TerminalLineType.Info,
-            Metadata = new Dictionary<string, string>
-            {
-                { "IsPsHeader", "false" }
-            }
-        };
-        outputLines.Add(separatorLine);
-        
-        // Build process tree
-        var processDict = processes.ToDictionary(p => p.Id, p => p);
-        var rootProcesses = processes.Where(p => !processDict.ContainsKey(p.ParentId)).OrderBy(p => p.Id).ToList();
-        
-        // Render tree
-        foreach (var rootProcess in rootProcesses)
-        {
-            AddProcessTreeNode(rootProcess, processDict, 0);
-        }
-        
-        _ = SaveHistory();
-        _ = ScrollToBottom();
-    }
+	private void AddPsTable(List<ListProcessResult> processes)
+	{
+		// Add table header with Action column
+		var headerLine = new TerminalLine
+		{
+			Text = string.Format("{0,-6} {1,-6} {2,-30} {3,-10} {4,-20} {5}", "PID", "PPID", "Name", "Arch", "Owner", "Session"),
+			Type = TerminalLineType.Info,
+			Metadata = new Dictionary<string, string>
+			{
+				{ "IsPsHeader", "true" }
+			}
+		};
+		outputLines.Add(headerLine);
 
-    private void AddProcessTreeNode(ListProcessResult process, Dictionary<int, ListProcessResult> processDict, int depth)
-    {
-        var indent = new string(' ', depth * 2);
-        var maxNameLength = 30;
-        var indentedName = indent + process.Name;
-        
-        if (indentedName.Length > maxNameLength)
-        {
-            indentedName = indentedName.Substring(0, maxNameLength);
-        }
+		var separatorLine = new TerminalLine
+		{
+			Text = new string('-', 100),
+			Type = TerminalLineType.Info,
+			Metadata = new Dictionary<string, string>
+			{
+				{ "IsPsHeader", "false" }
+			}
+		};
+		outputLines.Add(separatorLine);
 
-        var lineText = string.Format("{0,-6} {1,-6} {2,-30} {3,-10} {4,-20} {5}", 
-            process.Id, 
-            process.ParentId, 
-            indentedName,
-            process.Arch ?? "",
-            process.Owner ?? "",
-            process.SessionId);
-        
-        var line = new TerminalLine
-        {
-            Text = lineText,
-            Type = TerminalLineType.Normal,
-            Metadata = new Dictionary<string, string>
-            {
-                { "IsPsRow", "true" },
-                { "ProcessId", process.Id.ToString() },
-                { "ProcessName", process.Name }
-            }
-        };
+		// Build process tree
+		var processDict = processes.ToDictionary(p => p.Id, p => p);
+		var rootProcesses = processes.Where(p => !processDict.ContainsKey(p.ParentId)).OrderBy(p => p.Id).ToList();
 
-        if (agent != null && agent.Metadata != null && agent.Metadata.ProcessId == process.Id)
-        {
-            line.Metadata["IsCurrentProcess"] = "true";
-        }
+		// Render tree
+		foreach (var rootProcess in rootProcesses)
+		{
+			AddProcessTreeNode(rootProcess, processDict, 0);
+		}
 
-        outputLines.Add(line);
+		_ = SaveHistory();
+		_ = ScrollToBottom();
+	}
 
-        // Add children
-        var children = processDict.Values.Where(p => p.ParentId == process.Id).OrderBy(p => p.Id).ToList();
-        foreach (var child in children)
-        {
-            AddProcessTreeNode(child, processDict, depth + 1);
-        }
-    }
+	private void AddProcessTreeNode(ListProcessResult process, Dictionary<int, ListProcessResult> processDict, int depth)
+	{
+		var indent = new string(' ', depth * 2);
+		var maxNameLength = 30;
+		var indentedName = indent + process.Name;
 
-    private void AddJobTable(List<Job> jobs)
-    {
-        // Add table header
-        var headerLine = new TerminalLine
-        {
-            Text = string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}", "ID", "Type", "Name", "PID", "TaskID"),
-            Type = TerminalLineType.Info,
-            Metadata = new Dictionary<string, string>
-            {
-                { "IsJobHeader", "true" }
-            }
-        };
-        outputLines.Add(headerLine);
-        
-        var separatorLine = new TerminalLine
-        {
-            Text = new string('-', 80),
-            Type = TerminalLineType.Info,
-            Metadata = new Dictionary<string, string>
-            {
-                { "IsJobHeader", "false" }
-            }
-        };
-        outputLines.Add(separatorLine);
-        
-        // Add each job
-        foreach (var job in jobs)
-        {
-            var jobTypeStr = job.JobType.ToString().Length > 15 ? job.JobType.ToString().Substring(0, 15) : job.JobType.ToString();
-            var pidStr = job.ProcessId.HasValue ? job.ProcessId.Value.ToString() : "-";
-            var lineText = string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}", 
-                job.Id, 
-                jobTypeStr, 
-                job.Name.Length > 20 ? job.Name.Substring(0, 17) + "..." : job.Name,
-                pidStr,
-                job.TaskId);
-            
-            var line = new TerminalLine
-            {
-                Text = lineText,
-                Type = TerminalLineType.Normal,
-                Metadata = new Dictionary<string, string>
-                {
-                    { "IsJobRow", "true" },
-                    { "JobId", job.Id.ToString() },
-                    { "JobName", job.Name }
-                }
-            };
-            outputLines.Add(line);
-        }
-        
-        _ = SaveHistory();
-        _ = ScrollToBottom();
-    }
+		if (indentedName.Length > maxNameLength)
+		{
+			indentedName = indentedName.Substring(0, maxNameLength);
+		}
 
-    private void AddLinkTable(List<LinkInfo> links)
-    {
-        // Add table header
-        var headerLine = new TerminalLine
-        {
-            Text = string.Format("{0,-20} {1,-20} {2}", "ParentID", "ChildID", "Binding"),
-            Type = TerminalLineType.Info,
-            Metadata = new Dictionary<string, string>
-            {
-                { "IsLinkHeader", "true" }
-            }
-        };
-        outputLines.Add(headerLine);
-        
-        var separatorLine = new TerminalLine
-        {
-            Text = new string('-', 80),
-            Type = TerminalLineType.Info,
-            Metadata = new Dictionary<string, string>
-            {
-                { "IsLinkHeader", "false" }
-            }
-        };
-        outputLines.Add(separatorLine);
-        
-        // Add each link
-        foreach (var link in links)
-        {
-            var lineText = string.Format("{0,-20} {1,-20} {2}", 
-                link.ParentId, 
-                link.ChildId,
-                link.Binding);
-            
-            var line = new TerminalLine
-            {
-                Text = lineText,
-                Type = TerminalLineType.Normal,
-                Metadata = new Dictionary<string, string>
-                {
-                    { "IsLinkRow", "true" },
-                    { "ChildId", link.ChildId },
-                    { "Binding", link.Binding }
-                }
-            };
-            outputLines.Add(line);
-        }
-        
-        _ = SaveHistory();
-        _ = ScrollToBottom();
-    }
+		var lineText = string.Format("{0,-6} {1,-6} {2,-30} {3,-10} {4,-20} {5}",
+			process.Id,
+			process.ParentId,
+			indentedName,
+			process.Arch ?? "",
+			process.Owner ?? "",
+			process.SessionId);
 
-    private void AddRportFwdTable(List<ReversePortForwarResult> results)
-    {
-        // Add table header
-        var headerLine = new TerminalLine
-        {
-            Text = string.Format("{0,-10} {1,-30} {2}", "Port", "DestHost", "DestPort"),
-            Type = TerminalLineType.Info,
-            Metadata = new Dictionary<string, string>
-            {
-                { "IsRportFwdHeader", "true" }
-            }
-        };
-        outputLines.Add(headerLine);
-        
-        var separatorLine = new TerminalLine
-        {
-            Text = new string('-', 60),
-            Type = TerminalLineType.Info,
-            Metadata = new Dictionary<string, string>
-            {
-                { "IsRportFwdHeader", "false" }
-            }
-        };
-        outputLines.Add(separatorLine);
-        
-        // Add each result
-        foreach (var res in results)
-        {
-            var lineText = string.Format("{0,-10} {1,-30} {2}", 
-                res.Port, 
-                res.DestHost,
-                res.DestPort);
-            
-            var line = new TerminalLine
-            {
-                Text = lineText,
-                Type = TerminalLineType.Normal,
-                Metadata = new Dictionary<string, string>
-                {
-                    { "IsRportFwdRow", "true" },
-                    { "Port", res.Port.ToString() },
-                    { "DestHost", res.DestHost },
-                    { "DestPort", res.DestPort.ToString() }
-                }
-            };
-            outputLines.Add(line);
-        }
-        
-        _ = SaveHistory();
-        _ = ScrollToBottom();
-    }
+		var line = new TerminalLine
+		{
+			Text = lineText,
+			Type = TerminalLineType.Normal,
+			Metadata = new Dictionary<string, string>
+			{
+				{ "IsPsRow", "true" },
+				{ "ProcessId", process.Id.ToString() },
+				{ "ProcessName", process.Name }
+			}
+		};
 
-    private async Task DownloadFile(Dictionary<string, string> metadata)
-    {
-        if (metadata == null || !metadata.TryGetValue("Name", out var fileName))
-            return;
-        
-        var command = $"download \"{fileName}\"";
-        await ExecuteCommand(command);
-    }
+		if (agent != null && agent.Metadata != null && agent.Metadata.ProcessId == process.Id)
+		{
+			line.Metadata["IsCurrentProcess"] = "true";
+		}
 
-    private async Task DeleteFile(Dictionary<string, string> metadata)
-    {
-        if (metadata == null || !metadata.TryGetValue("Name", out var fileName))
-            return;
+		outputLines.Add(line);
 
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the file '{fileName}'?");
-        if (!confirmed)
-            return;
+		// Add children
+		var children = processDict.Values.Where(p => p.ParentId == process.Id).OrderBy(p => p.Id).ToList();
+		foreach (var child in children)
+		{
+			AddProcessTreeNode(child, processDict, depth + 1);
+		}
+	}
 
-        var command = $"del \"{fileName}\"";
-        await ExecuteCommand(command);
-    }
+	private void AddJobTable(List<Job> jobs)
+	{
+		// Add table header
+		var headerLine = new TerminalLine
+		{
+			Text = string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}", "ID", "Type", "Name", "PID", "TaskID"),
+			Type = TerminalLineType.Info,
+			Metadata = new Dictionary<string, string>
+			{
+				{ "IsJobHeader", "true" }
+			}
+		};
+		outputLines.Add(headerLine);
 
-    private async Task DeleteDirectory(Dictionary<string, string> metadata)
-    {
-        if (metadata == null || !metadata.TryGetValue("Name", out var dirName))
-            return;
+		var separatorLine = new TerminalLine
+		{
+			Text = new string('-', 80),
+			Type = TerminalLineType.Info,
+			Metadata = new Dictionary<string, string>
+			{
+				{ "IsJobHeader", "false" }
+			}
+		};
+		outputLines.Add(separatorLine);
 
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the directory '{dirName}'?");
-        if (!confirmed)
-            return;
+		// Add each job
+		foreach (var job in jobs)
+		{
+			var jobTypeStr = job.JobType.ToString().Length > 15 ? job.JobType.ToString().Substring(0, 15) : job.JobType.ToString();
+			var pidStr = job.ProcessId.HasValue ? job.ProcessId.Value.ToString() : "-";
+			var lineText = string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}",
+				job.Id,
+				jobTypeStr,
+				job.Name.Length > 20 ? job.Name.Substring(0, 17) + "..." : job.Name,
+				pidStr,
+				job.TaskId);
 
-        var command = $"rmdir \"{dirName}\"";
-        await ExecuteCommand(command);
-    }
+			var line = new TerminalLine
+			{
+				Text = lineText,
+				Type = TerminalLineType.Normal,
+				Metadata = new Dictionary<string, string>
+				{
+					{ "IsJobRow", "true" },
+					{ "JobId", job.Id.ToString() },
+					{ "JobName", job.Name }
+				}
+			};
+			outputLines.Add(line);
+		}
 
-    private async Task ListDirectory(Dictionary<string, string> metadata)
-    {
-        if (metadata == null || !metadata.TryGetValue("Name", out var dirName))
-            return;
+		_ = SaveHistory();
+		_ = ScrollToBottom();
+	}
 
-        var command = $"ls \"{dirName}\"";
-        await ExecuteCommand(command);
-    }
+	private void AddLinkTable(List<LinkInfo> links)
+	{
+		// Add table header
+		var headerLine = new TerminalLine
+		{
+			Text = string.Format("{0,-20} {1,-20} {2}", "ParentID", "ChildID", "Binding"),
+			Type = TerminalLineType.Info,
+			Metadata = new Dictionary<string, string>
+			{
+				{ "IsLinkHeader", "true" }
+			}
+		};
+		outputLines.Add(headerLine);
 
-    private async Task EnterDirectory(Dictionary<string, string> metadata)
-    {
-        if (metadata == null || !metadata.TryGetValue("Name", out var dirName))
-            return;
+		var separatorLine = new TerminalLine
+		{
+			Text = new string('-', 80),
+			Type = TerminalLineType.Info,
+			Metadata = new Dictionary<string, string>
+			{
+				{ "IsLinkHeader", "false" }
+			}
+		};
+		outputLines.Add(separatorLine);
 
-        var command = $"cd \"{dirName}\"";
-        await ExecuteCommand(command);
-    }
+		// Add each link
+		foreach (var link in links)
+		{
+			var lineText = string.Format("{0,-20} {1,-20} {2}",
+				link.ParentId,
+				link.ChildId,
+				link.Binding);
 
-    private async Task MigrateProcess(Dictionary<string, string> metadata)
-    {
-        if (metadata == null || !metadata.TryGetValue("ProcessId", out var processId))
-            return;
+			var line = new TerminalLine
+			{
+				Text = lineText,
+				Type = TerminalLineType.Normal,
+				Metadata = new Dictionary<string, string>
+				{
+					{ "IsLinkRow", "true" },
+					{ "ChildId", link.ChildId },
+					{ "Binding", link.Binding }
+				}
+			};
+			outputLines.Add(line);
+		}
 
-        var command = $"migrate {processId}";
-        await ExecuteCommand(command);
-    }
+		_ = SaveHistory();
+		_ = ScrollToBottom();
+	}
 
-    private async Task KillJob(Dictionary<string, string> metadata)
-    {
-        if (metadata == null || !metadata.TryGetValue("JobId", out var jobId))
-            return;
+	private void AddRportFwdTable(List<ReversePortForwarResult> results)
+	{
+		// Add table header
+		var headerLine = new TerminalLine
+		{
+			Text = string.Format("{0,-10} {1,-30} {2}", "Port", "DestHost", "DestPort"),
+			Type = TerminalLineType.Info,
+			Metadata = new Dictionary<string, string>
+			{
+				{ "IsRportFwdHeader", "true" }
+			}
+		};
+		outputLines.Add(headerLine);
 
-        var command = $"job kill -i {jobId}";
-        await ExecuteCommand(command);
-    }
+		var separatorLine = new TerminalLine
+		{
+			Text = new string('-', 60),
+			Type = TerminalLineType.Info,
+			Metadata = new Dictionary<string, string>
+			{
+				{ "IsRportFwdHeader", "false" }
+			}
+		};
+		outputLines.Add(separatorLine);
 
-    private async Task UnlinkAgent(Dictionary<string, string> metadata)
-    {
-        if (metadata == null || !metadata.TryGetValue("Binding", out var binding))
-            return;
+		// Add each result
+		foreach (var res in results)
+		{
+			var lineText = string.Format("{0,-10} {1,-30} {2}",
+				res.Port,
+				res.DestHost,
+				res.DestPort);
 
-        var command = $"link stop -b {binding}";
-        await ExecuteCommand(command);
-    }
+			var line = new TerminalLine
+			{
+				Text = lineText,
+				Type = TerminalLineType.Normal,
+				Metadata = new Dictionary<string, string>
+				{
+					{ "IsRportFwdRow", "true" },
+					{ "Port", res.Port.ToString() },
+					{ "DestHost", res.DestHost },
+					{ "DestPort", res.DestPort.ToString() }
+				}
+			};
+			outputLines.Add(line);
+		}
+
+		_ = SaveHistory();
+		_ = ScrollToBottom();
+	}
+
+	private async Task DownloadFile(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("Name", out var fileName))
+			return;
+
+		var command = $"download \"{fileName}\"";
+		await ExecuteCommand(command);
+	}
+
+	private async Task DeleteFile(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("Name", out var fileName))
+			return;
+
+		var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the file '{fileName}'?");
+		if (!confirmed)
+			return;
+
+		var command = $"del \"{fileName}\"";
+		await ExecuteCommand(command);
+	}
+
+	private async Task DeleteDirectory(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("Name", out var dirName))
+			return;
+
+		var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the directory '{dirName}'?");
+		if (!confirmed)
+			return;
+
+		var command = $"rmdir \"{dirName}\"";
+		await ExecuteCommand(command);
+	}
+
+	private async Task ListDirectory(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("Name", out var dirName))
+			return;
+
+		var command = $"ls \"{dirName}\"";
+		await ExecuteCommand(command);
+	}
+
+	private async Task EnterDirectory(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("Name", out var dirName))
+			return;
+
+		var command = $"cd \"{dirName}\"";
+		await ExecuteCommand(command);
+	}
+
+	private async Task MigrateProcess(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("ProcessId", out var processId))
+			return;
+
+		var command = $"migrate {processId}";
+		await ExecuteCommand(command);
+	}
+
+	private async Task KillJob(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("JobId", out var jobId))
+			return;
+
+		var command = $"job kill -i {jobId}";
+		await ExecuteCommand(command);
+	}
+
+	private async Task UnlinkAgent(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("Binding", out var binding))
+			return;
+
+		var command = $"link stop -b {binding}";
+		await ExecuteCommand(command);
+	}
 
 
 
-    private bool shouldScrollToBottom = false;
+	private bool shouldScrollToBottom = false;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await inputElement.FocusAsync();
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await inputElement.FocusAsync();
 
-            // Execute command from navigation state if provided
-            if (shouldExecuteCommand && !string.IsNullOrWhiteSpace(commandToExecute))
-            {
-                shouldExecuteCommand = false;
-                await ExecuteCommand(commandToExecute);
-                commandToExecute = null;
-            }
-        }
+			// Execute command from navigation state if provided
+			if (shouldExecuteCommand && !string.IsNullOrWhiteSpace(commandToExecute))
+			{
+				shouldExecuteCommand = false;
+				await ExecuteCommand(commandToExecute);
+				commandToExecute = null;
+			}
+		}
 
-        if (shouldScrollToBottom)
-        {
-            shouldScrollToBottom = false;
-            await ScrollToBottom();
-        }
+		if (shouldScrollToBottom)
+		{
+			shouldScrollToBottom = false;
+			await ScrollToBottom();
+		}
 
-        if (shouldSetCursorToEnd)
-        {
-            shouldSetCursorToEnd = false;
-            await JSRuntime.InvokeVoidAsync("setCursorToEnd", inputElement);
-        }
-    }
+		if (shouldSetCursorToEnd)
+		{
+			shouldSetCursorToEnd = false;
+			await JSRuntime.InvokeVoidAsync("setCursorToEnd", inputElement);
+		}
+	}
 
-    private async Task HandleKeyDown(KeyboardEventArgs e)
-    {
-        // Handle history navigation
-        if (e.Key == "ArrowUp")
-        {
-            if (commandHistory.Count > 0 && historyIndex < commandHistory.Count - 1)
-            {
-                historyIndex++;
-                currentCommand = commandHistory[historyIndex];
-                shouldSetCursorToEnd = true;
-                StateHasChanged();
-            }
-            return;
-        }
-        else if (e.Key == "ArrowDown")
-        {
-            if (historyIndex > 0)
-            {
-                historyIndex--;
-                currentCommand = commandHistory[historyIndex];
-                shouldSetCursorToEnd = true;
-                StateHasChanged();
-            }
-            else if (historyIndex == 0)
-            {
-                historyIndex = -1;
-                currentCommand = string.Empty;
-                StateHasChanged();
-            }
-            return;
-        }
-        
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(currentCommand))
-        {
-            // Store the command for later reference
-            var commandToSend = currentCommand;
-            
-            // Add to history (at the beginning of the list)
-            commandHistory.Insert(0, commandToSend);
-            historyIndex = -1; // Reset history navigation
-            
-            // Clear input
-            currentCommand = string.Empty;
+	private async Task HandleKeyDown(KeyboardEventArgs e)
+	{
+		// Handle history navigation
+		if (e.Key == "ArrowUp")
+		{
+			if (commandHistory.Count > 0 && historyIndex < commandHistory.Count - 1)
+			{
+				historyIndex++;
+				currentCommand = commandHistory[historyIndex];
+				shouldSetCursorToEnd = true;
+				StateHasChanged();
+			}
+			return;
+		}
+		else if (e.Key == "ArrowDown")
+		{
+			if (historyIndex > 0)
+			{
+				historyIndex--;
+				currentCommand = commandHistory[historyIndex];
+				shouldSetCursorToEnd = true;
+				StateHasChanged();
+			}
+			else if (historyIndex == 0)
+			{
+				historyIndex = -1;
+				currentCommand = string.Empty;
+				StateHasChanged();
+			}
+			return;
+		}
 
-            // Handle client-side commands
-            if (commandToSend.Trim().ToLower() == "clear" || commandToSend.Trim().ToLower() == "cls")
-            {
-                await ClearTerminal();
-                StateHasChanged();
-                return;
-            }
-            
-            // Add command to output
-            AddCommand($"{agent?.Metadata?.Name ?? "Unknown"} > {commandToSend}");
-            
-            // Send command
-            var (message, error, taskId) = await ProcessCommandAndSend(commandToSend);
-            if(!string.IsNullOrEmpty(error))
-                AddError(error);
-            if(!string.IsNullOrEmpty(message))
-                AddNormal(message);
-            
-            // Track task ID if command was sent successfully
-            if (taskId != null)
-            {
-                Console.WriteLine($"Adding task ID {taskId}");
-                // Store command name (first word)
-                var cmdName = commandToSend.Split(' ')[0];
-                taskCommands[taskId] = cmdName;
-            }
-            
-            StateHasChanged();
-            
-            // Scroll to bottom
-            await ScrollToBottom();
-            await SaveHistory();
-        }
-    }
+		if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(currentCommand))
+		{
+			// Store the command for later reference
+			var commandToSend = currentCommand;
 
-    private async Task ClearTerminal()
-    {
-        outputLines.Clear();
-        
-        if (agent != null)
-        {
-            AddInfo($"Connected to agent {agent.Metadata?.Name ?? "Unknown"}");
-            AddInfo($"User: {agent.Metadata?.Desc}");
-            AddInfo($"Architecture: {agent.Metadata?.Architecture}");
-            AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
-            AddNormal("");
-        }
-        
-        await SaveHistory();
-    }
+			// Handle client-side commands
+			if (commandToSend.Trim().ToLower() == "clear" || commandToSend.Trim().ToLower() == "cls")
+			{
+				currentCommand = string.Empty;
+				await ClearTerminal();
+				StateHasChanged();
+				return;
+			}
 
-    private async Task SaveHistory()
-    {
-        if (agent == null) return;
+			await ExecuteCommand(commandToSend);
+		}
+	}
 
-        var history = new TerminalHistory
-        {
-            OutputLines = outputLines,
-            CommandHistory = commandHistory,
-            TaskCommands = taskCommands
-        };
+	private async Task ClearTerminal()
+	{
+		outputLines.Clear();
 
-        await TerminalHistoryService.SaveHistoryAsync(AgentId, history);
-    }
+		if (agent != null)
+		{
+			AddInfo($"Connected to agent {agent.Metadata?.Name ?? "Unknown"}");
+			AddInfo($"User: {agent.Metadata?.Desc}");
+			AddInfo($"Architecture: {agent.Metadata?.Architecture}");
+			AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
+			AddNormal("");
+		}
 
-    private async Task ScrollToBottom()
-    {
-        if (terminalOutputComponent != null)
-        {
-            await terminalOutputComponent.ScrollToBottom(JSRuntime);
-        }
-    }
+		await SaveHistory();
+	}
 
-    private async Task ExecuteCommand(string commandToSend)
-    {
-        if (string.IsNullOrWhiteSpace(commandToSend) || agent == null)
-            return;
+	private async Task SaveHistory()
+	{
+		if (agent == null) return;
 
-        // Add to history (at the beginning of the list)
-        commandHistory.Insert(0, commandToSend);
-        historyIndex = -1; // Reset history navigation
+		var history = new TerminalHistory
+		{
+			OutputLines = outputLines,
+			CommandHistory = commandHistory,
+			TaskCommands = taskCommands
+		};
 
-        // Add command to output
-        AddCommand($"{agent.Metadata?.Name ?? "Unknown"} > {commandToSend}");
+		await TerminalHistoryService.SaveHistoryAsync(AgentId, history);
+	}
 
-        // Send command
-        var (message, error, taskId) = await ProcessCommandAndSend(commandToSend);
-        if (!string.IsNullOrEmpty(error))
-            AddError(error);
-        if (!string.IsNullOrEmpty(message))
-            AddNormal(message);
+	private async Task ScrollToBottom()
+	{
+		if (terminalOutputComponent != null)
+		{
+			await terminalOutputComponent.ScrollToBottom(JSRuntime);
+		}
+	}
 
-        // Track task ID if command was sent successfully
-        if (taskId != null)
-        {
-            // Store command name (first word)
-            var cmdName = commandToSend.Split(' ')[0];
-            taskCommands[taskId] = cmdName;
-        }
+	private async Task ExecuteCommand(string commandToSend)
+	{
+		Console.WriteLine($"[Terminal] Executing command: {commandToSend}");
+		if (string.IsNullOrWhiteSpace(commandToSend) || agent == null)
+			return;
 
-        // Clear input
-        currentCommand = string.Empty;
+		// Add to history (at the beginning of the list)
+		commandHistory.Insert(0, commandToSend);
+		historyIndex = -1; // Reset history navigation
 
-        StateHasChanged();
+		// Add command to output
+		AddCommand($"{agent.Metadata?.Name ?? "Unknown"} > {commandToSend}");
 
-        // Scroll to bottom
-        await ScrollToBottom();
-        await SaveHistory();
-    }
+		// Send command
+		var result = await ProcessCommandAndSend(commandToSend);
 
-    private async Task<(string? message, string? error, string? taskId)> ProcessCommandAndSend(string commandToSend)
-    {
-         var tokens = commandToSend.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-         if (tokens.Length > 0 && tokens[0].Equals("upload", StringComparison.OrdinalIgnoreCase))
-         {
-             return await HandleUploadAsync(commandToSend);
-         }
-         
-         return await CommandService.ParseAndSendAsync(commandToSend, agent);
-    }
+		Console.WriteLine($"[Terminal] Command Executed: {result.Succeed}");
 
-    private async Task<(string? message, string? error, string? taskId)> HandleUploadAsync(string commandLine)
-    {
-        var result = await fileUploadModal.ShowAsync();
-        if (result == null)
-        {
-             return (null, "Upload cancelled by user.", null);
-        }
+		if (result.Context != null)
+		{
+			var context = result.Context as AgentCommandContext;
+			if (context != null)
+			{
+				Console.WriteLine($"[Terminal] Context ok");
+				var adapter = context.Adapter as WebAgentCommandAdapter;
 
-        var (fileBytes, localName) = result.Value;
+				if (adapter != null)
+				{
+					foreach (var line in adapter.Outputs)
+					{
+						if (line.Item1 == WebAgentCommandAdapter.OutputType.Info)
+							this.AddInfo(line.Item2);
+						if (line.Item1 == WebAgentCommandAdapter.OutputType.Success)
+							this.AddSuccess(line.Item2);
+						if (line.Item1 == WebAgentCommandAdapter.OutputType.Normal)
+							this.AddNormal(line.Item2);
+						if (line.Item1 == WebAgentCommandAdapter.OutputType.Error)
+							this.AddError(line.Item2);
+					}
+				}
+			}
 
-        string finalCommand = commandLine;
-        var tokens = commandLine.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (tokens.Length == 1) // Just "upload"
-        {
-             finalCommand = $"{commandLine} \"{localName}\"";
-        }
-        
-        return await CommandService.ParseAndSendAsync(finalCommand, agent, fileBytes);
-    }
+		}
 
-    private void Close()
-    {
-        NavigationManager.NavigateTo("/agents");
-    }
+		if (!string.IsNullOrEmpty(result.Error))
+			AddError(result.Error);
+
+		// Clear input
+		currentCommand = string.Empty;
+
+		StateHasChanged();
+
+		// Scroll to bottom
+		await ScrollToBottom();
+		await SaveHistory();
+	}
+
+	private async Task<CommandResult> ProcessCommandAndSend(string commandToSend)
+	{
+		var tokens = commandToSend.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+		if (tokens.Length > 0 && tokens[0].Equals("upload", StringComparison.OrdinalIgnoreCase))
+		{
+			return await HandleUploadAsync(commandToSend);
+		}
+
+		return await CommandService.ParseAndSendAsync(commandToSend, agent);
+	}
+
+	private async Task<CommandResult> HandleUploadAsync(string commandLine)
+	{
+		var result = await fileUploadModal.ShowAsync();
+		if (result == null)
+			return null;
+
+		var (fileBytes, localName) = result.Value;
+
+		string finalCommand = commandLine;
+		var tokens = commandLine.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+		if (tokens.Length == 1) // Just "upload"
+		{
+			finalCommand = $"{commandLine} \"{localName}\"";
+		}
+
+		return await CommandService.ParseAndSendAsync(finalCommand, agent, fileBytes);
+	}
+
+	private void Close()
+	{
+		NavigationManager.NavigateTo("/agents");
+	}
 }

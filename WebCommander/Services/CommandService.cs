@@ -36,7 +36,7 @@ namespace WebCommander.Services
                 if (_currentAgent == null)
                     throw new InvalidOperationException("No current agent set for command execution context.");
                     
-                var adapter = new WebAgentCommandAdapter(_client, _currentAgent, _currentFileBytes);
+                var adapter = new WebAgentCommandAdapter(_client, _currentAgent, this, _currentFileBytes);
                 if (_currentFileBytes != null)
                 {
                     adapter.AddParameter(Shared.ParameterId.File, _currentFileBytes);
@@ -55,10 +55,10 @@ namespace WebCommander.Services
             _commandExecutor.LoadCommands(webAssembly);
         }
 
-        public async Task<(string? message, string? error, string? taskId)> ParseAndSendAsync(string rawInput, Agent agent, byte[]? fileBytes = null)
+        public async Task<CommandResult> ParseAndSendAsync(string rawInput, Agent agent, byte[]? fileBytes = null)
         {
             if (string.IsNullOrWhiteSpace(rawInput))
-                return (null, null, null);
+                return null;
 
             _currentAgent = agent;
             _currentFileBytes = fileBytes;
@@ -66,15 +66,11 @@ namespace WebCommander.Services
             try
             {
                 var result = await _commandExecutor.ExecuteAsync(rawInput);
-                
-                string? message = result.Result ? "Command executed successfully." : null;
-                string? error = result.Failed ? result.Error : null;
-                
-                return (message, error, null);
+                return result;
             }
             catch (Exception ex)
             {
-                return (null, $"[Error] {ex.Message}", null);
+                return null;
             }
             finally
             {

@@ -102,7 +102,7 @@ namespace Common.CommandLine.Execution
                 var task = (Task<bool>)executeMethod.Invoke(commandInstance, new object[] { context, options });
                 bool success = await task;
 
-                return success ? CommandResult.Success() : CommandResult.Failure();
+                return success ? CommandResult.Success(context) : CommandResult.Failure(context);
             }
             catch (ArgumentException ex)
             {

@@ -6,7 +6,8 @@ namespace WebCommander.Models
         Error,
         Warning,
         Info,
-        Command
+        Command,
+        Success
     }
 
     public class TerminalLine

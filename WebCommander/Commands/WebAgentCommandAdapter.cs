@@ -12,11 +12,20 @@ namespace WebCommander.Commands
 {
     public class WebAgentCommandAdapter : IAgentCommandContext
     {
+        public enum OutputType
+        {
+            Info,
+            Success,
+            Error,
+            Normal
+        }
+
         private readonly TeamServerClient _client;
         private readonly Agent _agent;
-        private readonly List<string> _output = new();
-        private readonly List<string> _errors = new();
-        
+        private readonly CommandService _commandService;
+        private readonly List<Tuple<OutputType, string>> _output = new();
+        public List<Tuple<OutputType, string>> Outputs { get { return _output; } }
+
         public ParameterDictionary Parameters { get; private set; } = new ParameterDictionary();
         public List<AgentTask> Tasks { get; private set; } = new List<AgentTask>();
 
@@ -25,11 +34,17 @@ namespace WebCommander.Commands
         // Valid only for this request
         public byte[]? CurrentFileBytes { get; private set; }
 
-        public WebAgentCommandAdapter(TeamServerClient client, Agent agent, byte[]? fileBytes = null)
+        public WebAgentCommandAdapter(TeamServerClient client, Agent agent, CommandService commandService, byte[]? fileBytes = null)
         {
             _client = client;
             _agent = agent;
+            _commandService = commandService;
             CurrentFileBytes = fileBytes;
+        }
+
+        public List<Common.CommandLine.Execution.CommandDefinition> GetAvailableCommands()
+        {
+            return _commandService.GetCommands();
         }
 
         public AgentTask RegisterTask(CommandId command)
@@ -135,61 +150,45 @@ namespace WebCommander.Commands
         public void WriteError(string message)
         {
             // For WebCommander, we accumulate errors to return to the caller (CommandService/Terminal)
-            _errors.Add(message);
+            _output.Add(new Tuple<OutputType, string>(OutputType.Error, message));
         }
 
         public void WriteSuccess(string message)
         {
-             _output.Add(message);
+            _output.Add(new Tuple<OutputType, string>(OutputType.Success, message));
         }
 
         public void WriteLine(string message)
         {
-             _output.Add(message);
+            _output.Add(new Tuple<OutputType, string>(OutputType.Normal, message));
         }
 
         public void WriteInfo(string message)
         {
-             _output.Add(message);
+            _output.Add(new Tuple<OutputType, string>(OutputType.Info, message));
         }
 
-        public Task<APIImplant> GeneratePayload(ImplantConfig options)
+        public async Task<APIImplant> GeneratePayload(ImplantConfig options)
         {
-            // Implementation for WebCommander payload generation if needed
-            // Currently throwing NOT IMPLEMENTED or delegating to CommModule if it was available.
-            // But TeamServerClient has CreateImplantAsync.
-            // For now, let's assume we don't generate payloads via Agent Commands in WebCommander yet?
-            // Or if we do, we need to implement it.
-            // Commander uses CommModule.GenerateImplant.
-            // WebCommander has TeamServerClient.CreateImplantAsync.
-            throw new NotImplementedException("Payload generation not yet implemented in WebAgentCommandAdapter");
+            var (succeed, res) =  await _client.CreateImplantAsync(options);
+            if(!succeed)
+            {
+                WriteError($"[X] Generation Failed: {res.Logs}");
+                return null;
+            }
+
+            return res.Implant;
         }
 
         public void TaskAgent(string commandLine, CommandId commandId)
         {
-            TaskAgent(commandLine, commandId, Parameters);
+            TaskAgent(commandLine, commandId, this.Parameters);
         }
 
         public void TaskAgent(string commandLine, CommandId commandId, ParameterDictionary parameters)
         {
-             if (Tasks.Count > 0)
-             {
-                 // If tasks were queued via helper methods (Shell, Ls, etc.), send them.
-                 foreach(var task in Tasks)
-                 {
-                     _ = _client.TaskAgent(commandLine, _agent.Id, task.CommandId, task.Parameters);
-                 }
-                 Tasks.Clear();
-             }
-             else
-             {
-                 // Otherwise use the parameters provided (usually from AddParameter calls)
-                 _ = _client.TaskAgent(commandLine, _agent.Id, commandId, parameters);
-             }
+            _ = _client.TaskAgent(commandLine, _agent.Id, commandId, parameters);
+            this.WriteSuccess($"Command {commandLine} tasked to agent {this.Metadata?.Name}.");
         }
-        
-        // Helper to get collected output
-        public string GetOutput() => string.Join(Environment.NewLine, _output);
-        public string GetErrors() => string.Join(Environment.NewLine, _errors);
     }
 }

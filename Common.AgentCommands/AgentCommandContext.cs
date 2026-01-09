@@ -42,7 +42,7 @@ namespace Common.AgentCommands
     }
     public class AgentCommandContext : CommandContext, IAgentCommandContext
     {
-        private IAgentCommandContext Adapter = null;
+        public IAgentCommandContext Adapter { get; private set; }
         public AgentCommandContext(IAgentCommandContext adapter)
         {
             this.Adapter = adapter;
