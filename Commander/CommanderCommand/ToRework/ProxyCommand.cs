@@ -1,4 +1,5 @@
-﻿using Commander.Commands.Agent;
+﻿using Commander.Commands;
+using Commander.Commands.Agent;
 using Commander.Communication;
 using Commander.Executor;
 using Commander.Helper;
@@ -13,7 +14,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Commander.Commands.Network
+namespace Commander.CommanderCommand.ToRework
 {
     public class ProxyCommandOptions : EndPointVerbAwareCommandOptions
     {

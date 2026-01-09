@@ -12,7 +12,7 @@ namespace Agent.Commands
 {
     public class ScriptedCommand : AgentCommand
     {
-        public override CommandId Command => CommandId.Script;
+        public override CommandId Command => CommandId.Composite;
         public override async Task InnerExecute(AgentTask task, AgentCommandContext context, CancellationToken token)
         {
             context.IsScripting = true;

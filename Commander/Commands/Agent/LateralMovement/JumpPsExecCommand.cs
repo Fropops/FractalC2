@@ -1,9 +1,4 @@
-﻿using System.CommandLine;
-using Commander.Commands.Custom;
-using Commander.Executor;
-using Common;
-
-namespace Commander.Commands.Agent.LateralMovement
+﻿namespace Commander.Commands.Agent.LateralMovement
 {
     public class JumpPsExecCommandOptions
     {

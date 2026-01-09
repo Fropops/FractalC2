@@ -2,7 +2,7 @@ using Commander.Executor;
 using Common.CommandLine.Core;
 using System.Threading.Tasks;
 
-namespace Commander.CommanderCommand
+namespace Commander.CommanderCommand.Agent
 {
     [Command("back", "Return to Commander mode", Category = "Commander", Aliases = new[] { "home" })]
     public class BackCommand : ICommand<CommanderCommandContext, CommandOption>

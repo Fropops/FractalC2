@@ -44,7 +44,7 @@ namespace Shared
 
         Idle = 0x25,
 
-        Script = 0x26,
+        Composite = 0x26,
         Delay = 0x27,
         Echo = 0x28,
 

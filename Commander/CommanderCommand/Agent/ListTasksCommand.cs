@@ -1,4 +1,5 @@
-﻿using Commander.Communication;
+﻿using Commander.Commands;
+using Commander.Communication;
 using Commander.Executor;
 using Commander.Helper;
 using Commander.Terminal;
@@ -12,7 +13,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Commander.Commands.Agent
+namespace Commander.CommanderCommand.Agent
 {
     public class ViewTasksCommandOptions
     {

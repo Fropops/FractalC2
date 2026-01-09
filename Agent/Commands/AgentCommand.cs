@@ -79,7 +79,7 @@ namespace Agent.Commands
         {
             get
             {
-                return this.Command == CommandId.Script;
+                return this.Command == CommandId.Composite;
             }
         }
 

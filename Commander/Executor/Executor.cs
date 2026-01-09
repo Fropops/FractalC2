@@ -2,23 +2,16 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using BinarySerializer;
 using Commander.CommanderCommand;
 using Commander.Commands;
-using Commander.Commands.Agent;
-using Commander.Commands.Agent.EndPoint;
-using Commander.Commands.Custom;
 using Commander.Communication;
 using Commander.Helper;
 using Commander.Models;
 using Commander.Terminal;
 using Common.AgentCommands;
 using Common.CommandLine.Execution;
-using Common.Models;
 using Shared;
 
 namespace Commander.Executor

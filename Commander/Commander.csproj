@@ -27,7 +27,6 @@
     <Compile Remove="Commands\Agent\KillAgentCommand.cs" />
     <Compile Remove="Commands\Agent\PathCommand.cs" />
     <Compile Remove="Commands\Base64Command.cs" />
-    <Compile Remove="Commands\Custom\AgentTask.cs" />
     <Compile Remove="Commands\FilesCommand.cs" />
     <Compile Remove="Commands\GetCommand.cs" />
     <Compile Remove="Commands\PushCommand.cs" />
@@ -70,5 +69,8 @@
     <None Update="appsettings.release.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Commands\Network\" />
   </ItemGroup>
 </Project>
