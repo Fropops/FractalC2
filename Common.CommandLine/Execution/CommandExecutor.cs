@@ -18,14 +18,14 @@ namespace Common.CommandLine.Execution
         private List<CommandDefinition> _commands = new List<CommandDefinition>();
         private Dictionary<Type, Func<CommandContext>> _contextFactories = new Dictionary<Type, Func<CommandContext>>();
 
+        public List<CommandDefinition> RegisteredCommands { get { return _commands; } }
+
         public CommandExecutor()
         {
             _loader = new CommandLoader();
             _parser = new CommandLineParser();
             _binder = new CommandBinder();
         }
-
-        public List<CommandDefinition> RegisteredCommands { get { return _commands; } }
 
         public void LoadCommands(Assembly assembly)
         {
@@ -36,6 +36,7 @@ namespace Common.CommandLine.Execution
         {
             _contextFactories[typeof(T)] = factory;
         }
+
 
         public async Task<CommandDefinition> GetCommand(string commandeLine)
         {
@@ -51,13 +52,13 @@ namespace Common.CommandLine.Execution
             return commandDef;
         }
 
-        public async Task<bool> Execute(string commandeLine)
+        public async Task<CommandResult> ExecuteAsync(string input)
         {
             try
             {
-                var parsed = _parser.Parse(commandeLine);
+                var parsed = _parser.Parse(input);
                 if (parsed == null)
-                    return false;
+                    return CommandResult.Failure("Parsing failed (empty input?)");
 
                 var commandDef = _commands.FirstOrDefault(c =>
                     c.Metadata.Name.Equals(parsed.Name, StringComparison.OrdinalIgnoreCase) ||
@@ -65,23 +66,24 @@ namespace Common.CommandLine.Execution
 
                 if (commandDef == null)
                 {
-                    Console.WriteLine($"Command '{parsed.Name}' not found.");
-                    return false;
+                    return CommandResult.Failure($"Command '{parsed.Name}' not found.");
                 }
 
                 // CHECK FOR HELP
                 if (parsed.Options.ContainsKey("h") || parsed.Options.ContainsKey("help"))
                 {
                     var helpGen = new HelpGenerator();
+                    // We still print Help to console as it is "Output", not "Error". 
+                    // Or should we return it? The user said "retourner les erreur".
+                    // Help is usually normal output.
                     Console.WriteLine(helpGen.GenerateUsage(commandDef));
-                    return false;
+                    return CommandResult.Success();
                 }
 
                 // Get Context Factory
                 if (!_contextFactories.TryGetValue(commandDef.ContextType, out var factory))
                 {
-                    Console.WriteLine($"Error: Context factory for type '{commandDef.ContextType.Name}' is not registered.");
-                    return false;
+                    return CommandResult.Failure($"Error: Context factory for type '{commandDef.ContextType.Name}' is not registered.");
                 }
 
                 // Create Fresh Context
@@ -89,7 +91,7 @@ namespace Common.CommandLine.Execution
 
                 // Create and Bind Options
                 var options = (CommandOption)Activator.CreateInstance(commandDef.OptionsType);
-                options.CommandLine = commandeLine;
+                options.CommandLine = input;
                 _binder.Bind(parsed, options);
 
                 // Instantiate Command
@@ -98,23 +100,23 @@ namespace Common.CommandLine.Execution
                 // Execute
                 var executeMethod = commandDef.CommandType.GetMethod("Execute");
                 var task = (Task<bool>)executeMethod.Invoke(commandInstance, new object[] { context, options });
-                await task;
-                return true;
+                bool success = await task;
+
+                return success ? CommandResult.Success() : CommandResult.Failure();
             }
             catch (ArgumentException ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
-                return false;
+                return CommandResult.Failure($"Error: {ex.Message}");
             }
             catch (TargetInvocationException ex)
             {
-                Console.WriteLine($"Error executing command: {ex.InnerException?.Message ?? ex.Message}");
-                return false;
+                // Unwrap the exception for cleaner content
+                var inner = ex.InnerException ?? ex;
+                return CommandResult.Failure($"Error executing command: {inner.Message}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
-                return false;
+                return CommandResult.Failure($"Unexpected error: {ex.Message}");
             }
         }
 

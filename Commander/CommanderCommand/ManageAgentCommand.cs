@@ -127,6 +127,11 @@ namespace Commander.CommanderCommand
             }
             else
             {
+                if(string.IsNullOrEmpty(options.index))
+                {
+                    context.Terminal.WriteError("Index is mandatory");
+                    return false;
+                }
                 int index = 0;
                 Models.Agent agt = null;
                 if (int.TryParse(options.index, out index))

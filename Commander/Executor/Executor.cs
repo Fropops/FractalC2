@@ -225,17 +225,21 @@ namespace Commander.Executor
                 var commandDef = this.CommandExecutor.GetCommand(input).Result;
                 if(commandDef == null)
                 {
-                    this.Terminal.WriteLine(error);
+                    this.Terminal.WriteError(error);
                     return;
                 }
 
                 if(typeof(Common.AgentCommands.AgentCommandBase).IsAssignableFrom(commandDef.CommandType) && this.CurrentAgent == null)
                 {
-                    this.Terminal.WriteLine("No agent selected. Use 'interact' command to select an agent.");
+                    this.Terminal.WriteError("No agent selected. Use 'interact' command to select an agent.");
                     return;
                 }
 
-                this.CommandExecutor.Execute(input).Wait();
+                var result = this.CommandExecutor.ExecuteAsync(input).Result;
+                if(result.Failed && !string.IsNullOrEmpty(result.Error))
+                {
+                    this.Terminal.WriteError($"{result.Error}");
+                }
             }
             catch (Exception ex)
             {
