@@ -10,7 +10,7 @@ using Shared;
 
 namespace Agent.Commands
 {
-    public class ScriptedCommand : AgentCommand
+    public class CompositeCommand : AgentCommand
     {
         public override CommandId Command => CommandId.Composite;
         public override async Task InnerExecute(AgentTask task, AgentCommandContext context, CancellationToken token)

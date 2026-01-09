@@ -189,9 +189,9 @@
     <Compile Include="Commands\FileSystem\PrintWorkingDirectoryCommand.cs" />
     <Compile Include="Commands\FileSystem\RegCommand.cs" />
     <Compile Include="Commands\Link\LinkCommand.cs" />
-    <Compile Include="Commands\ScriptedCommand\DelayCommand.cs" />
-    <Compile Include="Commands\ScriptedCommand\EchoCommand.cs" />
-    <Compile Include="Commands\ScriptedCommand\ScriptedCommand.cs" />
+    <Compile Include="Commands\CompositeCommand\DelayCommand.cs" />
+    <Compile Include="Commands\CompositeCommand\EchoCommand.cs" />
+    <Compile Include="Commands\CompositeCommand\CompositeCommand.cs" />
     <Compile Include="Commands\Server\DownloadCommand.cs" />
     <Compile Include="Commands\Server\UploadCommand.cs" />
     <Compile Include="Commands\Services\JobCommand.cs" />

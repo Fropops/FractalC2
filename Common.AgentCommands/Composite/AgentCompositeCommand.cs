@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,6 +22,8 @@ namespace Common.AgentCommands.Composite
 
             if (!result)
                 return false;
+
+            context.AddParameter(ParameterId.Parameters, context.GetTasks());
 
             context.TaskAgent(options.CommandLine, this.CommandId, context.GetParameters());
             return true;

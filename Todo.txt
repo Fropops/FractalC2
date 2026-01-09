@@ -30,8 +30,5 @@ Rework Client Models
 
 
 # Rework AgentCommands & Commands
-Upload Command not working
-Elevate command not working
 Start : Error in CreateProcessW : 2
-keylog
 job command
