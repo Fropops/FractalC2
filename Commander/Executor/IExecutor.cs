@@ -11,9 +11,8 @@ namespace Commander.Executor
 {
     public interface IExecutor
     {
-        ExecutorMode Mode { get; set; }
         Agent CurrentAgent { get; set; }
-        void InputHandled(ExecutorCommand cmd, bool cmdResult);
+        void InputHandled(bool cmdResult);
 
         List<CommandDefinition> GetAllCommands();
 

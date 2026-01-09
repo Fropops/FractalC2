@@ -18,6 +18,7 @@ namespace Common.AgentCommands
         public const string LateralMovement = "Agent - LateralMovement";
         public const string Execution = "Agent - Execution";
         public const string Composite = "Agent - Composite";
+        public const string Network = "Agent - Network";
     }
 
     public abstract class AgentCommandBase

@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using BinarySerializer;
-using Commander.CommanderCommand;
 using Commander.Commands;
+using Commander.Commands.Agent;
 using Commander.Communication;
 using Commander.Helper;
 using Commander.Models;
@@ -19,10 +19,6 @@ namespace Commander.Executor
 
     public class Executor : IExecutor
     {
-
-
-        public ExecutorMode Mode { get; set; } = ExecutorMode.None;
-
         public bool IsRunning
         {
             get
@@ -240,11 +236,11 @@ namespace Commander.Executor
             }
             finally
             {
-                this.InputHandled(null, false);
+                this.InputHandled(false);
             }
         }
 
-        public void InputHandled(ExecutorCommand cmd, bool cmdResult)
+        public void InputHandled(bool cmdResult)
         {
             this.Terminal.CanHandleInput = true;
             this.Terminal.NewLine();
