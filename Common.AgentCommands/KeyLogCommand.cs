@@ -21,10 +21,8 @@ namespace Common.AgentCommands
 
         protected override void SpecifyParameters(AgentCommandContext context, KeyLogCommandOptions options)
         {
-             if (!string.IsNullOrEmpty(options.Verb))
-            {
-                 context.AddParameter(ParameterId.Verb, options.Verb);
-            }
+            CommandVerbs verb = (CommandVerbs)Enum.Parse(typeof(CommandVerbs), options.Verb,true);
+            context.AddParameter(ParameterId.Verb, verb);
         }
     }
 }
