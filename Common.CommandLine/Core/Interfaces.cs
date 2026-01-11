@@ -5,6 +5,7 @@ namespace Common.CommandLine.Core
     public abstract class CommandContext
     {
         // Base class for context, can be extended to add specific properties
+        public Object Complement { get; set; }
     }
 
     public class CommandOption

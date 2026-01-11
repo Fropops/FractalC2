@@ -5,11 +5,8 @@
 # Team Server
 
 # Commanders
-Commands To rework
-Custom Commands
+Composite Commands
  - jump psexec & jump winrm
- - Auto Loader?
- - Rename to Composite?
 
 # Web Commander
 
@@ -24,7 +21,6 @@ rportfwd
 #Bugs
 When link to another agent failed, should not continue to make believe the agent is still alive
 Topology & map not well working with P2P links
-Upload Command (webcommander)
 
 # Other
 Rework ClientAPI

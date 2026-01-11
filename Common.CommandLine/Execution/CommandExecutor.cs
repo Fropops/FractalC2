@@ -52,7 +52,7 @@ namespace Common.CommandLine.Execution
             return commandDef;
         }
 
-        public async Task<CommandResult> ExecuteAsync(string input)
+        public async Task<CommandResult> ExecuteAsync(string input, object complement = null)
         {
             try
             {
@@ -87,6 +87,12 @@ namespace Common.CommandLine.Execution
 
                 // Create Fresh Context
                 var context = factory.Invoke();
+                if (complement != null)
+                {
+                    var cmdCcontext = context as CommandContext;
+                    if (cmdCcontext is not null)
+                        context.Complement = complement;
+                }
 
                 // Create and Bind Options
                 var options = (CommandOption)Activator.CreateInstance(commandDef.OptionsType);

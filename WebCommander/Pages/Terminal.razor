@@ -1039,8 +1039,8 @@
 	private async Task<CommandResult> ProcessCommandAndSend(string commandToSend)
 	{
 		var tokens = commandToSend.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-		if (tokens.Length > 0 && tokens[0].Equals("upload", StringComparison.OrdinalIgnoreCase))
-		{
+		if (tokens.Length > 0 && tokens[0].Equals("upload", StringComparison.OrdinalIgnoreCase) && !tokens.Any(t => t.Equals("-h", StringComparison.InvariantCultureIgnoreCase) || t.Equals("--h", StringComparison.InvariantCultureIgnoreCase)))
+	{
 			return await HandleUploadAsync(commandToSend);
 		}
 
@@ -1051,18 +1051,16 @@
 	{
 		var result = await fileUploadModal.ShowAsync();
 		if (result == null)
-			return null;
+			return CommandResult.Failure("Upload cancelled by operator.");
 
 		var (fileBytes, localName) = result.Value;
-
-		string finalCommand = commandLine;
-		var tokens = commandLine.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-		if (tokens.Length == 1) // Just "upload"
+		var fileInfo = new UploadCommandComplement()
 		{
-			finalCommand = $"{commandLine} \"{localName}\"";
-		}
+			FileBytes = fileBytes,
+			FileName = localName
+		};
 
-		return await CommandService.ParseAndSendAsync(finalCommand, agent, fileBytes);
+		return await CommandService.ParseAndSendAsync(commandLine, agent, fileInfo);
 	}
 
 	private void Close()

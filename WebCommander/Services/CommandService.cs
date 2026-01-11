@@ -55,17 +55,16 @@ namespace WebCommander.Services
             _commandExecutor.LoadCommands(webAssembly);
         }
 
-        public async Task<CommandResult> ParseAndSendAsync(string rawInput, Agent agent, byte[]? fileBytes = null)
+        public async Task<CommandResult> ParseAndSendAsync(string rawInput, Agent agent, object complement = null)
         {
             if (string.IsNullOrWhiteSpace(rawInput))
                 return null;
 
             _currentAgent = agent;
-            _currentFileBytes = fileBytes;
 
             try
             {
-                var result = await _commandExecutor.ExecuteAsync(rawInput);
+                var result = await _commandExecutor.ExecuteAsync(rawInput, complement);
                 return result;
             }
             catch (Exception ex)
