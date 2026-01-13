@@ -40,10 +40,8 @@ namespace Common.AgentCommands
         protected override void SpecifyParameters(AgentCommandContext context, LinkCommandOptions options)
         {
             context.AddParameter(ParameterId.Verb, options.Verb);
-            if (!string.IsNullOrEmpty(options.BindTo))
+            if (!string.IsNullOrEmpty(options.BindTo) && !options.Verb.Equals("show", StringComparison.OrdinalIgnoreCase))
             {
-                // Re-parsing to get standardized string if needed, or just use raw if validated.
-                // But original used conn.ToString().
                 ConnexionUrl conn = ConnexionUrl.FromString(options.BindTo);
                 context.AddParameter(ParameterId.Bind, conn.ToString());
             }

@@ -12,13 +12,13 @@ namespace Commander.Commands
         [Argument("Verb", "actions available", 0, DefaultValue = "show", AllowedValues = new object[] { "show", "start", "stop",  }, IsRequired = true)]
         public string verb { get; set; }
 
-        [Option("port", "p", "port to use on the agent")]
+        [Option("p", "port", "port to use on the agent")]
         public int? port { get; set; }
 
-        [Option("destHost", "h", "host to use as destination")]
+        [Option("dh", "destHost", "host to use as destination")]
         public string destHost { get; set; }
 
-        [Option("destPort", "d", "port to use as destination")]
+        [Option("dp", "destPort", "port to use as destination")]
         public int? destPort { get; set; }
     }
 
@@ -98,17 +98,10 @@ namespace Commander.Commands
 
         private async Task<bool> Show(AgentCommandContext context, RPortFwdCommandOptions options)
         {
-            if (!options.port.HasValue)
-            {
-                context.WriteError("[X] Port is required to stop the port forward!");
-                return false;
-            }
-
+           
             var parameters = new ParameterDictionary();
-            parameters.AddParameter(ParameterId.Verb, CommandVerbs.Stop);
-
+            parameters.AddParameter(ParameterId.Verb, CommandVerbs.Show);
             context.TaskAgent(options.CommandLine, this.CommandId, parameters);
-
             return true;
         }
     }

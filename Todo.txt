@@ -15,8 +15,7 @@ Composite Commands
 # Install
 
 # Tests
-proxy
-rportfwd
+rportfwd not working + wrong options
 
 #Bugs
 When link to another agent failed, should not continue to make believe the agent is still alive
