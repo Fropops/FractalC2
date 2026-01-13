@@ -1,5 +1,4 @@
-﻿using Common.APIClient;
-using Common.APIModels;
+﻿using Common.APIModels;
 using Common.Command;
 using Common.CommandLine.Core;
 using Common.Payload;
