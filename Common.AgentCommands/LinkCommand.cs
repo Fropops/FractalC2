@@ -39,7 +39,9 @@ namespace Common.AgentCommands
 
         protected override void SpecifyParameters(AgentCommandContext context, LinkCommandOptions options)
         {
-            context.AddParameter(ParameterId.Verb, options.Verb);
+            CommandVerbs verb = (CommandVerbs)Enum.Parse(typeof(CommandVerbs), options.Verb, true);
+            context.AddParameter(ParameterId.Verb, verb);
+
             if (!string.IsNullOrEmpty(options.BindTo) && !options.Verb.Equals("show", StringComparison.OrdinalIgnoreCase))
             {
                 ConnexionUrl conn = ConnexionUrl.FromString(options.BindTo);
