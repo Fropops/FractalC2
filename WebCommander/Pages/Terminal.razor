@@ -336,6 +336,9 @@
 
 	private async void HandleAgentResult(AgentTaskResult result, TeamServerAgentTask task)
 	{
+		if (task.AgentId != AgentId)
+			return;
+
 		Console.WriteLine($"[Terminal] Received result for task {result.Id}, Status: {result.Status}");
 
 		Console.WriteLine($"[Terminal] Processing result for task {result.Id}");
