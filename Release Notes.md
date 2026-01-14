@@ -1,5 +1,9 @@
 # Release Notes
 ## [13/01/2026]
+### WebCommander 2.2.3
+* Fix TaskResult displayed in the all Terminals
+
+## [13/01/2026]
 ### WebCommander 2.2.2 / Commander 2.2.2
 * Fix Link Command
 
