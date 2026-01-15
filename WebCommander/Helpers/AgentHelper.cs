@@ -1,4 +1,5 @@
 using WebCommander.Models;
+using Common.Models;
 
 namespace WebCommander.Helpers
 {

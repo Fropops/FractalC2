@@ -1,9 +1,12 @@
-﻿using Commander.Models;
+﻿
 using Common.APIModels;
 using Common.APIModels.WebHost;
 using Common.Models;
 using Common.Payload;
 using Shared;
+using AgentTaskResult = Shared.AgentTaskResult;
+using CommandId = Shared.CommandId;
+using ParameterDictionary = Shared.ParameterDictionary;
 using System;
 using System.Collections.Generic;
 using System.Linq;

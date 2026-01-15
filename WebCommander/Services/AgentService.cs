@@ -2,6 +2,8 @@ using Common.APIModels;
 using Common.Models;
 using Shared;
 using WebCommander.Models;
+using Listener = Common.Models.TeamServerListener;
+
 
 namespace WebCommander.Services
 {
@@ -121,35 +123,32 @@ namespace WebCommander.Services
                     
                     if (change.Element == ChangingElement.Agent)
                     {
-                        try
+                        var agent = await _client.GetAgentAsync(change.Id);
+                        if (agent != null)
                         {
-                            var agent = await _client.GetAgentAsync(change.Id);
-                            if (agent != null)
+                            bool isNewAgent = !_agents.ContainsKey(agent.Id);
+                            
+                            // Fetch metadata if this is the first time we see this agent
+                            if (isNewAgent)
                             {
-                                bool isNewAgent = !_agents.ContainsKey(agent.Id);
+                                agent.Metadata = await _client.GetAgentMetadataAsync(agent.Id);
                                 
-                                // Fetch metadata if this is the first time we see this agent
-                                if (isNewAgent)
+                                // Notify about new agent only if not in initial loading
+                                if (!_isInitialLoading)
                                 {
-                                    agent.Metadata = await _client.GetAgentMetadataAsync(agent.Id);
-                                    
-                                    // Notify about new agent only if not in initial loading
-                                    if (!_isInitialLoading)
-                                    {
-                                        OnNewAgent?.Invoke(agent);
-                                    }
+                                    OnNewAgent?.Invoke(agent);
                                 }
-                                else
-                                {
-                                    // Preserve existing metadata when updating
-                                    agent.Metadata = _agents[agent.Id].Metadata;
-                                }
-                                
-                                _agents[agent.Id] = agent;
-                                agentsUpdated = true;
                             }
+                            else
+                            {
+                                // Preserve existing metadata when updating
+                                agent.Metadata = _agents[agent.Id].Metadata;
+                            }
+                            
+                            _agents[agent.Id] = agent;
+                            agentsUpdated = true;
                         }
-                        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        else
                         {
                             if (_agents.Remove(change.Id))
                             {
@@ -159,16 +158,13 @@ namespace WebCommander.Services
                     }
                     else if (change.Element == ChangingElement.Listener)
                     {
-                        try
+                        var listener = await _client.GetListenerAsync(change.Id);
+                        if (listener != null)
                         {
-                            var listener = await _client.GetListenerAsync(change.Id);
-                            if (listener != null)
-                            {
-                                _listeners[listener.Id] = listener;
-                                listenersUpdated = true;
-                            }
+                            _listeners[listener.Id] = listener;
+                            listenersUpdated = true;
                         }
-                        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        else
                         {
                             if (_listeners.Remove(change.Id))
                             {
@@ -178,39 +174,34 @@ namespace WebCommander.Services
                     }
                     else if (change.Element == ChangingElement.Result)
                     {
-                        try
+                        var result = await _client.GetTaskResultAsync(change.Id);
+                        if (result != null)
                         {
-                            var result = await _client.GetTaskResultAsync(change.Id);
-                            if (result != null)
+                            _taskResults[result.Id] = result;
+                            
+                            if ((result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error) && !_isInitialLoading)
                             {
-                                _taskResults[result.Id] = result;
-                                
-                                if ((result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error) && !_isInitialLoading)
+                                if(this._tasks.ContainsKey(result.Id))
                                 {
-                                    if(!this._tasks.ContainsKey(result.Id))
-                                        return;
                                     var task = this._tasks[result.Id];
                                     OnAgentResult?.Invoke(result, task);
                                 }
                             }
                         }
-                        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        else
                         {
-                            _taskResults.Remove(change.Id);
+                             _taskResults.Remove(change.Id);
                         }
                     }
                     else if (change.Element == ChangingElement.Task)
                     {
-                        try
+                        var task = await _client.GetTaskAsync(change.Id);
+                        if (task != null)
                         {
-                            var task = await _client.GetTaskAsync(change.Id);
-                            if (task != null)
-                            {
-                                _tasks[task.Id] = task;
-                                tasksUpdated = true;
-                            }
+                            _tasks[task.Id] = task;
+                            tasksUpdated = true;
                         }
-                        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        else
                         {
                             if (_tasks.Remove(change.Id))
                             {
@@ -220,16 +211,13 @@ namespace WebCommander.Services
                     }
                     else if (change.Element == ChangingElement.Implant)
                     {
-                        try
+                        var implant = await _client.GetImplantAsync(change.Id);
+                        if (implant != null)
                         {
-                            var implant = await _client.GetImplantAsync(change.Id);
-                            if (implant != null)
-                            {
-                                _implants[implant.Id] = implant;
-                                implantsUpdated = true;
-                            }
+                            _implants[implant.Id] = implant;
+                            implantsUpdated = true;
                         }
-                        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        else
                         {
                             if (_implants.Remove(change.Id))
                             {

@@ -2,7 +2,8 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Commander.Executor;
-using Commander.Models;
+using Common.Models;
+
 using Common.CommandLine.Core;
 using Shared;
 
@@ -20,7 +21,7 @@ namespace Commander.Commands
     {
         public async Task<bool> Execute(CommanderCommandContext context, InteractAgentCommandOptions options)
         {
-            Models.Agent agent = null;
+            Common.Models.Agent agent = null;
             int index = 0;
             if (int.TryParse(options.id, out index))
                 agent = context.CommModule.GetAgent(index);

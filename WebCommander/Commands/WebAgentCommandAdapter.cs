@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Common.AgentCommands;
+using Common.Models;
 using Common.APIModels;
 using Common.Payload;
 using Shared;

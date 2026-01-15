@@ -1,26 +1,22 @@
 ﻿using System;
+using Shared;
+using CommandId = Shared.CommandId;
+using ParameterDictionary = Shared.ParameterDictionary;
+using AgentTaskResult = Shared.AgentTaskResult;
+using BinarySerializer;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Json;
-using System.Security.Claims;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using BinarySerializer;
-using Commander.Models;
+
 using Commander.Terminal;
 using Common;
+using Common.APIClient;
 using Common.APIModels;
 using Common.APIModels.WebHost;
 using Common.Models;
 using Common.Payload;
-using Microsoft.IdentityModel.Tokens;
-using Newtonsoft.Json;
-using Shared;
 using Spectre.Console;
 
 namespace Commander.Communication
@@ -35,41 +31,86 @@ namespace Commander.Communication
         public event EventHandler<Agent> AgentAdded;
         public event EventHandler<APIImplant> ImplantAdded;
 
-        private CancellationTokenSource _tokenSource;
-
-        private HttpClient _client;
-
-        protected ConcurrentDictionary<string, TeamServerListener> _listeners = new ConcurrentDictionary<string, TeamServerListener>();
-        protected ConcurrentDictionary<string, Agent> _agents = new ConcurrentDictionary<string, Agent>();
-        protected ConcurrentDictionary<string, TeamServerAgentTask> _tasks = new ConcurrentDictionary<string, TeamServerAgentTask>();
-        protected ConcurrentDictionary<string, AgentTaskResult> _results = new ConcurrentDictionary<string, AgentTaskResult>();
-        protected ConcurrentDictionary<string, APIImplant> _implants = new ConcurrentDictionary<string, APIImplant>();
-
+        private FractalApiClient _apiClient;
+        private FractalApiCache _apiCache;
+        private StateSyncService _syncService;
+        private HashSet<string> _knownAgents = new HashSet<string>();
 
         private ITerminal Terminal;
 
         public CommanderConfig Config { get; set; }
+
+        public ConnectionStatus ConnectionStatus { get; set; } = ConnectionStatus.Unknown;
+
         public ApiCommModule(ITerminal terminal, CommanderConfig config)
         {
             this.Terminal = terminal;
             this.Config = config;
+            this._apiCache = new FractalApiCache();
+            
+            // Wire up events
+            this._apiCache.OnAgentUpdated += (agent) => 
+            {
+                bool isNew = _knownAgents.Add(agent.Id);
+                
+                if (isNew && !this._apiCache.IsInitialLoading)
+                {
+                    this.AgentAdded?.Invoke(this, agent);
+                }
+                else
+                {
+                    this.AgentMetaDataUpdated?.Invoke(this, agent);
+                }
+            };
+            
+            // We need to simulate AgentAdded event. 
+            // FractalApiCache exposes OnAgentUpdated.
+            // We can track locally if we've seen it? Or StateSyncService could handle.
+            // For now let's just trigger updates.
+            
+            this._apiCache.OnTaskUpdated += (task) =>
+            {
+                 var running = _apiCache.Tasks.Values.Where(t => !_apiCache.Results.ContainsKey(t.Id) || (_apiCache.Results[t.Id].Status != AgentResultStatus.Completed && _apiCache.Results[t.Id].Status != AgentResultStatus.Error)).ToList();
+                 this.RunningTaskChanged?.Invoke(this, running);
+            };
+
+            this._apiCache.OnResultUpdated += (result) =>
+            {
+                if (result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error)
+                {
+                    this.TaskResultUpdated?.Invoke(this, result);
+                }
+                 var running = _apiCache.Tasks.Values.Where(t => !_apiCache.Results.ContainsKey(t.Id) || (_apiCache.Results[t.Id].Status != AgentResultStatus.Completed && _apiCache.Results[t.Id].Status != AgentResultStatus.Error)).ToList();
+                 this.RunningTaskChanged?.Invoke(this, running);
+            };
+
+            this._apiCache.OnImplantUpdated += (implant) => this.ImplantAdded?.Invoke(this, implant);
 
             this.UpdateConfig();
         }
 
         public void UpdateConfig()
         {
-            _client = new HttpClient();
-            _client.Timeout = new TimeSpan(0, 0, 5);
-            _client.BaseAddress = new Uri($"http://{this.Config.ApiConfig.EndPoint}");
-            _client.DefaultRequestHeaders.Clear();
-            _client.DefaultRequestHeaders.Add("Authorization", "Bearer "+ GenerateToken());
+            var httpClient = new HttpClient();
+            httpClient.Timeout = new TimeSpan(0, 0, 5);
+            httpClient.BaseAddress = new Uri($"http://{this.Config.ApiConfig.EndPoint}");
+            httpClient.DefaultRequestHeaders.Clear();
+            // TODO: Token generation logic should be in BaseApiClient or handled here.
+            // Current BaseApiClient takes HttpClient. So we configure HttpClient here.
+            httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + GenerateToken());
 
-            this._agents.Clear();
-            this._tasks.Clear();
-            this._results.Clear();
-            this._listeners.Clear();
-            this._implants.Clear();
+            _apiClient = new FractalApiClient(httpClient);
+            
+            if (_syncService != null) _syncService.Dispose();
+            _syncService = new StateSyncService(_apiClient, _apiCache);
+            _syncService.OnConnectionStatusChanged += (isConnected) => 
+            {
+                 ConnectionStatus = isConnected ? ConnectionStatus.Connected : ConnectionStatus.Disconnected;
+                 ConnectionStatusChanged?.Invoke(this, ConnectionStatus);
+            };
+
+            this._apiCache.Clear();
+            this._knownAgents.Clear();
 
             this.ConnectionStatus = ConnectionStatus.Unknown;
             this.ConnectionStatusChanged?.Invoke(this, this.ConnectionStatus);
@@ -77,727 +118,308 @@ namespace Commander.Communication
 
         private string GenerateToken()
         {
-            // generate token that is valid for 7 days
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(this.Config.ApiConfig.ApiKey);
-            var tokenDescriptor = new SecurityTokenDescriptor
+            // Reusing existing token generation logic
+            // We need to reference System.IdentityModel.Tokens.Jwt and params
+            // Assuming same dependencies as before
+            var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            var key = System.Text.Encoding.ASCII.GetBytes(this.Config.ApiConfig.ApiKey);
+            var tokenDescriptor = new Microsoft.IdentityModel.Tokens.SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[] { new Claim("id", Config.ApiConfig.User), new Claim("session", Config.Session) }),
+                Subject = new System.Security.Claims.ClaimsIdentity(new[] { new System.Security.Claims.Claim("id", Config.ApiConfig.User), new System.Security.Claims.Claim("session", Config.Session) }),
                 Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                SigningCredentials = new Microsoft.IdentityModel.Tokens.SigningCredentials(new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(key), Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
 
-        public ConnectionStatus ConnectionStatus { get; set; } = ConnectionStatus.Unknown;
-
-        bool isSyncing = true;
         public async Task Start()
         {
-            _tokenSource = new CancellationTokenSource();
+            var tcs = new TaskCompletionSource();
+            Action loadingHandler = null;
 
-            while (!_tokenSource.IsCancellationRequested)
+            // Define handler to detect when initial loading finishes
+            loadingHandler = () =>
             {
-                try
-                {
-                    var changes = await this.GetChanges(this.isSyncing);
+                 if(!_apiCache.IsInitialLoading)
+                 {
+                     tcs.TrySetResult();
+                 }
+            };
+            
+            _apiCache.OnLoadingStateChanged += loadingHandler;
+            
+            // Check immediately in case it's already done (unlikely before Start)
+            if(!_apiCache.IsInitialLoading) tcs.TrySetResult();
 
-                    if (this.ConnectionStatus != ConnectionStatus.Connected)
+            try
+            {
+                // Initial sync with Spectre Console Progress
+                await AnsiConsole.Progress()
+                    .Columns(new ProgressColumn[]
                     {
-                        this.ConnectionStatus = ConnectionStatus.Connected;
-                        this.ConnectionStatusChanged?.Invoke(this, this.ConnectionStatus);
-                    }
-
-                    if (isSyncing)
+                        new TaskDescriptionColumn(),    // Task description
+                        new ProgressBarColumn(),        // Progress bar
+                        new PercentageColumn(),         // Percentage
+                        new SpinnerColumn(Spinner.Known.Default).Style(Style.Parse("cyan")),            // Spinner
+                    })
+                    .StartAsync(async ctx =>
                     {
-                        this._listeners.Clear();
-                        this._agents.Clear();
-                        this._tasks.Clear();
-                        this._tasks.Clear();
-                        this._results.Clear();
-                        this._implants.Clear();
+                        var task1 = ctx.AddTask($"[cyan]Syncing with TeamServer[/]"); 
+                        task1.MaxValue = 100; 
+                        task1.Value = 0;
 
-                        Terminal.Interrupt();
-                        Terminal.CanHandleInput = false;
-
-                        await AnsiConsole.Progress()
-                            .Columns(new ProgressColumn[]
-                            {
-                                new TaskDescriptionColumn(),    // Task description
-                                new ProgressBarColumn(),        // Progress bar
-                                new PercentageColumn(),         // Percentage
-                                new SpinnerColumn(Spinner.Known.Default).Style(Style.Parse("cyan")),            // Spinner
-                            })
-                        .StartAsync(async ctx =>
+                        Action<int, int> progressHandler = (current, total) => 
                         {
-                            var task1 = ctx.AddTask($"[cyan]Syncing whith TeamServer ({changes.Count} items)[/]");
-
-                            task1.MaxValue = changes.Count + 1;
-                            task1.Value = 0;
-                            task1.Increment(1);
-                            //// Simulate some work
-                            //AnsiConsole.MarkupLine("Doing some more work...");
-                            //Thread.Sleep(2000);
-                            foreach (var change in changes)
+                            if(total > 0)
                             {
-                                //await Task.Delay(10000);
-                                await this.HandleChange(change);
-                                task1.Increment(1);
+                                task1.Description = $"[cyan]Syncing with TeamServer ({total} items)[/]";
+                                task1.MaxValue = total;
+                                task1.Value = current;
                             }
-                        });
-
-
-                        //Terminal.WriteInfo($"Syncing whith TeamServer ({changes.Count}) :");
-                        //Terminal.WriteInfo($"{changes.Count(c => c.Element == ChangingElement.Listener)} Listeners to load.");
-                        //Terminal.WriteInfo($"{changes.Count(c => c.Element == ChangingElement.Agent)} Agents to load.");
-                        //Terminal.WriteInfo($"{changes.Count(c => c.Element == ChangingElement.Task)} Tasks to load.");
-                        //Terminal.WriteInfo($"{changes.Count(c => c.Element == ChangingElement.Task)} Tasks to load.");
-                        //Terminal.WriteInfo($"{changes.Count(c => c.Element == ChangingElement.Result)} Results to load.");
-                        //Terminal.WriteInfo($"{changes.Count(c => c.Element == ChangingElement.Implant)} Implants to load.");
-
-                        Terminal.WriteSuccess($"Syncing done.");
-                        //Terminal.WriteInfo($"ServerKey is {this.Config.ServerConfig.Key}");
-                        Terminal.Restore();
-                        Terminal.CanHandleInput = true;
-                    }
-                    else
-                    {
-                        foreach (var change in changes)
-                            await this.HandleChange(change);
-                    }
-
-                    isSyncing = false;
-                }
-                catch (Exception e)
-                {
-                    if ((e.InnerException != null && e.InnerException is TimeoutException) || e is HttpRequestException)
-                    {
-                        var newStatus = ConnectionStatus.Disconnected;
-                        if (e is HttpRequestException)
-                        {
-                            var htEx = e as HttpRequestException;
-                            if (htEx.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                                newStatus = ConnectionStatus.Unauthorized;
-                        }
-
-
-                        if (this.ConnectionStatus != newStatus)
-                        {
-                            this.ConnectionStatus = newStatus;
-                            this.ConnectionStatusChanged?.Invoke(this, this.ConnectionStatus);
-                        }
-                    }
-                    else
-                        this.Terminal.WriteError(e.ToString());
-                }
-
-                await Task.Delay(this.Config.ApiConfig.Delay);
+                        };
+                        
+                        _syncService.OnInitialSyncProgress += progressHandler;
+                        
+                        // Start the service (begins polling)
+                        _syncService.Start();
+                        
+                        // Wait for completion signal from Cache
+                        await tcs.Task;
+                        
+                        // Finish up UI
+                        task1.Value = task1.MaxValue; 
+                        task1.StopTask();
+                        
+                        _syncService.OnInitialSyncProgress -= progressHandler;
+                    });
             }
-        }
-
-        private async Task HandleChange(Change change)
-        {
-            switch (change.Element)
+            catch (Exception ex)
             {
-                case ChangingElement.Listener:
-                    await this.UpdateListener(change.Id);
-                    break;
-                case ChangingElement.Agent:
-                    await this.UpdateAgent(change.Id);
-                    break;
-                case ChangingElement.Task:
-                    await this.UpdateTask(change.Id);
-                    break;
-                case ChangingElement.Result:
-                    await this.UpdateResult(change.Id);
-                    break;
-                case ChangingElement.Metadata:
-                    await this.UpdateMetadata(change.Id);
-                    break;
-                case ChangingElement.Implant:
-                    await this.UpdateImplant(change.Id);
-                    break;
+                this.Terminal.WriteError($"Initial sync failed: {ex.Message}");
+                // Ensure service is started even if UI fails
+                _syncService.Start(); 
             }
-        }
-
-        private async Task<List<Change>> GetChanges(bool first)
-        {
-            var response = await _client.GetStringAsync($"/session/Changes?history={first}");
-            var tasksResponse = JsonConvert.DeserializeObject<List<Change>>(response);
-            return tasksResponse;
-        }
-
-        public async Task CloseSession()
-        {
-            var response = await _client.GetAsync($"/session/exit");
-        }
-
-        private async Task UpdateListener(string id)
-        {
-            try
+            finally
             {
-                var response = await _client.GetStringAsync($"/Listeners/{id}");
-                var listener = JsonConvert.DeserializeObject<TeamServerListener>(response);
-
-                this._listeners.AddOrUpdate(listener.Id, listener, (key, current) =>
-                {
-                    current.Name = listener.Name;
-                    current.BindPort = listener.BindPort;
-                    current.Secured = listener.Secured;
-                    current.Ip = listener.Ip;
-                    return current;
-                });
+                _apiCache.OnLoadingStateChanged -= loadingHandler;
             }
-            catch (HttpRequestException e)
-            {
-                if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    if (this._listeners.ContainsKey(id))
-                        this._listeners.Remove(id, out _);
-                }
-                else
-                    throw e;
-            }
-        }
-
-        private async Task UpdateAgent(string id)
-        {
-            try
-            {
-                //Terminal.WriteInfo(_client.BaseAddress.ToString());
-                var response = await _client.GetStringAsync($"Agents/{id}");
-                var ar = JsonConvert.DeserializeObject<TeamServerAgent>(response);
-
-                var agent = new Agent()
-                {
-                    Id = ar.Id,
-                    FirstSeen = ar.FirstSeen,
-                    LastSeen = ar.LastSeen,
-                    RelayId = ar.RelayId,
-                    Links = ar.Links,
-                };
-
-                bool isNew = !this._agents.ContainsKey(agent.Id);
-                this._agents.AddOrUpdate(ar.Id, agent, (key, current) =>
-                {
-                    current.LastSeen = agent.LastSeen;
-                    current.RelayId = agent.RelayId;
-                    current.Links = agent.Links;
-                    return current;
-                });
-
-                if (isNew && !this.isSyncing)
-                    this.AgentAdded?.Invoke(this, agent);
-
-            }
-            catch (HttpRequestException e)
-            {
-                if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    if (this._agents.ContainsKey(id))
-                        this._agents.Remove(id, out _);
-                }
-                else
-                    throw e;
-            }
-        }
-
-        private async Task UpdateTask(string id)
-        {
-            try
-            {
-                var response = await _client.GetStringAsync($"Tasks/{id}");
-
-                var task = JsonConvert.DeserializeObject<TeamServerAgentTask>(response);
-
-                this._tasks.AddOrUpdate(task.Id, task, (key, current) =>
-                {
-                    current.RequestDate = task.RequestDate;
-                    current.AgentId = task.AgentId;
-                    current.Id = task.Id;
-                    current.Command = task.Command;
-                    return current;
-                });
-            }
-            catch (HttpRequestException e)
-            {
-                if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    if (this._tasks.ContainsKey(id))
-                        this._tasks.Remove(id, out _);
-                }
-                else
-                    throw e;
-            }
-        }
-
-        private async Task UpdateResult(string id)
-        {
-            try
-            {
-                var response = await _client.GetStringAsync($"Results/{id}");
-                var result = JsonConvert.DeserializeObject<AgentTaskResult>(response);
-
-                //foreach (var file in tr.Files)
-                //    res.Files.Add(new Models.TaskFileResult() { FileId = file.FileId, FileName = file.FileName, IsDownloaded = file.IsDownloaded });
-
-                //new respone or response change detected
-
-                if (!_results.ContainsKey(result.Id)) // new response
-                {
-                    if ((result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error) && !this.isSyncing)
-                        this.TaskResultUpdated?.Invoke(this, result);
-                }
-                else
-                {
-                    //Change detected :
-                    var existing = this._results[result.Id];
-                    if (result.Output != existing.Output
-                        || result.Error != existing.Error
-                        || result.Objects != existing.Objects
-                        || result.Status  != existing.Status
-                        || result.Info != existing.Info
-                        )
-                    {
-                        if ((result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error) && !this.isSyncing)
-                            this.TaskResultUpdated?.Invoke(this, result);
-                    }
-                }
-
-                this._results.AddOrUpdate(result.Id, result, (key, current) =>
-                {
-                    current.Output = result.Output;
-                    current.Error = result.Error;
-                    current.Objects = result.Objects;
-                    current.Info = result.Info;
-                    current.Status = result.Status;
-                    //current.Files.Clear();
-                    //foreach (var file in res.Files)
-                    //{
-                    //    current.Files.Add(file);
-                    //}
-                    return current;
-                });
-
-                var running = this._tasks.Values.Where(t => !this._results.ContainsKey(t.Id) || (this._results[t.Id].Status != AgentResultStatus.Completed && this._results[t.Id].Status != AgentResultStatus.Error)).ToList();
-                this.RunningTaskChanged?.Invoke(this, running);
-            }
-            catch (HttpRequestException e)
-            {
-                if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    if (this._results.ContainsKey(id))
-                        this._results.Remove(id, out _);
-                }
-                else
-                    throw e;
-            }
-        }
-
-        private async Task UpdateMetadata(string id)
-        {
-            try
-            {
-                var response = await _client.GetStringAsync($"agents/{id}/metadata");
-
-                var metadata = JsonConvert.DeserializeObject<AgentMetadata>(response);
-
-                if (metadata == null)
-                    return;
-
-                var agent = new Agent()
-                {
-                    Id = metadata.Id,
-                    Metadata = metadata,
-                };
-
-                bool isNew = !this._agents.ContainsKey(agent.Id);
-                this._agents.AddOrUpdate(agent.Id, agent, (key, current) =>
-                {
-                    current.Metadata = metadata;
-                    return current;
-                });
-
-                if(!isSyncing)
-                    this.AgentMetaDataUpdated?.Invoke(this, agent);
-                if (isNew && !this.isSyncing)
-                    this.AgentAdded?.Invoke(this, agent);
-            }
-            catch (HttpRequestException e)
-            {
-                if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    if (this._tasks.ContainsKey(id))
-                        this._tasks.Remove(id, out _);
-                }
-                else
-                    throw e;
-            }
+            
+            // Force prompt refresh after AnsiConsole takes over
+            this.Terminal.NewLine(false);
         }
 
         public void Stop()
         {
-            _tokenSource.Cancel();
+            _syncService.Stop();
         }
 
         public List<Agent> GetAgents()
         {
-            return this._agents.Values.ToList();
+            return _apiCache.Agents.Values.OrderBy(a => a.FirstSeen).ToList();
         }
 
         public Agent GetAgent(int index)
         {
-            var agents = GetAgents().OrderBy(a => a.FirstSeen).ToList();
-            if (index < 0)
-                return null;
-            if (index > agents.Count() -1)
-                return null;
-
+            var agents = GetAgents();
+            if (index < 0 || index >= agents.Count) return null;
             return agents[index];
         }
 
         public Agent GetAgent(string id)
         {
-            if (!this._agents.ContainsKey(id))
-                return null;
-            return this._agents[id];
-        }
-
-        public void DeleteAgent(string id)
-        {
-            if (GetAgent(id) != null)
-                this._agents.Remove(id, out var ret);
-        }
-
-        public IEnumerable<TeamServerAgentTask> GetTasks(string id)
-        {
-            return this._tasks.Values.Where(t => t.AgentId == id).OrderByDescending(t => t.RequestDate);
+             _apiCache.Agents.TryGetValue(id, out var agent);
+             return agent;
         }
 
         public async Task<HttpResponseMessage> StopAgent(string id)
         {
-            this.DeleteAgent(id);
-            return await _client.DeleteAsync($"/Agents/{id}");
+            await _apiClient.Agents.DeleteAsync(id);
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+        }
+
+        public IEnumerable<TeamServerAgentTask> GetTasks(string id)
+        {
+            return _apiCache.Tasks.Values.Where(t => t.AgentId == id).OrderByDescending(t => t.RequestDate);
         }
 
         public TeamServerAgentTask GetTask(string taskId)
         {
-            if (!this._tasks.ContainsKey(taskId))
-                return null;
-            return this._tasks[taskId];
+            _apiCache.Tasks.TryGetValue(taskId, out var task);
+            return task;
         }
 
         public AgentTaskResult GetTaskResult(string taskId)
         {
-            if (!this._results.ContainsKey(taskId))
-                return null;
-            return this._results[taskId];
+            _apiCache.Results.TryGetValue(taskId, out var result);
+            return result;
         }
-
-
 
         public async Task<HttpResponseMessage> CreateListener(string name, int port, string address, bool secured)
         {
-            var requestObj = new StartHttpListenerRequest();
-            requestObj.Name = name;
-            requestObj.BindPort  = port;
-            requestObj.Ip = address;
-            requestObj.Secured = secured;
-            var requestContent = JsonConvert.SerializeObject(requestObj);
-
-            return await _client.PostAsync("/Listeners/", new StringContent(requestContent, UnicodeEncoding.UTF8, "application/json"));
+            await _apiClient.Listeners.CreateAsync(new StartHttpListenerRequest 
+            {
+                Name = name,
+                BindPort = port,
+                Ip = address,
+                Secured = secured
+            });
+             return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
         }
 
         public async Task<HttpResponseMessage> StopListener(string id)
         {
-            return await _client.DeleteAsync($"/Listeners/{id}");
+            await _apiClient.Listeners.DeleteAsync(id);
+             return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
         }
 
         public IEnumerable<TeamServerListener> GetListeners()
         {
-            return this._listeners.Values.ToList();
+            return _apiCache.Listeners.Values.ToList();
         }
 
-        
         public async Task TaskAgent(string label, string agentId, CommandId commandId, ParameterDictionary parms)
-        {
-            var agentTask = new AgentTask()
+        {    
+             var agentTask = new AgentTask()
             {
                 Id = ShortGuid.NewGuid(),
                 CommandId = commandId,
                 Parameters = parms,
             };
             var ser = await agentTask.BinarySerializeAsync();
-
             var taskrequest = new CreateTaskRequest()
             {
                 Command = label,
                 Id = agentTask.Id,
                 TaskBin = Convert.ToBase64String(ser),
             };
-
-            var requestContent = JsonConvert.SerializeObject(taskrequest);
-
-            var response = await _client.PostAsync($"/Agents/{agentId}", new StringContent(requestContent, UnicodeEncoding.UTF8, "application/json"));
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response}");
+            
+            await _apiClient.Tasks.CreateAsync(agentId, taskrequest);
         }
 
-
-        #region Proxy
         public async Task<bool> StartProxy(string agentId, int port)
         {
-            var resp = await _client.GetAsync($"/proxy/start?agentId={agentId}&port={port}");
-            if (resp.IsSuccessStatusCode)
-                return true;
-            else
-            {
-                Terminal.WriteError(resp.StatusCode + " " + resp.Content.ReadAsStringAsync().Result);
-                return false;
-            }
+            await _apiClient.Proxy.StartAsync(agentId, port);
+            return true;
         }
+
         public async Task<bool> StopProxy(int port)
         {
-            var resp = await _client.GetAsync($"/proxy/stop?port={port}");
-            if (resp.IsSuccessStatusCode)
-                return true;
-            else
-            {
-                Terminal.WriteError(resp.StatusCode + " " + resp.Content.ReadAsStringAsync().Result);
-                return false;
-            }
+            await _apiClient.Proxy.StopAsync(port);
+            return true;
         }
 
         public async Task<List<ProxyInfo>> ShowProxy()
         {
-            var response = await _client.GetAsync($"/proxy");
-
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response}");
-
-            var json = await response.Content.ReadAsStringAsync();
-            var proxies = JsonConvert.DeserializeObject<List<ProxyInfo>>(json);
-            return proxies;
+            var result = await _apiClient.Proxy.GetAllAsync();
+            return result ?? new List<ProxyInfo>();
         }
-        #endregion
 
-        #region WebHost
         public async Task WebHost(string path, byte[] fileContent, bool isPowerShell, string description)
         {
-            var wh = new FileWebHost()
+            await _apiClient.WebHost.AddAsync(new FileWebHost 
             {
                 Path = path,
                 Data = fileContent,
                 IsPowershell = isPowerShell,
                 Description = description
-            };
-            var requestContent = JsonConvert.SerializeObject(wh);
-
-            var response = await _client.PostAsJsonAsync($"/WebHost", wh);
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response}");
+            });
         }
 
         public async Task<List<FileWebHost>> GetWebHosts()
         {
-            var response = await _client.GetAsync($"/WebHost");
-
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response}");
-
-            var json = await response.Content.ReadAsStringAsync();
-            var list = JsonConvert.DeserializeObject<List<FileWebHost>>(json);
-            return list;
-
+            var result = await _apiClient.WebHost.GetAllAsync();
+            return result ?? new List<FileWebHost>();
         }
 
         public async Task<List<WebHostLog>> GetWebHostLogs()
         {
-            var response = await _client.GetAsync($"/WebHost/Logs");
-
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response}");
-
-            var json = await response.Content.ReadAsStringAsync();
-            var list = JsonConvert.DeserializeObject<List<WebHostLog>>(json);
-            return list;
-
+             var result = await _apiClient.WebHost.GetLogsAsync();
+            return result ?? new List<WebHostLog>();
         }
 
         public async Task RemoveWebHost(string path)
         {
-            var response = await _client.DeleteAsync($"/WebHost?path={path}");
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response}");
+            await _apiClient.WebHost.DeleteAsync(path);
         }
 
         public async Task ClearWebHosts()
         {
-            var response = await _client.GetAsync($"/WebHost/Clear");
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response}");
+            await _apiClient.WebHost.ClearAsync();
         }
 
-
-        #endregion
-
-        private async Task UpdateImplant(string id)
-        {
-            try
-            {
-                var response = await _client.GetStringAsync($"Implants/{id}");
-                var implant = JsonConvert.DeserializeObject<APIImplant>(response);
-
-                this._implants.AddOrUpdate(implant.Id, implant, (key, current) =>
-                {
-                    current.Config = implant.Config;
-                    return current;
-                });
-
-                if (!this.isSyncing)
-                    this.ImplantAdded?.Invoke(this, implant);
-            }
-            catch (HttpRequestException e)
-            {
-                if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    if (this._implants.ContainsKey(id))
-                        this._implants.Remove(id, out _);
-                }
-                else
-                    throw e;
-            }
-        }
-
-        #region Implants
         public List<APIImplant> GetImplants()
         {
-            return this._implants.Values.ToList();
+            return _apiCache.Implants.Values.ToList();
         }
 
         public APIImplant GetImplant(string id)
         {
-            if (this._implants.ContainsKey(id))
-                return this._implants[id];
-            return null;
+            _apiCache.Implants.TryGetValue(id, out var implant);
+            return implant;
         }
 
         public async Task<APIImplantCreationResult> GenerateImplant(ImplantConfig config)
         {
-            var requestContent = JsonConvert.SerializeObject(config);
-            var response = await _client.PostAsync("/Implants", new StringContent(requestContent, UnicodeEncoding.UTF8, "application/json"));
-            
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Failed to generate implant: {response.StatusCode} - {error}");
-            }
-
-            var json = await response.Content.ReadAsStringAsync();
-            var result = JsonConvert.DeserializeObject<APIImplantCreationResult>(json);
-
-            if (config.IsVerbose && !string.IsNullOrEmpty(result.Logs))
-            {
-                Terminal.WriteInfo(result.Logs);
-            }
-
-            Terminal.WriteSuccess($"Generation of implant {result.Implant.Name} succeeded!");
-            return result;
+            return await _apiClient.Implants.GenerateAsync(config);
         }
 
         public async Task<APIImplant> GetImplantBinary(string id)
         {
-            var response = await _client.GetAsync($"/Implants/{id}?withData=true");
-
-            if (!response.IsSuccessStatusCode)
-                return null;
-
-            var json = await response.Content.ReadAsStringAsync();
-            var implant = JsonConvert.DeserializeObject<APIImplant>(json);
-            return implant;
+            return await _apiClient.Implants.GetWithDataAsync(id);
         }
 
         public async Task DeleteImplant(string id)
         {
-            var response = await _client.DeleteAsync($"/Implants/{id}");
-            if (!response.IsSuccessStatusCode)
-                 throw new Exception($"{response.StatusCode}");
-             
-            if (this._implants.ContainsKey(id))
-                this._implants.Remove(id, out _);
+            await _apiClient.Implants.DeleteAsync(id);
         }
-        #endregion
 
-        #region Loot
         public async Task<List<Loot>> GetLoot(string agentId)
         {
-            var response = await _client.GetAsync($"/loot/{agentId}");
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response.StatusCode}");
-
-            var json = await response.Content.ReadAsStringAsync();
-            return JsonConvert.DeserializeObject<List<Loot>>(json);
+            var result = await _apiClient.Loot.GetAllAsync(agentId);
+            return result ?? new List<Loot>();
         }
 
         public async Task<Loot> GetLootFile(string agentId, string fileName)
         {
-            var response = await _client.GetAsync($"/loot/{agentId}/{fileName}");
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response.StatusCode}");
-
-            var json = await response.Content.ReadAsStringAsync();
-            return JsonConvert.DeserializeObject<Loot>(json);
+            return await _apiClient.Loot.GetFileAsync(agentId, fileName);
         }
 
         public async Task<bool> CreateLootAsync(string agentId, Loot loot)
         {
-            var response = await _client.PostAsJsonAsync($"/loot/{agentId}/add", loot);
-            return response.IsSuccessStatusCode;
+            await _apiClient.Loot.CreateAsync(agentId, loot);
+            return true;
         }
 
         public async Task DeleteLoot(string agentId, string fileName)
         {
-            var response = await _client.DeleteAsync($"/loot/{agentId}/{fileName}");
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response.StatusCode}");
+             await _apiClient.Loot.DeleteAsync(agentId, fileName);
         }
-        #endregion
-        #region Tools
+
         public async Task<List<Tool>> GetTools(ToolType? type = null, string name = null)
         {
-            var query = new List<string>();
-            if (type.HasValue) query.Add($"type={(int)type.Value}");
-            if (!string.IsNullOrEmpty(name)) query.Add($"name={name}");
-            
-            var queryString = query.Any() ? "?" + string.Join("&", query) : string.Empty;
-
-            var response = await _client.GetAsync($"/Tools{queryString}");
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"{response.StatusCode}");
-
-            var json = await response.Content.ReadAsStringAsync();
-            return JsonConvert.DeserializeObject<List<Tool>>(json);
+            var result = await _apiClient.Tools.GetAllAsync(type, name);
+            return result ?? new List<Tool>();
         }
 
-        public async Task AddTool(string path) 
+        public async Task AddTool(string path)
         {
-             if(!File.Exists(path))
-                 throw new FileNotFoundException("File not found", path);
-
-             var data = await File.ReadAllBytesAsync(path);
+            if(!System.IO.File.Exists(path))
+                  throw new System.IO.FileNotFoundException("File not found", path);
+ 
+             var data = await System.IO.File.ReadAllBytesAsync(path);
              var tool = new Tool()
              {
-                 Name = Path.GetFileName(path),
+                 Name = System.IO.Path.GetFileName(path),
                  Data = Convert.ToBase64String(data),
              };
-             
-            var requestContent = JsonConvert.SerializeObject(tool);
-            var response = await _client.PostAsync("/Tools", new StringContent(requestContent, UnicodeEncoding.UTF8, "application/json"));
-             if (!response.IsSuccessStatusCode)
-                 throw new Exception($"{response.StatusCode} {await response.Content.ReadAsStringAsync()}");
+             await _apiClient.Tools.AddAsync(tool);
         }
-        #endregion
+
+        public async Task CloseSession()
+        {
+            await _apiClient.CloseSessionAsync();
+        }
 
     }
 }

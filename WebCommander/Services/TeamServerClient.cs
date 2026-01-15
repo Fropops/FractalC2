@@ -6,6 +6,9 @@ using Common.Payload;
 using Common.APIModels;
 using Common;
 using Common.Models;
+using Common.APIClient;
+using Listener = Common.Models.TeamServerListener;
+using FileWebHost = Common.APIModels.WebHost.FileWebHost;
 
 namespace WebCommander.Services
 {
@@ -14,11 +17,13 @@ namespace WebCommander.Services
         private readonly HttpClient _client;
         private readonly AuthService _authService;
         private bool _isConfigured = false;
+        private FractalApiClient _apiClient;
 
         public TeamServerClient(HttpClient client, AuthService authService)
         {
             _client = client;
             _authService = authService;
+            _apiClient = new FractalApiClient(_client);
         }
 
         private async Task EnsureConfiguredAsync()
@@ -36,6 +41,10 @@ namespace WebCommander.Services
             var token = await _authService.GenerateTokenAsync();
             _client.DefaultRequestHeaders.Remove("Authorization");
             _client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", $"Bearer {token}");
+            
+            // Re-initialize or update client if needed, but FractalApiClient uses the reference
+             _apiClient = new FractalApiClient(_client);
+            
             _isConfigured = true;
         }
 
@@ -55,133 +64,77 @@ namespace WebCommander.Services
         public async Task<List<Agent>> GetAgentsAsync()
         {
             await EnsureConfiguredAsync();
-            var result = await _client.GetFromJsonAsync<List<Agent>>("/Agents");
-            return result ?? new List<Agent>();
+            return await _apiClient.Agents.GetAllAsync() ?? new List<Agent>();
         }
 
         public async Task<List<Listener>> GetListenersAsync()
         {
             await EnsureConfiguredAsync();
-            var result = await _client.GetFromJsonAsync<List<Listener>>("/Listeners");
-            return result ?? new List<Listener>();
+            return await _apiClient.Listeners.GetAllAsync() ?? new List<Listener>();
         }
 
         public async Task<Listener?> GetListenerAsync(string id)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/Listeners/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<Listener>();
+            return await _apiClient.Listeners.GetAsync(id);
         }
 
         public async Task<Agent?> GetAgentAsync(string id)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/Agents/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<Agent>();
+            return await _apiClient.Agents.GetAsync(id);
         }
 
         public async Task<AgentMetadata?> GetAgentMetadataAsync(string id)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/Agents/{id}/metadata");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<AgentMetadata>();
+            return await _apiClient.Agents.GetMetadataAsync(id);
         }
 
         public async Task<AgentTaskResult?> GetTaskResultAsync(string id)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/Results/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<AgentTaskResult>();
+            return await _apiClient.Tasks.GetResultAsync(id);
         }
 
         public async Task<TeamServerAgentTask?> GetTaskAsync(string id)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/Tasks/{id}");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<TeamServerAgentTask>();
+            return await _apiClient.Tasks.GetAsync(id);
         }
 
         public async Task<List<Change>> GetChangesAsync(bool history)
         {
             await EnsureConfiguredAsync();
-            var result = await _client.GetFromJsonAsync<List<Change>>($"/session/Changes?history={history}");
-            return result ?? new List<Change>();
+            return await _apiClient.GetChangesAsync(history);
         }
 
         public async Task StartListenerAsync(StartHttpListenerRequest request)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.PostAsJsonAsync("/Listeners", request);
-            
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorMsg = response.ReasonPhrase;
-                try
-                {
-                    var errorContent = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
-                    if (errorContent.TryGetProperty("detail", out var detail))
-                    {
-                        errorMsg = detail.GetString();
-                    }
-                }
-                catch
-                {
-                    // ignore
-                }
-                throw new Exception(errorMsg);
-            }
+            await _apiClient.Listeners.CreateAsync(request);
         }
 
         public async Task<bool> StopListenerAsync(string id)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.DeleteAsync($"/Listeners/{id}");
-            
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorMsg = response.ReasonPhrase;
-                try
-                {
-                    var errorContent = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
-                    if (errorContent.TryGetProperty("detail", out var detail))
-                    {
-                        errorMsg = detail.GetString();
-                    }
-                }
-                catch
-                {
-                    // ignore
-                }
-                throw new Exception(errorMsg);
-            }
-            
+            await _apiClient.Listeners.DeleteAsync(id);
             return true;
         }
 
         public async Task StopAgentAsync(string id)
         {
             await EnsureConfiguredAsync();
-            await _client.DeleteAsync($"/Agents/{id}");
+            await _apiClient.Agents.DeleteAsync(id);
         }
 
         public async Task<string> TaskAgent(string label, string agentId, CommandId commandId, ParameterDictionary parms)
         {
             await EnsureConfiguredAsync();
+            
+            // Original logic from TeamServerClient.TaskAgent AND ApiCommModule.TaskAgent
+            // We need to serialize task here.
+            
             var agentTask = new AgentTask()
             {
                 Id = ShortGuid.NewGuid(),
@@ -198,24 +151,7 @@ namespace WebCommander.Services
                 TaskBin = Convert.ToBase64String(ser),
             };
 
-            var response = await _client.PostAsJsonAsync($"/Agents/{agentId}", taskrequest);
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorMsg = response.ReasonPhrase;
-                try
-                {
-                    var errorContent = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
-                    if (errorContent.TryGetProperty("detail", out var detail))
-                    {
-                        errorMsg = detail.GetString();
-                    }
-                }
-                catch
-                {
-                    // ignore
-                }
-                throw new Exception(errorMsg);
-            }
+            await _apiClient.Tasks.CreateAsync(agentId, taskrequest);
             
             return agentTask.Id;
         }
@@ -223,246 +159,136 @@ namespace WebCommander.Services
         public async Task<List<APIImplant>> GetImplantsAsync()
         {   
             await EnsureConfiguredAsync();
-            var result = await _client.GetFromJsonAsync<List<APIImplant>>("/Implants");
-            return result ?? new List<APIImplant>();
+            return await _apiClient.Implants.GetAllAsync();
         }
 
         public async Task<APIImplant?> GetImplantAsync(string id)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/Implants/{id}?withData=false");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<APIImplant>();
+            return await _apiClient.Implants.GetWithDataAsync(id); 
         }
 
         public async Task<(bool success, APIImplantCreationResult result)> CreateImplantAsync(ImplantConfig config)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.PostAsJsonAsync("/Implants", config);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<APIImplantCreationResult>();
-                return (true, result);
-            }
-            else
-            {
-                var errorDetails = await response.Content.ReadAsStringAsync();
-                return (false, new APIImplantCreationResult { Logs = errorDetails });
+            try {
+                var res = await _apiClient.Implants.GenerateAsync(config);
+                return (true, res);
+            } catch (Exception ex) {
+                return (false, new APIImplantCreationResult { Logs = ex.Message });
             }
         }
 
         public async Task<bool> DeleteImplantAsync(string id)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.DeleteAsync($"/Implants/{id}");
-            return response.IsSuccessStatusCode;
+            await _apiClient.Implants.DeleteAsync(id);
+            return true;
         }
 
         public async Task<APIImplant?> GetImplantWithDataAsync(string id)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/Implants/{id}?withData=true");
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new HttpRequestException("Resource not found", null, System.Net.HttpStatusCode.NotFound);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<APIImplant>();
+            return await _apiClient.Implants.GetWithDataAsync(id);
         }
 
         // WebHost methods
         public async Task<List<FileWebHost>> GetWebHostFilesAsync()
         {
             await EnsureConfiguredAsync();
-            var result = await _client.GetFromJsonAsync<List<FileWebHost>>("/WebHost");
-            return result ?? new List<FileWebHost>();
+            return await _apiClient.WebHost.GetAllAsync();
         }
 
         public async Task<bool> AddWebHostFileAsync(FileWebHost file)
         {   
             await EnsureConfiguredAsync();
-            var response = await _client.PostAsJsonAsync("/WebHost", file);
-            return response.IsSuccessStatusCode;
+            await _apiClient.WebHost.AddAsync(file);
+            return true;
         }
 
         public async Task<bool> DeleteWebHostFileAsync(string path)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.DeleteAsync($"/WebHost?path={Uri.EscapeDataString(path)}");
-            return response.IsSuccessStatusCode;
+            await _apiClient.WebHost.DeleteAsync(path);
+            return true;
         }
 
         // Tools methods
         public async Task<List<Tool>> GetToolsAsync(ToolType? type = null, string? name = null)
         {
             await EnsureConfiguredAsync();
-            var url = "/Tools";
-            var queryParams = new List<string>();
-
-            if (type.HasValue)
-            {
-                queryParams.Add($"type={type.Value}");
-            }
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                queryParams.Add($"name={Uri.EscapeDataString(name)}");
-            }
-
-            if (queryParams.Any())
-            {
-                url += "?" + string.Join("&", queryParams);
-            }
-            
-            var result = await _client.GetFromJsonAsync<List<Tool>>(url);
-            return result ?? new List<Tool>();
+            return await _apiClient.Tools.GetAllAsync(type, name);
         }
 
         public async Task<bool> CreateToolAsync(Tool tool)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.PostAsJsonAsync("/Tools", tool);
-            return response.IsSuccessStatusCode;
+            await _apiClient.Tools.AddAsync(tool); 
+            return true;
         }
 
         // Loot methods
         public async Task<List<Loot>> GetLootsAsync(string agentId, bool includeThumbnail = true, bool includeData = false)
         {
             await EnsureConfiguredAsync();
-            var url = $"/loot/{agentId}?includeThumbnail={includeThumbnail}&includeData={includeData}";
-            var result = await _client.GetFromJsonAsync<List<Loot>>(url);
-            return result ?? new List<Loot>();
+             return await _apiClient.Loot.GetAllAsync(agentId);
         }
 
         public async Task<Loot?> GetLootAsync(string agentId, string fileName, bool includeData = true, bool includeThumbnail = true)
         {
             await EnsureConfiguredAsync();
-            var url = $"/loot/{agentId}/{Uri.EscapeDataString(fileName)}?includeData={includeData}&includeThumbnail={includeThumbnail}";
-            var response = await _client.GetAsync(url);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                return null;
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<Loot>();
+            return await _apiClient.Loot.GetFileAsync(agentId, fileName);
         }
 
         public async Task<Loot?> GetLootThumbnailAsync(string agentId, string fileName)
         {
             await EnsureConfiguredAsync();
-            var url = $"/loot/{agentId}/thumbnail/{Uri.EscapeDataString(fileName)}";
-            var response = await _client.GetAsync(url);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                return null;
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<Loot>();
+            return await _apiClient.Loot.GetFileAsync(agentId, fileName);
         }
 
         public async Task<bool> CreateLootAsync(string agentId, Loot loot)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.PostAsJsonAsync($"/loot/{agentId}/add", loot);
-            return response.IsSuccessStatusCode;
+            await _apiClient.Loot.CreateAsync(agentId, loot);
+            return true;
         }
 
         public async Task<bool> DeleteLootAsync(string agentId, string fileName)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.DeleteAsync($"/loot/{agentId}/{Uri.EscapeDataString(fileName)}");
-            return response.IsSuccessStatusCode;
+            await _apiClient.Loot.DeleteAsync(agentId, fileName);
+            return true;
         }
 
         // Proxy methods
         public async Task StartProxyAsync(string agentId, int port)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/proxy/start?agentId={agentId}&port={port}");
-            
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorMsg = response.ReasonPhrase;
-                try
-                {
-                    errorMsg = await response.Content.ReadAsStringAsync();
-                }
-                catch
-                {
-                    // ignore
-                }
-                throw new Exception($"Failed to start proxy: {response.StatusCode} {errorMsg}");
-            }
+            await _apiClient.Proxy.StartAsync(agentId, port);
         }
 
         public async Task StopProxyAsync(int port)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/proxy/stop?port={port}");
-            
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorMsg = response.ReasonPhrase;
-                try
-                {
-                    errorMsg = await response.Content.ReadAsStringAsync();
-                }
-                catch
-                {
-                    // ignore
-                }
-                throw new Exception($"Failed to stop proxy: {response.StatusCode} {errorMsg}");
-            }
+            await _apiClient.Proxy.StopAsync(port);
         }
 
         public async Task StartReversePortForwardAsync(string agentId, int port, string destHost, int destPort)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/Agents/{agentId}/rportfwd/start?port={port}&destHost={Uri.EscapeDataString(destHost)}&destPort={destPort}");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorMsg = response.ReasonPhrase;
-                try
-                {
-                    errorMsg = await response.Content.ReadAsStringAsync();
-                }
-                catch
-                {
-                    // ignore
-                }
-                throw new Exception($"Failed to start reverse port forward: {response.StatusCode} {errorMsg}");
-            }
+            await _client.GetAsync($"/Agents/{agentId}/rportfwd/start?port={port}&destHost={Uri.EscapeDataString(destHost)}&destPort={destPort}");
         }
 
         public async Task StopReversePortForwardAsync(string agentId, int port)
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync($"/Agents/{agentId}/rportfwd/stop?port={port}");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorMsg = response.ReasonPhrase;
-                try
-                {
-                    errorMsg = await response.Content.ReadAsStringAsync();
-                }
-                catch
-                {
-                    // ignore
-                }
-                throw new Exception($"Failed to stop reverse port forward: {response.StatusCode} {errorMsg}");
-            }
+             await _client.GetAsync($"/Agents/{agentId}/rportfwd/stop?port={port}");
         }
 
         public async Task<List<ProxyInfo>> GetProxiesAsync()
         {
             await EnsureConfiguredAsync();
-            var response = await _client.GetAsync("/proxy");
-            
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception($"Failed to get proxies: {response.StatusCode}");
-            }
-
-            var result = await response.Content.ReadFromJsonAsync<List<ProxyInfo>>();
-            return result ?? new List<ProxyInfo>();
+            return await _apiClient.Proxy.GetAllAsync();
         }
     }
 }

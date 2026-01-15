@@ -9,7 +9,8 @@ using Commander.Commands;
 using Commander.Commands.Agent;
 using Commander.Communication;
 using Commander.Helper;
-using Commander.Models;
+using Common.Models;
+
 using Commander.Terminal;
 using Common.AgentCommands;
 using Common.CommandLine.Execution;
@@ -29,10 +30,11 @@ namespace Commander.Executor
         }
 
 
-        private Agent _currentAgent = null;
-        public Agent CurrentAgent
+        private Common.Models.Agent _currentAgent = null;
+        public Common.Models.Agent CurrentAgent
         {
-            get => _currentAgent; set
+            get => _currentAgent;
+            set
             {
                 _currentAgent = value;
                 if (this._currentAgent != null)
@@ -92,7 +94,7 @@ namespace Commander.Executor
             return this.CommandExecutor.RegisteredCommands;
         }
 
-        private void CommModule_AgentAdded(object sender, Agent e)
+        private void CommModule_AgentAdded(object sender, Common.Models.Agent e)
         {
             Terminal.Interrupt();
 
@@ -101,7 +103,7 @@ namespace Commander.Executor
             Terminal.Restore();
         }
 
-        private void CommModule_AgentMetadataUpdated(object sender, Agent e)
+        private void CommModule_AgentMetadataUpdated(object sender, Common.Models.Agent e)
         {
             if (this.CurrentAgent != null && e.Id == this.CurrentAgent.Id)
             {

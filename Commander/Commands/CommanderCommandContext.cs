@@ -7,6 +7,7 @@ using Commander.Communication;
 using Commander.Executor;
 using Commander.Terminal;
 using Common.CommandLine.Core;
+using Common.Models;
 
 namespace Commander.Commands
 {
@@ -23,7 +24,7 @@ namespace Commander.Commands
             this.Executor = executor;
         }
 
-        public bool? IsAgentAlive(Models.Agent agent)
+        public bool? IsAgentAlive(Common.Models.Agent agent)
         {
             if (agent.Metadata == null)
                 return null;

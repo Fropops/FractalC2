@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 using Commander.Communication;
 using Commander.Executor;
 using Commander.Helper;
-using Commander.Models;
+
 using Commander.Terminal;
 using Common.CommandLine.Core;
+using Common.Models;
 using Newtonsoft.Json;
 using Shared;
 using Spectre.Console;
@@ -98,7 +99,7 @@ namespace Commander.Commands
             return true;
         }
 
-        private IRenderable SurroundIfDeadOrSelf(Models.Agent agent, CommanderCommandContext ctxt, string value)
+        private IRenderable SurroundIfDeadOrSelf(Common.Models.Agent agent, CommanderCommandContext ctxt, string value)
         {
             if (string.IsNullOrEmpty(value))
                 return new Markup(string.Empty);
@@ -115,7 +116,8 @@ namespace Commander.Commands
         protected async Task<bool> Delete(CommanderCommandContext context, ManageAgentCommandOptions options)
         {
             bool cmdRes = true;
-            var agents = new List<Models.Agent>();
+
+            var agents = new List<Common.Models.Agent>();
 
 
 
@@ -131,7 +133,7 @@ namespace Commander.Commands
                     return false;
                 }
                 int index = 0;
-                Models.Agent agt = null;
+                Common.Models.Agent agt = null;
                 if (int.TryParse(options.index, out index))
                     agt = context.CommModule.GetAgent(index);
                 else

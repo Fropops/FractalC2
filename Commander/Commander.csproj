@@ -19,8 +19,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Commands\Base64Command.cs" />
-    <Compile Remove="Commands\FilesCommand.cs" />
-    <Compile Remove="Commands\GetCommand.cs" />
     <Compile Remove="Commands\PushCommand.cs" />
     <Compile Remove="Models\AgentMetadata.cs" />
     <Compile Remove="Models\AgentTaskResult.cs" />
@@ -41,6 +39,7 @@
     <ProjectReference Include="..\Common.AgentCommands\Common.AgentCommands.csproj" />
     <ProjectReference Include="..\Common.CommandLine\Common.CommandLine.csproj" />
     <ProjectReference Include="..\Common.Payload.Generation\Common.Payload.Generation.csproj" />
+    <ProjectReference Include="..\Common.APIClient\Common.APIClient.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
   <ItemGroup>

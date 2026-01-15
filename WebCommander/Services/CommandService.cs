@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Common.AgentCommands;
 using Common.CommandLine.Execution;
 using WebCommander.Commands;
+using Common.Models;
 using WebCommander.Models;
 
 namespace WebCommander.Services

@@ -68,7 +68,7 @@ namespace Commander.Commands
                 var conn = ConnexionUrl.FromString(agent.Metadata.EndPoint);
                 node.LinkToParent = conn.ProtocolString;
 
-                Models.Agent parent = null;
+                Common.Models.Agent parent = null;
                 foreach (var potParent in allAgents.Where(a => a.Id != agent.Id))
                 {
                     if (potParent.Links.Any(childId => childId == agent.Id))
