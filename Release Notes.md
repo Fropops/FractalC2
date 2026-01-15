@@ -1,6 +1,12 @@
 # Release Notes
 
 ## [15/01/2026]
+### WebCommander 2.3.1 / Commander 2.3.1
+* Implementation JumpPsExecCommand & JumpWinRMCommand (+ review of elevate & GetSystem)
+### Agent 2.3.1
+* Improving PsExec Command
+
+## [15/01/2026]
 ### WebCommander 2.3.0 / Commander 2.3.0
 * API Client Centralization and Refactoring
 
