@@ -1,4 +1,11 @@
 # Release Notes
+
+## [15/01/2026]
+### WebCommander 2.3.0 / Commander 2.3.0
+* API Client Centralization and Refactoring
+
+Complete refactoring of API calls with centralization in Common.APIClient. Both Commander (CLI) and WebCommander (Blazor WASM) now rely on this unified API client, ensuring consistency across all client implementations and simplifying maintenance.
+
 ## [13/01/2026]
 ### WebCommander 2.2.3
 * Fix TaskResult displayed in the all Terminals
