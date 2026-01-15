@@ -16,7 +16,9 @@ namespace Common.AgentCommands
         void Powershell(string cmd);
         void Upload(byte[] fileBytes, string path);
         void Link(ConnexionUrl url);
-        void PsExec(string target, string path);
+        void PsExec(string target, string path, string service = null);
+
+        void WinRM(string target, string winRMCommand);
         void RegistryAdd(string path, string key, string value);
         void RegistryRemove(string path, string key);
         void DeleteFile(string path);
@@ -72,6 +74,10 @@ namespace Common.AgentCommands
             this.Adapter.Echo(message);
         }
 
+        public void WinRM(string target, string winRMCommand)
+        {
+            this.Adapter.WinRM(target, winRMCommand);
+        }
         public Task<APIImplant> GeneratePayload(ImplantConfig options)
         {
             return this.Adapter.GeneratePayload(options);
@@ -97,9 +103,9 @@ namespace Common.AgentCommands
             this.Adapter.Powershell(cmd);
         }
 
-        public void PsExec(string target, string path)
+        public void PsExec(string target, string path, string service = null)
         {
-            this.Adapter.PsExec(target, path);
+            this.Adapter.PsExec(target, path, service);
         }
 
         public AgentTask RegisterTask(CommandId command)

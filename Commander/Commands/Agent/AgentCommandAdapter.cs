@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -86,10 +87,19 @@ namespace Commander.Commands.Agent
             task.Parameters.AddParameter(ParameterId.Bind, url.ToString());
         }
 
-        public void PsExec(string target, string path)
+        public void PsExec(string target, string path, string service = null)
         {
             var task = this.RegisterTask(CommandId.PsExec);
             task.Parameters.AddParameter(ParameterId.Path, path);
+            task.Parameters.AddParameter(ParameterId.Target, target);
+            if(!string.IsNullOrEmpty(service))
+                task.Parameters.AddParameter(ParameterId.Service, service);
+        }
+
+        public void WinRM(string target, string winRMCommand)
+        {
+            var task = this.RegisterTask(CommandId.Winrm);
+            task.Parameters.AddParameter(ParameterId.Command, winRMCommand);
             task.Parameters.AddParameter(ParameterId.Target, target);
         }
 

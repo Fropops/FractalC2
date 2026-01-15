@@ -26,8 +26,7 @@ namespace Agent.Commands.Execution
             string binpath = task.GetParameter<string>(ParameterId.Path);
             string target = task.GetParameter<string>(ParameterId.Target);
 
-            context.AppendResult($"target : {target}");
-            context.AppendResult($"binpath : {binpath}");
+            
 
 
             var serviceName = ShortGuid.NewGuid();
@@ -37,6 +36,10 @@ namespace Agent.Commands.Execution
 
             if (task.HasParameter(ParameterId.Name))
                 displayName = task.GetParameter<string>(ParameterId.Name);
+
+            context.AppendResult($"target : {target}");
+            context.AppendResult($"binpath : {binpath}");
+            context.AppendResult($"service : {serviceName}");
 
             // open handle to scm
             var scmHandle = Advapi.OpenSCManager(

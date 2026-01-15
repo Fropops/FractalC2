@@ -5,8 +5,6 @@
 # Team Server
 
 # Commanders
-Composite Commands
- - jump psexec & jump winrm
 
 # Web Commander
 
@@ -15,6 +13,7 @@ Composite Commands
 # Install
 
 # Tests
+jump psexec & jump winrm
 
 # Bugs
 When link to another agent failed, should not continue to make believe the agent is still alive
