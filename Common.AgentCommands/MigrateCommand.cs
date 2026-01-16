@@ -14,16 +14,16 @@ namespace Common.AgentCommands
         [Argument("processId", "id of the process to injects to", 0, IsRequired = true)]
         public int ProcessId { get; set; }
 
-        [Option("-b", "endpoint", "EndPoint to Bind To")]
+        [Option("b", "endpoint", "EndPoint to Bind To")]
         public string Endpoint { get; set; }
 
-        [Option("-k", "serverKey", "The server unique key of the endpoint")]
+        [Option("k", "serverKey", "The server unique key of the endpoint")]
         public string ServerKey { get; set; }
 
-        [Option("-x86", "x86", "Generate a x86 architecture executable")]
+        [Option("x86", "x86", "Generate a x86 architecture executable")]
         public bool X86 { get; set; }
 
-        [Option("-v", "verbose", "Show details of the command execution.")]
+        [Option("v", "verbose", "Show details of the command execution.")]
         public bool Verbose { get; set; }
     }
 

