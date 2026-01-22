@@ -1,6 +1,11 @@
 # Release Notes
 
 ## [22/01/2026]
+### TeamServer 2.4.1
+* Remove debug logs
+* Fix missing agent update notification on checkin
+
+## [22/01/2026]
 ### WebCommander 2.4.0 / Commander 2.4.0 / TeamServer 2.4.0 / Agent (Windows) 2.4.0 / Agent (Linux) 2.4.0
 * Rework ps command on Windows Agent (using NtQuerySystemInformation)
 * Rework and reactivation of Implant Injection
