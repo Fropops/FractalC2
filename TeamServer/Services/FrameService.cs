@@ -22,6 +22,8 @@ public interface IFrameService
 
     NetFrame CacheFrame<T>(string source, string destination, NetFrameType typ, T item);
     NetFrame CacheFrame<T>(string destination, NetFrameType typ, T item);
+
+    NetFrame CacheCheckInFrame(string destination);
     Queue<NetFrame> ExtractCachedFrame(string destination);
 }
 
@@ -54,6 +56,16 @@ public class FrameService : IFrameService
         var frame = CreateFrame(source, destination, typ, data);
         this.AddCahedFrames(frame);
         return frame;
+    }
+
+    public NetFrame CacheCheckInFrame(string destination)
+    {
+        var task = new AgentTask()
+        {
+            Id = Guid.NewGuid().ToString(),
+            CommandId = CommandId.CheckIn,
+        };
+        return this.CacheFrame(destination, NetFrameType.Task, task);
     }
 
     public NetFrame CacheFrame<T>(string source, string destination, NetFrameType typ, T item)

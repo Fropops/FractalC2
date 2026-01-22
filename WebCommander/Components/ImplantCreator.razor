@@ -137,6 +137,71 @@
                 </div>
             </div>
 
+            <!-- Injection Configuration -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <div class="form-check m-0">
+                        <input type="checkbox" id="injection" class="form-check-input" @bind="config.IsInjected" />
+                        <label for="injection" class="form-check-label fw-bold">Enable Injection</label>
+                    </div>
+                </div>
+                @if (config.IsInjected)
+                {
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Injection Method</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="injectionMethod" id="methodPid" 
+                                           checked="@(injectionMethod == 0)" @onchange="@(() => injectionMethod = 0)">
+                                    <label class="form-check-label" for="methodPid">Process ID</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="injectionMethod" id="methodName" 
+                                           checked="@(injectionMethod == 1)" @onchange="@(() => injectionMethod = 1)">
+                                    <label class="form-check-label" for="methodName">Process Name</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="injectionMethod" id="methodSpawn" 
+                                           checked="@(injectionMethod == 2)" @onchange="@(() => injectionMethod = 2)">
+                                    <label class="form-check-label" for="methodSpawn">Spawn Process</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            @if (injectionMethod == 0)
+                            {
+                                <div class="col-md-8 mb-3">
+                                    <label for="injectPid" class="form-label">Process ID</label>
+                                    <InputNumber id="injectPid" class="form-control" @bind-Value="config.InjectionProcessId" />
+                                </div>
+                            }
+                            else if (injectionMethod == 1)
+                            {
+                                <div class="col-md-8 mb-3">
+                                    <label for="injectName" class="form-label">Process Name</label>
+                                    <InputText id="injectName" class="form-control" @bind-Value="config.InjectionProcessName" placeholder="e.g. explorer.exe" />
+                                </div>
+                            }
+                            else if (injectionMethod == 2)
+                            {
+                                <div class="col-md-8 mb-3">
+                                    <label for="injectSpawn" class="form-label">Spawn Image Path</label>
+                                    <InputText id="injectSpawn" class="form-control" @bind-Value="config.InjectionProcessSpawn" placeholder="Leave empty for TeamServer default" />
+                                    <div class="form-text">Optional. If empty, uses the default spawn image defined on the TeamServer.</div>
+                                </div>
+                            }
+
+                            <div class="col-md-4 mb-3">
+                                <label for="injectDelay" class="form-label">Injection Delay (seconds)</label>
+                                <InputNumber id="injectDelay" class="form-control" @bind-Value="config.InjectionDelay" />
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
             @if (!string.IsNullOrEmpty(errorMessage))
             {
                 <div class="alert alert-danger">
@@ -170,6 +235,7 @@
     private List<Listener> listeners = new();
     private string selectedListenerId = "custom";
     private bool isCustomEndpoint = true;
+    private int injectionMethod = 0;
     
     // Protocol selection state
     private string _selectedProtocol = "http";
@@ -198,6 +264,7 @@
 
     protected override void OnInitialized()
     {
+        config.InjectionDelay = 30;
         listeners = AgentService.GetListeners();
         if (listeners.Any())
         {
@@ -298,6 +365,37 @@
                 {
                     errorMessage = "ELF implants do not support Pipe endpoints.";
                     return;
+                }
+            }
+
+            // Injection Validation & Cleanup
+            if (config.IsInjected)
+            {
+                if (injectionMethod == 0) // Process ID
+                {
+                    if (config.InjectionProcessId == null)
+                    {
+                        errorMessage = "Please specify a Process ID for injection.";
+                        return;
+                    }
+                    config.InjectionProcessName = null;
+                    config.InjectionProcessSpawn = null;
+                }
+                else if (injectionMethod == 1) // Process Name
+                {
+                    if (string.IsNullOrWhiteSpace(config.InjectionProcessName))
+                    {
+                        errorMessage = "Please specify a Process Name for injection.";
+                        return;
+                    }
+                    config.InjectionProcessId = null;
+                    config.InjectionProcessSpawn = null;
+                }
+                else if (injectionMethod == 2) // Spawn
+                {
+                    // Spawn path is optional (defaults to TeamServer setting if empty)
+                    config.InjectionProcessId = null;
+                    config.InjectionProcessName = null;
                 }
             }
 

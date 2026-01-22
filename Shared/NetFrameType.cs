@@ -16,6 +16,7 @@ namespace Shared
         LinkRelay = 0x05,
         Socks = 0x06,
         ReversePortForward = 0x07,
+        Links = 0x08,
 
     }
 }

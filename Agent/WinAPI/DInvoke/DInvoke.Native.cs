@@ -478,8 +478,14 @@ namespace WinAPI.DInvoke
                ref OBJECT_ATTRIBUTES ObjectAttributes,
                ref CLIENT_ID ClientId
            );
-        }
 
+            [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+            public delegate int NtQuerySystemInformation(
+                WinAPI.Data.Native.SYSTEM_INFORMATION_CLASS SystemInformationClass,
+                IntPtr SystemInformation,
+                int SystemInformationLength,
+                out int ReturnLength);
+        }
 
         public static uint NtQueueApcThread(IntPtr ThreadHandle, IntPtr ApcRoutine, IntPtr ApcArgument1, IntPtr ApcArgument2, IntPtr ApcArgument3)
         {
@@ -515,6 +521,26 @@ namespace WinAPI.DInvoke
             }
 
             return hProcess;
+        }
+
+        public static int NtQuerySystemInformation(
+            WinAPI.Data.Native.SYSTEM_INFORMATION_CLASS SystemInformationClass,
+            IntPtr SystemInformation,
+            int SystemInformationLength,
+            out int ReturnLength)
+        {
+            int returnLength = 0;
+            object[] parameters = { SystemInformationClass, SystemInformation, SystemInformationLength, returnLength };
+
+            var status = (int)Generic.DynamicApiInvoke(
+                @"ntdll.dll",
+                @"NtQuerySystemInformation",
+                typeof(Delegates.NtQuerySystemInformation),
+                ref parameters
+            );
+
+            ReturnLength = (int)parameters[3];
+            return status;
         }
 
     }

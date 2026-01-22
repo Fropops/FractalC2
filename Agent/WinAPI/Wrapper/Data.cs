@@ -10,7 +10,7 @@ namespace WinAPI.Wrapper
     {
         public string Domain { get; set; }
         public string Username { get; set; }
-        public string Password { get; set; } 
+        public string Password { get; set; }
     }
     public class ProcessCreationParameters
     {
@@ -44,4 +44,16 @@ namespace WinAPI.Wrapper
         CreateRemoteThread,
         ProcessHollowingWithAPC
     }
+
+    public class ProcessInfo
+    {
+        public IntPtr ProcessId;
+        public IntPtr ParentId;
+        public string ProcessName;
+        public int SessionId;
+        public string ImagePath;
+        public string Owner;
+        public string Architecture;
+    }
+
 }

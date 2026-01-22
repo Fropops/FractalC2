@@ -35,6 +35,7 @@ else
                 <th>Architecture</th>
                 <th>Endpoint</th>
                 <th>Listener</th>
+                <th>Injection</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -47,6 +48,7 @@ else
                     <td>@implant.Config?.Architecture</td>
                     <td>@implant.Config?.Endpoint?.ToString()</td>
                     <td>@(implant.Config?.Listener ?? "Custom")</td>
+                    <td>@GetInjectionInfo(implant.Config)</td>
                     <td>
                         <button class="btn btn-sm btn-info me-1" @onclick="() => ShowScripts(implant)">
                             <i class="bi bi-file-code"></i> Scripts
@@ -245,6 +247,26 @@ else
             ImplantType.Elf => ".elf",
             _ => ".bin"
         };
+    }
+
+    private string GetInjectionInfo(ImplantConfig? config)
+    {
+        if (config == null || !config.IsInjected)
+            return "None";
+
+        var delay = config.InjectionDelay;
+        
+        if (config.InjectionProcessId.HasValue)
+            return $"PID: {config.InjectionProcessId} ({delay}s)";
+            
+        if (!string.IsNullOrEmpty(config.InjectionProcessName))
+            return $"Name: {config.InjectionProcessName} ({delay}s)";
+            
+        if (!string.IsNullOrEmpty(config.InjectionProcessSpawn))
+            return $"Spawn: {config.InjectionProcessSpawn} ({delay}s)";
+            
+        // Fallback for spawn default (empty string)
+        return $"Spawn: Default ({delay}s)";
     }
 
     private async Task DeleteImplant(APIImplant implant)

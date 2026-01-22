@@ -19,7 +19,7 @@ namespace Inject.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
@@ -72,9 +72,9 @@ namespace Inject.Properties {
         /// <summary>
         ///   Looks up a localized string similar to .
         /// </summary>
-        internal static string Host {
+        internal static string Function {
             get {
-                return ResourceManager.GetString("Host", resourceCulture);
+                return ResourceManager.GetString("Function", resourceCulture);
             }
         }
         
@@ -85,6 +85,33 @@ namespace Inject.Properties {
             get {
                 object obj = ResourceManager.GetObject("Payload", resourceCulture);
                 return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        internal static string ProcessId {
+            get {
+                return ResourceManager.GetString("ProcessId", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        internal static string ProcessName {
+            get {
+                return ResourceManager.GetString("ProcessName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        internal static string ProcessSpawn {
+            get {
+                return ResourceManager.GetString("ProcessSpawn", resourceCulture);
             }
         }
     }

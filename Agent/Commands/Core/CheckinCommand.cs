@@ -16,6 +16,8 @@ namespace Agent.Commands
         public override async Task InnerExecute(AgentTask task, AgentCommandContext context, CancellationToken token)
         {
             await context.Agent.SendMetaData();
+            await context.Agent.SendRelays();
+            await context.Agent.SendLinks();
         }
     }
 }

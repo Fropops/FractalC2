@@ -63,6 +63,43 @@ namespace WinAPI.DInvoke
                ref STARTUPINFOEX lpStartupInfo,
                out PROCESS_INFORMATION lpProcessInformation);
 
+            [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true, CharSet = CharSet.Auto)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public delegate bool LookupPrivilegeValue(
+                string lpSystemName,
+                string lpName,
+                ref LUID lpLuid);
+
+            [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public delegate bool AdjustTokenPrivileges(
+                IntPtr TokenHandle,
+                bool DisableAllPrivileges,
+                ref TOKEN_PRIVILEGES NewState,
+                int BufferLength,
+                IntPtr PreviousState,
+                IntPtr ReturnLength);
+
+            [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public delegate bool GetTokenInformation(
+                IntPtr TokenHandle,
+                TOKEN_INFORMATION_CLASS TokenInformationClass,
+                IntPtr TokenInformation,
+                int TokenInformationLength,
+                out int ReturnLength);
+
+            [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true, CharSet = CharSet.Auto)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public delegate bool LookupAccountSid(
+                string lpSystemName,
+                IntPtr Sid,
+                StringBuilder lpName,
+                ref int cchName,
+                StringBuilder lpReferencedDomainName,
+                ref int cchReferencedDomainName,
+                out int peUse);
+
             #region ServiceManager
             [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true)]
             public delegate IntPtr OpenSCManagerW(
@@ -151,6 +188,40 @@ namespace WinAPI.DInvoke
             return retVal;
         }
 
+        public static bool LookupPrivilegeValue(string lpSystemName, string lpName, ref LUID lpLuid)
+        {
+            object[] parameters = { lpSystemName, lpName, lpLuid };
+
+            var retVal = (bool)Generic.DynamicApiInvoke(
+                @"advapi32.dll",
+                @"LookupPrivilegeValueW",
+                typeof(Delegates.LookupPrivilegeValue),
+                ref parameters);
+
+            lpLuid = (LUID)parameters[2];
+            return retVal;
+        }
+
+        public static bool AdjustTokenPrivileges(
+            IntPtr TokenHandle,
+            bool DisableAllPrivileges,
+            ref TOKEN_PRIVILEGES NewState,
+            int BufferLength,
+            IntPtr PreviousState,
+            IntPtr ReturnLength)
+        {
+            object[] parameters = { TokenHandle, DisableAllPrivileges, NewState, BufferLength, PreviousState, ReturnLength };
+
+            var retVal = (bool)Generic.DynamicApiInvoke(
+                @"advapi32.dll",
+                @"AdjustTokenPrivileges",
+                typeof(Delegates.AdjustTokenPrivileges),
+                ref parameters);
+
+            NewState = (TOKEN_PRIVILEGES)parameters[2];
+            return retVal;
+        }
+
         public static bool CreateProcessWithTokenW(IntPtr hToken,
            LogonFlags dwLogonFlags,
            string lpApplicationName,
@@ -165,6 +236,50 @@ namespace WinAPI.DInvoke
 
             var retVal = (bool)Generic.DynamicApiInvoke(@"advapi32.dll", @"CreateProcessWithTokenW", typeof(Delegates.CreateProcessWithTokenW), ref parameters);
             lpProcessInformation = (PROCESS_INFORMATION)parameters[8];
+            return retVal;
+        }
+
+        public static bool GetTokenInformation(
+            IntPtr TokenHandle,
+            TOKEN_INFORMATION_CLASS TokenInformationClass,
+            IntPtr TokenInformation,
+            int TokenInformationLength,
+            out int ReturnLength)
+        {
+            int retLen = 0;
+            object[] parameters = { TokenHandle, TokenInformationClass, TokenInformation, TokenInformationLength, retLen };
+
+            var retVal = (bool)Generic.DynamicApiInvoke(
+                @"advapi32.dll",
+                @"GetTokenInformation",
+                typeof(Delegates.GetTokenInformation),
+                ref parameters);
+
+            ReturnLength = (int)parameters[4];
+            return retVal;
+        }
+
+        public static bool LookupAccountSid(
+            string lpSystemName,
+            IntPtr Sid,
+            StringBuilder lpName,
+            ref int cchName,
+            StringBuilder lpReferencedDomainName,
+            ref int cchReferencedDomainName,
+            out int peUse)
+        {
+            int pe = 0;
+            object[] parameters = { lpSystemName, Sid, lpName, cchName, lpReferencedDomainName, cchReferencedDomainName, pe };
+
+            var retVal = (bool)Generic.DynamicApiInvoke(
+                @"advapi32.dll",
+                @"LookupAccountSidW",
+                typeof(Delegates.LookupAccountSid),
+                ref parameters);
+
+            cchName = (int)parameters[3];
+            cchReferencedDomainName = (int)parameters[5];
+            peUse = (int)parameters[6];
             return retVal;
         }
 

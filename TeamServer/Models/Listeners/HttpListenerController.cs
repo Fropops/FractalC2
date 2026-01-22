@@ -134,10 +134,30 @@ namespace TeamServer.Models
                 string agentId = Request.Headers[AuthorizationHeader];
                 var agent = this._agentService.GetOrCreateAgent(agentId);
 
+
+                this._agentService.Checkin(agent);
+                if (!agent.CheckInrequested)
+                {
+                    this._frameService.CacheCheckInFrame(agent.Id);
+                    agent.CheckInrequested = true;
+                    //Console.WriteLine($"Requires Checkin agent {agent.Id}");
+                }
+
+                Console.WriteLine("Relays");
                 foreach (var relayedAgent in this._agentService.GetAgentToRelay(agentId))
                 {
-                    this._agentService.Checkin(relayedAgent);
-                    this._changeTrackingService.TrackChange(ChangingElement.Agent, relayedAgent.Id);
+                    Console.WriteLine($"Relayed agent {relayedAgent.Id}");
+                    if (relayedAgent != agent)
+                    {
+                        if (!relayedAgent.CheckInrequested)
+                        {
+                            this._frameService.CacheCheckInFrame(relayedAgent.Id);
+                            relayedAgent.CheckInrequested = true;
+                            //Console.WriteLine($"Requires Checkin agent {relayedAgent.Id}");
+                        }
+                        this._agentService.Checkin(relayedAgent);
+                        this._changeTrackingService.TrackChange(ChangingElement.Agent, relayedAgent.Id);
+                    }
                 }
 
                 await this._serverService.HandleInboundFrames(frames, agentId);

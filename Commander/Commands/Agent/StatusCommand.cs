@@ -24,7 +24,7 @@ namespace Commander.Commands.Agent
                 context.Terminal.WriteError("No agent selected. Use 'interact' command to select an agent.");
                 return false;
             }
-            var agent = context.Executor.CurrentAgent;
+            var agent = context.CommModule.GetAgent(context.Executor.CurrentAgent.Id);
             var activ = context.IsAgentAlive(agent);
             if (activ == true)
                 context.Terminal.WriteSuccess($"Agent {agent.Id} is up and running !");
@@ -58,7 +58,6 @@ namespace Commander.Commands.Agent
                 table.AddRow("Sleep", agent.Metadata?.Sleep ?? string.Empty);
             table.AddRow("First Seen", agent.FirstSeen.ToLocalTime().ToString());
             table.AddRow("Last Seen", StringHelper.FormatElapsedTime(Math.Round(agent.LastSeenDelta.TotalSeconds, 2)) ?? string.Empty);
-
 
             context.Terminal.Write(table);
             return true;

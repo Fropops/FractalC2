@@ -340,7 +340,8 @@
                     ProcessName = agent.Metadata?.ProcessName ?? "",
                     ProcessId = agent.Metadata?.ProcessId ?? 0,
                     Architecture = agent.Metadata?.Architecture ?? "",
-                    LastSeen = agent.LastSeen
+                    LastSeen = agent.LastSeen,
+                    Links = agent.Links ?? new List<string>()
                 };
                 hostNode.Agents.Add(agentNode);
                 
@@ -402,50 +403,53 @@
             hostNode.Y = 200 + row * (200 + (maxAgents > 5 ? (maxAgents - 5) * 35 : 0));
         }
         
-        // Build agent-to-agent links using RelayId
+        // Build agent-to-agent links using Links
         foreach (var host in hosts)
         {
             for (int i = 0; i < host.Agents.Count; i++)
             {
-                var agent = host.Agents[i];
+                var parentAgent = host.Agents[i];
                 
-                // Only create links for active agents with a RelayId
-                if (agent.IsAlive && !string.IsNullOrEmpty(agent.RelayId))
+                // Only create links if parent is active and has links
+                if (parentAgent.IsAlive && parentAgent.Links != null)
                 {
-                    // Find the parent agent
-                    AgentNode? parentAgent = null;
-                    HostNode? parentHost = null;
-                    int parentIndex = -1;
-                    
-                    foreach (var h in hosts)
+                    foreach (var childId in parentAgent.Links)
                     {
-                        for (int j = 0; j < h.Agents.Count; j++)
-                        {
-                            if (h.Agents[j].Id == agent.RelayId)
-                            {
-                                parentAgent = h.Agents[j];
-                                parentHost = h;
-                                parentIndex = j;
-                                break;
-                            }
-                        }
-                        if (parentAgent != null) break;
-                    }
-                    
-                    // Only draw link if parent agent is also active
-                    if (parentAgent != null && parentHost != null && parentAgent.IsAlive)
-                    {
-                        var conn = ConnexionUrl.FromString(agent.EndPoint);
+                        // Find the child agent
+                        AgentNode? childAgent = null;
+                        HostNode? childHost = null;
+                        int childIndex = -1;
                         
-                        agentLinks.Add(new AgentLink
+                        foreach (var h in hosts)
                         {
-                            ParentX = parentHost.X + parentHost.AgentStartX + 8,
-                            ParentY = parentHost.Y + parentIndex * 35 + 10,
-                            ChildX = host.X + host.AgentStartX + 8,
-                            ChildY = host.Y + i * 35 + 10,
-                            Protocol = conn.ProtocolString,
-                            IsListener = conn.IsValid && conn.Mode == ConnexionMode.Listener
-                        });
+                            for (int j = 0; j < h.Agents.Count; j++)
+                            {
+                                if (h.Agents[j].Id == childId)
+                                {
+                                    childAgent = h.Agents[j];
+                                    childHost = h;
+                                    childIndex = j;
+                                    break;
+                                }
+                            }
+                            if (childAgent != null) break;
+                        }
+                        
+                        // Only draw link if child agent is also active
+                        if (childAgent != null && childHost != null && childAgent.IsAlive)
+                        {
+                            var conn = ConnexionUrl.FromString(childAgent.EndPoint);
+                            
+                            agentLinks.Add(new AgentLink
+                            {
+                                ParentX = host.X + host.AgentStartX + 8,
+                                ParentY = host.Y + i * 35 + 10,
+                                ChildX = childHost.X + childHost.AgentStartX + 8,
+                                ChildY = childHost.Y + childIndex * 35 + 10,
+                                Protocol = conn.ProtocolString,
+                                IsListener = conn.IsValid && conn.Mode == ConnexionMode.Listener
+                            });
+                        }
                     }
                 }
             }
@@ -513,6 +517,7 @@
         public int ProcessId { get; set; }
         public string Architecture { get; set; } = "";
         public DateTime LastSeen { get; set; }
+        public List<string> Links { get; set; } = new();
     }
 
     private class AgentLink

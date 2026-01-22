@@ -104,9 +104,6 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
-    <Reference Include="WinAPI">
-      <HintPath>..\..\Dependencies\WinAPI.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\Agent\WinAPI\APIWrapper.cs">
@@ -117,6 +114,9 @@
     </Compile>
     <Compile Include="..\..\Agent\WinAPI\Data\Kernel32.cs">
       <Link>WinAPI\Data\Kernel32.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Agent\WinAPI\Data\Native.cs">
+      <Link>WinAPI\Data\Native.cs</Link>
     </Compile>
     <Compile Include="..\..\Agent\WinAPI\Data\PE.cs">
       <Link>WinAPI\Data\PE.cs</Link>
@@ -163,6 +163,9 @@
     <Compile Include="..\..\Agent\WinAPI\PInvoke\PInvoke.Wrapper.cs">
       <Link>WinAPI\PInvoke\PInvoke.Wrapper.cs</Link>
     </Compile>
+    <Compile Include="..\..\Agent\WinAPI\Wrapper\Data.cs">
+      <Link>WinAPI\Wrapper\Data.cs</Link>
+    </Compile>
     <Compile Include="Entry.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
@@ -170,7 +173,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="WinAPI\Wrapper\Data.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">

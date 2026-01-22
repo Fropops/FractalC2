@@ -1,9 +1,31 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Common.APIModels;
 using Shared;
 
 namespace TeamServer.FrameHandling;
+
+
+public class LinksFrameHandler : FrameHandler
+{
+    public override NetFrameType FrameType { get => NetFrameType.Links; }
+    public override async Task ProcessFrame(NetFrame frame, string relay)
+    {
+        var links = await this.ExtractFrameData<List<LinkInfo>>(frame);
+        foreach (var link in links)
+        {
+            var parent = this.Server.AgentService.GetOrCreateAgent(link.ParentId);
+            var child = this.Server.AgentService.GetOrCreateAgent(link.ChildId);
+            if (!parent.Links.ContainsKey(child.Id))
+            {
+                parent.Links.Add(child.Id, link);
+                this.Server.ChangeTrackingService.TrackChange(ChangingElement.Agent, relay);
+            }
+        }
+    }
+}
 
 public class LinkFrameHandler : FrameHandler
 {
@@ -49,13 +71,23 @@ public class LinkRelayFrameHandler : FrameHandler
             if (relayedAgent.Id == relay)
                 continue;
 
-            relayedAgent.RelayId = null;
+            if (!relayIds.Contains(relayedAgent.Id))
+            {
+                relayedAgent.RelayId = null;
+                this.Server.ChangeTrackingService.TrackChange(ChangingElement.Agent, relayedAgent.Id);
+            }
         }
 
         foreach (var relayId in relayIds)
         {
             var relayedAgent = this.Server.AgentService.GetOrCreateAgent(relayId);
-            relayedAgent.RelayId = relay;
+            if (relayedAgent.RelayId != relay && relayedAgent.Id != relay)
+            {
+                relayedAgent.RelayId = relay;
+                this.Server.ChangeTrackingService.TrackChange(ChangingElement.Agent, relayedAgent.Id);
+            }
+            this.Server.ChangeTrackingService.TrackChange(ChangingElement.Agent, relay);
         }
     }
 }
+

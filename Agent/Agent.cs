@@ -130,8 +130,11 @@ namespace Agent
 
         private bool ShouldStop = false;
 
-        public void AskToStop()
+        public void AskToStop(bool force = false)
         {
+            if (force)
+                Environment.Exit(0);
+
             this.ShouldStop = true;
             foreach (var token in TaskTokens.Values)
                 token.Cancel();
@@ -354,6 +357,22 @@ namespace Agent
             List<string> relaysIds = _relaysComm.Select(kvp => kvp.Key).ToList();
             await this.SendFrame(this._frameService.CreateFrame(this.MetaData.Id, NetFrameType.LinkRelay, relaysIds));
         }
+
+        public async Task SendLinks()
+        {
+            List<LinkInfo> linkInfos = new List<LinkInfo>();
+            foreach(var comm in this.ChildrenCommModules)
+            {
+                var link = new LinkInfo()
+                {
+                    ChildId = comm.Key,
+                    ParentId = this.MetaData.Id,
+                };
+                linkInfos.Add(link);
+            }
+            await this.SendFrame(this._frameService.CreateFrame(this.MetaData.Id, NetFrameType.Links, linkInfos));
+        }
+
         public async Task SendMetaData()
         {
             var frame = this._frameService.CreateFrame(this.MetaData.Id, NetFrameType.CheckIn, await this.MetaData.BinarySerializeAsync());
@@ -437,8 +456,6 @@ namespace Agent
                 await this.RemoveChildCommModule(commModule);
             };
 
-            await commModule.Stop();
-
             var childId = _childrenComm.FirstOrDefault(kvp => kvp.Value == commModule).Key;
             _childrenComm.Remove(childId);
             List<string> relaysIds = _relaysComm.Where(kvp => kvp.Value == commModule).Select(kvp => kvp.Key).ToList();
@@ -448,6 +465,8 @@ namespace Agent
             // send an unlink
             await SendFrame(this._frameService.CreateFrame(this.MetaData.Id, NetFrameType.Unlink, new LinkInfo() { ParentId = this.MetaData.Id, ChildId = childId }));
             await SendRelays();
+
+            await commModule.Stop();
         }
 
         private async Task OnFrameReceivedFromChild(NetFrame frame)

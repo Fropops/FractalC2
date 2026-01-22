@@ -13,7 +13,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Doc", "Doc", "{8BA2B05D-B7F
 	ProjectSection(SolutionItems) = preProject
 		Notes.txt = Notes.txt
 		Todo.txt = Todo.txt
-		Usefull Commands.txt = Usefull Commands.txt
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Payload", "Payload", "{FA393BFB-DC94-4079-9572-4CAE8179DFC9}"

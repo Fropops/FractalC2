@@ -5,8 +5,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using WinAPI.Data.Kernel32;
-using static WinAPI.DInvoke.Data.Native;
-using static WinAPI.DInvoke.Kernel32;
 
 namespace WinAPI.PInvoke
 {
@@ -138,7 +136,18 @@ namespace WinAPI.PInvoke
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern uint GetProcessId(IntPtr handle);
 
-       
 
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool QueryFullProcessImageName(
+            IntPtr hProcess,
+            int dwFlags,
+            StringBuilder lpExeName,
+            ref int lpdwSize);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr OpenProcess(
+             ProcessAccessFlags processAccess,
+             bool bInheritHandle,
+             int processId
+        );
     }
 }

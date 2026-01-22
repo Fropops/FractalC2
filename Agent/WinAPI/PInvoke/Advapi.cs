@@ -17,6 +17,21 @@ namespace WinAPI.PInvoke
             DesiredAccess DesiredAccess,
             out IntPtr TokenHandle);
 
+        [DllImport("advapi32.dll", SetLastError = true)]
+        public static extern bool AdjustTokenPrivileges(
+            IntPtr TokenHandle,
+            bool DisableAllPrivileges,
+            ref TOKEN_PRIVILEGES NewState,
+            int BufferLength,
+            IntPtr PreviousState,
+            IntPtr ReturnLength);
+
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool LookupPrivilegeValue(
+            string lpSystemName,
+            string lpName,
+            ref LUID lpLuid);
+
         [DllImport("advapi32.dll")]
         public extern static bool DuplicateTokenEx(
             IntPtr hExistingToken,
@@ -66,6 +81,24 @@ namespace WinAPI.PInvoke
             string lpCurrentDirectory,
             [In] ref STARTUPINFOEX lpStartupInfo,
             out PROCESS_INFORMATION lpProcessInformation);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        public static extern bool GetTokenInformation(
+            IntPtr TokenHandle,
+            TOKEN_INFORMATION_CLASS TokenInformationClass,
+            IntPtr TokenInformation,
+            int TokenInformationLength,
+            out int ReturnLength);
+
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool LookupAccountSid(
+            string lpSystemName,
+            IntPtr Sid,
+            StringBuilder lpName,
+            ref int cchName,
+            StringBuilder lpReferencedDomainName,
+            ref int cchReferencedDomainName,
+            out int peUse);
 
     };
 }

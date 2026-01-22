@@ -10,7 +10,7 @@ namespace WinAPI.DInvoke
 {
     public static class Kernel32
     {
-      
+
         private struct Delegates
         {
             [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true)]
@@ -114,6 +114,20 @@ namespace WinAPI.DInvoke
                 IntPtr lpParameter,
                 uint dwCreationFlags,
                 out IntPtr lpThreadId);
+
+            [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public delegate bool IsWow64Process(
+                IntPtr hProcess,
+                [MarshalAs(UnmanagedType.Bool)] out bool Wow64Process);
+
+            [UnmanagedFunctionPointer(CallingConvention.StdCall, SetLastError = true, CharSet = CharSet.Auto)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public delegate bool QueryFullProcessImageName(
+                IntPtr hProcess,
+                int dwFlags,
+                StringBuilder lpExeName,
+                ref int lpdwSize);
 
         }
 
@@ -253,6 +267,25 @@ namespace WinAPI.DInvoke
             object[] parameters = { hProcess, lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, null };
             var retVal = (IntPtr)Generic.DynamicApiInvoke("kernel32.dll", "CreateRemoteThread", typeof(Delegates.CreateRemoteThread), ref parameters);
             lpThreadId = (IntPtr)parameters[6];
+            return retVal;
+        }
+
+        public static bool IsWow64Process(IntPtr hProcess, out bool Wow64Process)
+        {
+            bool isWow64 = false;
+            object[] parameters = { hProcess, isWow64 };
+
+            var retVal = (bool)Generic.DynamicApiInvoke("kernel32.dll", "IsWow64Process", typeof(Delegates.IsWow64Process), ref parameters);
+            Wow64Process = (bool)parameters[1];
+            return retVal;
+        }
+
+        public static bool QueryFullProcessImageName(IntPtr hProcess, int dwFlags, StringBuilder lpExeName, ref int lpdwSize)
+        {
+            object[] parameters = { hProcess, dwFlags, lpExeName, lpdwSize };
+
+            var retVal = (bool)Generic.DynamicApiInvoke("kernel32.dll", "QueryFullProcessImageNameW", typeof(Delegates.QueryFullProcessImageName), ref parameters);
+            lpdwSize = (int)parameters[3];
             return retVal;
         }
     }

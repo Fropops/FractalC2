@@ -198,7 +198,7 @@ namespace TeamServer.Services
         public override InterceptionResult Intercept(AgentTask task, Agent agent)
         {
             if (!task.HasParameter(ParameterId.Name))
-                task.Parameters.AddParameter(ParameterId.Name, "ReflectiveFunction");
+                task.Parameters.AddParameter(ParameterId.Name, ImplantConfig.DefaultReflectiveFunctionName);
 
             if (!task.HasParameter(ParameterId.Target))
                 return Failed("Missing Target architecture");

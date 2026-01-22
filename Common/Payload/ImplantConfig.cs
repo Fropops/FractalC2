@@ -19,10 +19,12 @@ namespace Common.Payload
         public bool IsVerbose { get; set; }
 
         public string ImplantName { get; set; }
-        public bool IsInjected { get; set; }
 
+        public bool IsInjected { get; set; }
         public int InjectionDelay { get; set; } = 60;
-        public string InjectionProcess { get; set; }
+        public string InjectionProcessName { get; set; }
+        public int? InjectionProcessId { get; set; }
+        public string InjectionProcessSpawn { get; set; }
 
         public bool StoreImplant { get; set; } = true;
 
@@ -33,5 +35,9 @@ namespace Common.Payload
             if (IsInjected) s += " Injection";
             return s;
         }
+
+        public static string DefaultReflectiveFunctionName = "ReflectiveFunction";
     }
+
+   
 }

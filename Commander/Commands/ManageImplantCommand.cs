@@ -28,12 +28,31 @@ namespace Commander.Commands
         public string listener { get; set; }
         [Option("b", "bind", "Endpoint URL (for generate, e.g. http://10.10.10.10:80)")]
         public string endpoint { get; set; }
-        [Option("d", "download", "Download implant after generation")]
+        [Option("dl", "download", "Download implant after generation")]
         public bool download { get; set; }
         [Option("t", "type", "exe | dll | rfl | svc | ps | bin | elf", DefaultValue = "exe", AllowedValues = new object[] { "exe", "dll", "rfl", "svc", "ps", "bin", "elf" })]
         public string type { get; set; }
         [Option("a", "arch", "x64 | x86", DefaultValue = "exe", AllowedValues = new object[] { "x64", "x86" })]
         public string arch { get; set; }
+
+        [Option("d", "debug", "generate implant in debug mode")]
+        public bool debug { get; set; }
+
+        //Injection options
+        [Option("i", "inject", "If the payload should be an injector")]
+        public bool inject { get; set; }
+
+        [Option("id", "injectDelay", "Delay before injection (AV evasion)",DefaultValue =60)]
+        public int injectDelay { get; set; }
+
+        [Option("ipid", "injectProcessId", "Process Id used for injection", DefaultValue = null)]
+        public int? injectProcessId { get; set; }
+
+        [Option("ipn", "injectProcessName", "Process Name used for injection")]
+        public string injectProcessName { get; set; }
+
+        [Option("ips", "injectProcessSpawn", "Process Image path used for injection (spawn)")]
+        public string injectSpawn { get; set; }
     }
 
     [Command("implant", "Manager TeamServer Listeners", Category = "Commander", Aliases = new string[] { "implants" } )]
@@ -63,6 +82,7 @@ namespace Commander.Commands
             table.AddColumn(new TableColumn("Arch"));
             table.AddColumn(new TableColumn("Endpoint"));
             table.AddColumn(new TableColumn("Listener"));
+            table.AddColumn(new TableColumn("Injection"));
 
             foreach (var implant in implants)
             {
@@ -72,7 +92,21 @@ namespace Commander.Commands
                 var endpoint = implant.Config?.Endpoint?.ToString() ?? "Unknown";
                 var listener = implant.Config?.Listener?.ToString() ?? "Custom";
 
-                table.AddRow(name, type, arch, endpoint, listener);
+                var injectionInfo = "None";
+                if (implant.Config != null && implant.Config.IsInjected)
+                {
+                    var delay = implant.Config.InjectionDelay;
+                    if (implant.Config.InjectionProcessId.HasValue)
+                        injectionInfo = $"PID: {implant.Config.InjectionProcessId} ({delay}s)";
+                    else if (!string.IsNullOrEmpty(implant.Config.InjectionProcessName))
+                        injectionInfo = $"Name: {implant.Config.InjectionProcessName} ({delay}s)";
+                    else if (!string.IsNullOrEmpty(implant.Config.InjectionProcessSpawn))
+                        injectionInfo = $"Spawn: {implant.Config.InjectionProcessSpawn} ({delay}s)";
+                    else
+                        injectionInfo = $"Spawn: Default ({delay}s)";
+                }
+
+                table.AddRow(name, type, arch, endpoint, listener, injectionInfo);
             }
 
             context.Terminal.Write(table);
@@ -89,6 +123,16 @@ namespace Commander.Commands
             ConnexionUrl connexionUrl = null;
 
             var config = new ImplantConfig();
+            config.IsDebug = options.debug;
+
+            if(options.inject)
+            {
+                config.IsInjected = true;
+                config.InjectionDelay = options.injectDelay;
+                config.InjectionProcessId = options.injectProcessId;
+                config.InjectionProcessName = options.injectProcessName;
+                config.InjectionProcessSpawn = options.injectSpawn;
+            }
 
             if (!string.IsNullOrEmpty(listenerName))
             {

@@ -14,8 +14,9 @@ namespace Agent.Commands
         public override CommandId Command => CommandId.Exit;
         public override async Task InnerExecute(AgentTask task, AgentCommandContext context, CancellationToken token)
         {
+            var force = task.GetParameter<bool>(ParameterId.Command);
             context.AppendResult("Bye !");
-            context.Agent.AskToStop();
+            context.Agent.AskToStop(force);
         }
     }
 }

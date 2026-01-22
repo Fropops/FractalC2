@@ -56,5 +56,12 @@ namespace WinAPI.PInvoke
                ref OBJECT_ATTRIBUTES ObjectAttributes,
                ref CLIENT_ID ClientId
            );
+
+        [DllImport("ntdll.dll")]
+        public static extern int NtQuerySystemInformation(
+            WinAPI.Data.Native.SYSTEM_INFORMATION_CLASS SystemInformationClass,
+            IntPtr SystemInformation,
+            int SystemInformationLength,
+            out int ReturnLength);
     }
 }
