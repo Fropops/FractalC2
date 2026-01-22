@@ -136,6 +136,7 @@ namespace TeamServer.Models
 
 
                 this._agentService.Checkin(agent);
+                this._changeTrackingService.TrackChange(ChangingElement.Agent, agent.Id);
                 if (!agent.CheckInrequested)
                 {
                     this._frameService.CacheCheckInFrame(agent.Id);
@@ -143,10 +144,10 @@ namespace TeamServer.Models
                     //Console.WriteLine($"Requires Checkin agent {agent.Id}");
                 }
 
-                Console.WriteLine("Relays");
+                //Console.WriteLine("Relays");
                 foreach (var relayedAgent in this._agentService.GetAgentToRelay(agentId))
                 {
-                    Console.WriteLine($"Relayed agent {relayedAgent.Id}");
+                    //Console.WriteLine($"Relayed agent {relayedAgent.Id}");
                     if (relayedAgent != agent)
                     {
                         if (!relayedAgent.CheckInrequested)
