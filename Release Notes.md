@@ -1,5 +1,14 @@
 # Release Notes
 
+## [22/01/2026]
+### WebCommander 2.4.0 / Commander 2.4.0 / TeamServer 2.4.0 / Agent (Windows) 2.4.0 / Agent (Linux) 2.4.0
+* Rework ps command on Windows Agent (using NtQuerySystemInformation)
+* Rework and reactivation of Implant Injection
+ - by pid
+ - by procname
+ - by spawning
+* Rework Topology & Map not well working with P2P links
+
 ## [15/01/2026]
 ### WebCommander 2.3.1 / Commander 2.3.1
 * Implementation JumpPsExecCommand & JumpWinRMCommand (+ review of elevate & GetSystem)

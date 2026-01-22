@@ -16,12 +16,5 @@
 jump psexec & jump winrm
 
 # Bugs
-* When link to another agent failed, should not continue to make believe the agent is still alive
-* Topology & map not well working with P2P links
 
 # Other
-PS on windows ? lacking some process even in SYSTEM
-Implant Injection
- - by pid
- - by procname
- - by spawning
