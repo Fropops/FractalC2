@@ -24,6 +24,10 @@ install_part() {
 
 install_TeamServer() {
 	# Installer dotnet runtime si nécessaire
+	wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+	sudo dpkg -i packages-microsoft-prod.deb
+	rm packages-microsoft-prod.deb
+	
 	sudo apt-get update
 	sudo apt-get install -y aspnetcore-runtime-8.0
 	
@@ -54,6 +58,11 @@ install_TeamServer() {
 
 
 install_WebCommander() {
+	# Installer dotnet runtime si nécessaire
+	wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+	sudo dpkg -i packages-microsoft-prod.deb
+	rm packages-microsoft-prod.deb
+	
 	# Installer dotnet runtime si nécessaire
 	sudo apt-get update
 	sudo apt-get install -y aspnetcore-runtime-8.0
@@ -86,6 +95,11 @@ install_Tools() {
 }
 
 install_Commander() {
+	# Installer dotnet runtime si nécessaire
+	wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+	sudo dpkg -i packages-microsoft-prod.deb
+	rm packages-microsoft-prod.deb
+	
 	# Installer dotnet runtime si nécessaire
 	sudo apt-get update
 	sudo apt-get install -y dotnet-runtime-7.0
