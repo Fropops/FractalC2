@@ -67,7 +67,7 @@ namespace Agent.Service
         public async Task<byte[]> ReadStream()
         {
             var stream = this._tcp.GetStream();
-            const int bufSize = 1024;
+            const int bufSize = 32768;
             int read;
 
             using (var ms = new MemoryStream())
@@ -197,13 +197,13 @@ namespace Agent.Service
 
             try
             {
-                while (client.IsConnected())
+                var readTask = Task.Run(async () =>
                 {
-                    // if client has data
-                    if (client.DataAvailable())
+                    while (client.IsConnected())
                     {
-                        // read it
                         var data = await client.ReadStream();
+                        if (data == null || data.Length == 0)
+                            break;
 
 #if DEBUG
                         Debug.WriteLine($"SOCKS [{client.Id}] : Handling Socks Data, Reponse [{data.Length}]");
@@ -213,22 +213,31 @@ namespace Agent.Service
                         var packet = new Socks4Packet(client.Id, Socks4Packet.PacketType.DATA, data);
                         var frame = this._frameService.CreateFrame(client.Agent.MetaData.Id, NetFrameType.Socks, packet);
                         await client.Agent.SendFrame(frame);
-                        // send to the drone
                     }
+                });
 
-                    byte[] request;
-                    if (client.TryDequeue(out request))
+                var writeTask = Task.Run(async () =>
+                {
+                    while (client.IsConnected())
                     {
-                        await client.WriteStream(request);
+                        byte[] request;
+                        if (client.TryDequeue(out request))
+                        {
+                            await client.WriteStream(request);
 
 #if DEBUG
-                        Debug.WriteLine($"SOCKS [{client.Id}] : Handling Socks Data, Request [{request.Length}]");
+                            Debug.WriteLine($"SOCKS [{client.Id}] : Handling Socks Data, Request [{request.Length}]");
 #endif
-
+                        }
+                        else
+                        {
+                            await Task.Delay(10);
+                        }
                     }
+                });
 
-                    await Task.Delay(100);
-                }
+                await Task.WhenAny(readTask, writeTask);
+                try { await Task.WhenAll(readTask, writeTask); } catch { }
             }
             catch { }
 

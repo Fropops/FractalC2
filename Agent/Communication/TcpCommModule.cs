@@ -109,28 +109,25 @@ namespace Agent.Models
             {
                 try
                 {
-                    //#if DEBUG
-                    //                    Debug.WriteLine($"Tcp : Read Loop");
-                    //#endif
                     if (!_client.IsAlive())
                         throw new Exception();
 
-                    if (_client.DataAvailable())
+                    var data = await this.ReadStream(_client.GetStream());
+                    if (data == null || data.Length == 0)
                     {
+                        this.OnException?.Invoke();
+                        return;
+                    }
 
-                        var data = await this.ReadStream(_client.GetStream());
-
-                        var frame = await data.BinaryDeserializeAsync<NetFrame>();
+                    var frame = await data.BinaryDeserializeAsync<NetFrame>();
 
 #if DEBUG
-                        //                        var base64 = Convert.ToBase64String(data);
-                        //                        Debug.WriteLine($"Tcp : Received Frame(s) : {base64}");
-                        Debug.WriteLine($"Tcp : Received Frame(s) : {frame.FrameType}");
+                    //                        var base64 = Convert.ToBase64String(data);
+                    //                        Debug.WriteLine($"Tcp : Received Frame(s) : {base64}");
+                    Debug.WriteLine($"Tcp : Received Frame(s) : {frame.FrameType}");
 #endif
 
-                        await this.FrameReceived?.Invoke(frame);
-
-                    }
+                    await this.FrameReceived?.Invoke(frame);
                 }
                 catch (Exception ex)
                 {
@@ -141,8 +138,6 @@ namespace Agent.Models
 
                     return;
                 }
-
-                await Task.Delay(100);
             }
 
 #if DEBUG
@@ -201,9 +196,10 @@ namespace Agent.Models
 
                     // write in chunks
                     var bytesRemaining = data.Length;
+                    const int chunkSize = 32768;
                     do
                     {
-                        var lengthToSend = bytesRemaining < 1024 ? bytesRemaining : 1024;
+                        var lengthToSend = bytesRemaining < chunkSize ? bytesRemaining : chunkSize;
                         //#if DEBUG
                         //                        Debug.WriteLine($"Pipe : Write : {lengthToSend} / {bytesRemaining} / {data.Length}");
                         //#endif
@@ -247,13 +243,16 @@ namespace Agent.Models
                 {
                     try
                     {
-                        var buf = length - totalRead >= 1024 ? new byte[1024] : new byte[length - totalRead];
+                        const int chunkSize = 32768;
+                        var buf = length - totalRead >= chunkSize ? new byte[chunkSize] : new byte[length - totalRead];
                         //#if DEBUG
                         //                        Debug.WriteLine($"Pipe : Read : {buf.Length} / {totalRead} / {length}");
                         //#endif
 
 
                         read = await stream.ReadAsync(buf, 0, buf.Length);
+                        if (read == 0)
+                            throw new Exception("Tcp disconnected");
 
                         await ms.WriteAsync(buf, 0, read);
                         totalRead += read;

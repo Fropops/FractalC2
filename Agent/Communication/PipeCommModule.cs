@@ -55,7 +55,7 @@ namespace Agent.Models
 
                         _pipeServer = new NamedPipeServerStream(this.Connexion.PipeName, PipeDirection.InOut,
                             NamedPipeServerStream.MaxAllowedServerInstances,
-                            PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 1024, 1024, ps);
+                            PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 32768, 32768, ps);
 
                         break;
                     }
@@ -124,25 +124,22 @@ namespace Agent.Models
             {
                 try
                 {
-//#if DEBUG
-//                    Debug.WriteLine($"Pipe : Read Loop");
-//#endif
-                    if (pipeStream.DataAvailable())
+                    var data = await this.ReadStream(pipeStream);
+                    if (data == null || data.Length == 0)
                     {
+                        this.OnException?.Invoke();
+                        return;
+                    }
 
-                        var data = await this.ReadStream(pipeStream);
-
-                        var frame = await data.BinaryDeserializeAsync<NetFrame>();
+                    var frame = await data.BinaryDeserializeAsync<NetFrame>();
 
 #if DEBUG
-                        //                        var base64 = Convert.ToBase64String(data);
-                        //                        Debug.WriteLine($"Pipe : Received Frame(s) : {base64}");
-                        Debug.WriteLine($"Pipe : Received Frame(s) : {frame.FrameType}");
+                    //                        var base64 = Convert.ToBase64String(data);
+                    //                        Debug.WriteLine($"Pipe : Received Frame(s) : {base64}");
+                    Debug.WriteLine($"Pipe : Received Frame(s) : {frame.FrameType}");
 #endif
-                        
-                        await this.FrameReceived?.Invoke(frame);
-
-                    }
+                    
+                    await this.FrameReceived?.Invoke(frame);
                 }
                 catch (Exception ex)
                 {
@@ -152,8 +149,6 @@ namespace Agent.Models
                     this.OnException?.Invoke();
                     return;
                 }
-
-                await Task.Delay(100);
             }
 
 #if DEBUG
@@ -216,9 +211,10 @@ namespace Agent.Models
 
                     // write in chunks
                     var bytesRemaining = data.Length;
+                    const int chunkSize = 32768;
                     do
                     {
-                        var lengthToSend = bytesRemaining < 1024 ? bytesRemaining : 1024;
+                        var lengthToSend = bytesRemaining < chunkSize ? bytesRemaining : chunkSize;
 //#if DEBUG
 //                        Debug.WriteLine($"Pipe : Write : {lengthToSend} / {bytesRemaining} / {data.Length}");
 //#endif
@@ -262,13 +258,16 @@ namespace Agent.Models
                 {
                     try
                     {
-                        var buf = length - totalRead >= 1024 ? new byte[1024] : new byte[length - totalRead];
+                        const int chunkSize = 32768;
+                        var buf = length - totalRead >= chunkSize ? new byte[chunkSize] : new byte[length - totalRead];
 //#if DEBUG
 //                        Debug.WriteLine($"Pipe : Read : {buf.Length} / {totalRead} / {length}");
 //#endif
 
 
                         read = await stream.ReadAsync(buf, 0, buf.Length);
+                        if (read == 0)
+                            throw new Exception("Pipe disconnected");
 
                         await ms.WriteAsync(buf, 0, read);
                         totalRead += read;

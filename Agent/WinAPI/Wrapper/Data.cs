@@ -21,6 +21,7 @@ namespace WinAPI.Wrapper
         public bool CreateSuspended { get; set; }
         public bool CreateNoWindow { get; set; }
         public string CurrentDirectory { get; set; }
+        public int ParentProcessId { get; set; }
 
         public ProcessCredentials Credentials { get; set; }
     }

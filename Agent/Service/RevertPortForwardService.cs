@@ -43,14 +43,13 @@ namespace Agent.Service
 
     public sealed class ReversePortForwardClient : IDisposable
     {
-        public const int BufferSize = 1024;
+        public const int BufferSize = 32768;
         public byte[] Buffer { get; set; }
         public string Id { get; private set; }
         public Agent Agent { get; private set; }
 
         public ReversePortForwardDestination Destination { get; private set; }
         public Socket Socket { get; private set; }
-        public MemoryStream Stream { get; set; }
 
         public ReversePortForwardClient(Socket client, Agent agent, ReversePortForwardDestination dest)
         {
@@ -60,23 +59,6 @@ namespace Agent.Service
             Destination = dest;
 
             Buffer = new byte[BufferSize];
-            Stream = new MemoryStream();
-        }
-
-        public void WriteDataToStream(int size)
-        {
-            Stream.Write(Buffer, 0, size);
-            Buffer = new byte[BufferSize];
-        }
-
-        public byte[] GetStreamData()
-        {
-            var data = Stream.ToArray();
-
-            Stream.Dispose();
-            Stream = new MemoryStream();
-
-            return data;
         }
 
         public void Send(byte[] data)
@@ -105,31 +87,6 @@ namespace Agent.Service
         {
             this.Disconnect();
         }
-
-
-        //public async Task<byte[]> ReadStream()
-        //{
-        //    var stream = this._tcp.GetStream();
-        //    const int bufSize = 1024;
-        //    int read;
-
-        //    using (var ms = new MemoryStream())
-        //    {
-        //        do
-        //        {
-        //            var buf = new byte[bufSize];
-        //            read = await stream.ReadAsync(buf, 0, bufSize);
-
-        //            if (read == 0)
-        //                break;
-
-        //            await ms.WriteAsync(buf, 0, read);
-
-        //        } while (read >= bufSize);
-
-        //        return ms.ToArray();
-        //    }
-        //}
     }
     internal interface IReversePortForwardService
     {
@@ -264,16 +221,24 @@ namespace Agent.Service
 #if DEBUG
                     Debug.WriteLine($"RPORTForward Client Data : {client.Id}");
 #endif
-                    // write received into stream
-                    client.WriteDataToStream(received);
+                    var data = new byte[received];
+                    Buffer.BlockCopy(client.Buffer, 0, data, 0, received);
 
-                    if (received < ReversePortForwardClient.BufferSize)
-                    {
-                        // send data to TS
-                        var packet = new ReversePortForwardPacket(client.Id, ReversePortForwardPacket.PacketType.DATA, client.GetStreamData());
-                        var f = this._frameService.CreateFrame(client.Agent.MetaData.Id, NetFrameType.ReversePortForward, packet);
-                        await client.Agent.SendFrame(f);
-                    }
+                    // send data to TS immediately
+                    var packet = new ReversePortForwardPacket(client.Id, ReversePortForwardPacket.PacketType.DATA, data);
+                    var f = this._frameService.CreateFrame(client.Agent.MetaData.Id, NetFrameType.ReversePortForward, packet);
+                    await client.Agent.SendFrame(f);
+                }
+                else
+                {
+                    // client disconnected
+                    client.Dispose();
+                    this._clients.TryRemove(client.Id, out _);
+
+                    var packet = new ReversePortForwardPacket() { Id = client.Id, Type = ReversePortForwardPacket.PacketType.DISCONNECT };
+                    var f = this._frameService.CreateFrame(client.Agent.MetaData.Id, NetFrameType.ReversePortForward, packet);
+                    await client.Agent.SendFrame(f);
+                    return;
                 }
 
                 //loop until exception

