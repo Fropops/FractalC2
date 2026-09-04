@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Spectre.Console;
 
@@ -19,6 +20,14 @@ namespace Commander.Terminal
         public event EventHandler<string> InputValidated;
 
         CancellationTokenSource _token = new CancellationTokenSource();
+        private readonly Channel<ConsoleKeyInfo> _inputChannel = Channel.CreateUnbounded<ConsoleKeyInfo>(
+            new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
+        private readonly Channel<bool> _resizeChannel = Channel.CreateUnbounded<bool>(
+            new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
+
+        private int _lastWindowWidth;
+        private int _lastWindowHeight;
+        private readonly object _layoutLock = new object();
 
         public bool CanHandleInput { get; set; } = true;
 
@@ -39,26 +48,182 @@ namespace Commander.Terminal
 
             //this.WriteLine(Console.WindowWidth + "-" + Console.WindowHeight);
             this.NewLine(false);
+
+            this.InitializeResizeTracking();
+
+            if (OperatingSystem.IsWindows())
+            {
+                // Windows : thread dédié + Channel => CPU nulle en idle
+                var inputThread = new Thread(this.ReadKeysLoop)
+                {
+                    IsBackground = true,
+                    Name = "TerminalInputReader"
+                };
+                inputThread.Start();
+            }
+            else
+            {
+                // Linux/Unix : Console.ReadKey sur un thread dédié pose souvent problème (termios/raw mode).
+                // On reste en mode poll avec un délai allongé pour limiter la conso CPU.
+                _ = Task.Run(this.PollKeysLoopAsync, _token.Token);
+            }
+
+            // Surveillance périodique du redimensionnement de la console
+            _ = Task.Run(this.MonitorResizeAsync, _token.Token);
+
+            await this.ProcessInputLoopAsync();
+        }
+
+        private void InitializeResizeTracking()
+        {
+            _lastWindowWidth = Console.WindowWidth;
+            _lastWindowHeight = Console.WindowHeight;
+        }
+
+        private void ReadKeysLoop()
+        {
             while (!_token.IsCancellationRequested)
             {
-                if (Console.KeyAvailable)
+                try
                 {
-                    var key = Console.ReadKey(true);
-                    try
+                    // Drainer d'abord les touches déjà en buffer (par ex. copier-coller)
+                    while (Console.KeyAvailable && !_token.IsCancellationRequested)
                     {
-                        this.HandleKey(key);
+                        var key = Console.ReadKey(true);
+                        _inputChannel.Writer.TryWrite(key);
                     }
-                    catch (Exception e)
+
+                    // Puis attendre la prochaine touche de façon bloquante (CPU nulle en idle)
+                    var nextKey = Console.ReadKey(true);
+                    _inputChannel.Writer.TryWrite(nextKey);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Canal fermé : arrêt du terminal
+                    break;
+                }
+                catch (Exception)
+                {
+                    // Console inaccessible (redirection, etc.) : éviter la boucle infinie bruyante
+                    break;
+                }
+            }
+        }
+
+        private async Task PollKeysLoopAsync()
+        {
+            while (!_token.IsCancellationRequested)
+            {
+                try
+                {
+                    // Vider le buffer d'entrée en une seule passe pour accélérer le copier-coller
+                    while (Console.KeyAvailable && !_token.IsCancellationRequested)
                     {
-                        this.WriteLine();
-                        this.WriteError("Terminal Error :");
-                        this.WriteError("----------------");
-                        this.WriteError(e.ToString());
-                        this.CanHandleInput = true;
+                        var key = Console.ReadKey(true);
+                        _inputChannel.Writer.TryWrite(key);
+                    }
+                    await Task.Delay(50, _token.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception)
+                {
+                    // Console inaccessible : arrêter la boucle
+                    break;
+                }
+            }
+        }
+
+        private async Task MonitorResizeAsync()
+        {
+            while (!_token.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(100, _token.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+
+                int currentWidth = Console.WindowWidth;
+                int currentHeight = Console.WindowHeight;
+
+                lock (_layoutLock)
+                {
+                    if (currentWidth != _lastWindowWidth || currentHeight != _lastWindowHeight)
+                    {
+                        _lastWindowWidth = currentWidth;
+                        _lastWindowHeight = currentHeight;
+                        _resizeChannel.Writer.TryWrite(true);
+                    }
+                }
+            }
+        }
+
+        private async Task ProcessInputLoopAsync()
+        {
+            while (!_token.IsCancellationRequested)
+            {
+                try
+                {
+                    // Attendre une touche OU un redimensionnement, sans consommer de CPU
+                    var inputWait = _inputChannel.Reader.WaitToReadAsync(_token.Token).AsTask();
+                    var resizeWait = _resizeChannel.Reader.WaitToReadAsync(_token.Token).AsTask();
+                    await Task.WhenAny(inputWait, resizeWait);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+
+                // Traiter d'abord les redimensionnements en attente
+                if (_resizeChannel.Reader.TryRead(out _))
+                {
+                    lock (_layoutLock)
+                    {
+                        while (_resizeChannel.Reader.TryRead(out _)) { }
+                        try
+                        {
+                            this.CurrentCommand?.RefreshLayout();
+                        }
+                        catch (Exception e)
+                        {
+                            this.WriteLine();
+                            this.WriteError("Terminal Resize Error :");
+                            this.WriteError("----------------------");
+                            this.WriteError(e.ToString());
+                        }
                     }
                 }
 
-                await Task.Delay(2);
+                // Puis traiter les touches en attente
+                if (_inputChannel.Reader.TryRead(out var key))
+                {
+                    this.HandleKeyWithErrorHandling(key);
+                }
+            }
+        }
+
+        private void HandleKeyWithErrorHandling(ConsoleKeyInfo key)
+        {
+            try
+            {
+                lock (_layoutLock)
+                {
+                    this.HandleKey(key);
+                }
+            }
+            catch (Exception e)
+            {
+                this.WriteLine();
+                this.WriteError("Terminal Error :");
+                this.WriteError("----------------");
+                this.WriteError(e.ToString());
+                this.CanHandleInput = true;
             }
         }
 

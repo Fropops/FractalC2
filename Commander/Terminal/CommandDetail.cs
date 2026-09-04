@@ -80,6 +80,22 @@ namespace Commander.Terminal
             this.CursorStartY = newY;
         }
 
+        public void RefreshLayout()
+        {
+            // Recalcule CursorStartY et le repliage de la ligne courante suite à un redimensionnement
+            this.Interrupt();
+
+            // S'assurer que CursorStartY reste dans le buffer avec la nouvelle largeur
+            int totalLength = this.Prompt.Length + this.Value.Length;
+            int lineCount = totalLength == 0 ? 1 : (totalLength + Console.WindowWidth - 1) / Console.WindowWidth;
+
+            int maxStartY = Console.BufferHeight - lineCount;
+            if (this.CursorStartY > maxStartY)
+                this.CursorStartY = Math.Max(0, maxStartY);
+
+            this.Print();
+        }
+
         private int FullLength
         {
             get
