@@ -112,7 +112,7 @@ namespace Common.AgentCommands.Custom
                 context.Echo($"[>] Waiting {options.injectDelay}s to evade antivirus");
                 context.Delay(options.injectDelay + 10);
 
-                context.Echo($"R[>] emoving injector {path}");
+                context.Echo($"[>] Removing injector {path}");
                 context.DeleteFile(path);
             }
             else
