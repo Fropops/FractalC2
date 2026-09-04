@@ -167,25 +167,25 @@ namespace Commander.Commands.Agent
 
         public Task<APIImplant> GeneratePayload(ImplantConfig options)
         {
-            return Task.FromResult(GeneratePayloadAndDisplay(options));
+            return GeneratePayloadAndDisplayAsync(options);
         }
 
-        public void TaskAgent(string commandLine, CommandId commandId)
+        public async Task TaskAgent(string commandLine, CommandId commandId)
         {
-            TaskAgent(commandLine, commandId, this.Parameters);
+            await TaskAgent(commandLine, commandId, this.Parameters);
         }
 
-        public void TaskAgent(string commandLine, CommandId commandId, ParameterDictionary parameters)
+        public async Task TaskAgent(string commandLine, CommandId commandId, ParameterDictionary parameters)
         {
-            this.CommModule.TaskAgent(commandLine, this.Executor.CurrentAgent.Id, commandId, parameters).Wait();
+            await this.CommModule.TaskAgent(commandLine, this.Executor.CurrentAgent.Id, commandId, parameters);
             this.Terminal.WriteSuccess($"Command {commandLine} tasked to agent {this.Executor.CurrentAgent?.Metadata?.Name}.");
         }
 
-        internal APIImplant GeneratePayloadAndDisplay(ImplantConfig options)
+        internal async Task<APIImplant> GeneratePayloadAndDisplayAsync(ImplantConfig options)
         {
             APIImplant implant = null;
-            AnsiConsole.Status()
-                    .Start($"[olive]Generating Payload {options.Type} for Endpoint {options.Endpoint} (arch = {options.Architecture}).[/]", ctx =>
+            await AnsiConsole.Status()
+                    .StartAsync($"[olive]Generating Payload {options.Type} for Endpoint {options.Endpoint} (arch = {options.Architecture}).[/]", async ctx =>
                     {
                         if (string.IsNullOrEmpty(options.ImplantName))
                             options.ImplantName = PayloadGenerator.GenerateImplantName();
@@ -193,7 +193,7 @@ namespace Commander.Commands.Agent
                         try
                         {
                             this.Terminal.WriteInfo("Triggering server-side generation...");
-                            var result = this.CommModule.GenerateImplant(options).GetAwaiter().GetResult();
+                            var result = await this.CommModule.GenerateImplant(options);
                             implant = result.Implant;
                         }
                         catch (Exception ex)

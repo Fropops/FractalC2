@@ -190,14 +190,14 @@ namespace WebCommander.Commands
             return res.Implant;
         }
 
-        public void TaskAgent(string commandLine, CommandId commandId)
+        public async Task TaskAgent(string commandLine, CommandId commandId)
         {
-            TaskAgent(commandLine, commandId, this.Parameters);
+            await TaskAgent(commandLine, commandId, this.Parameters);
         }
 
-        public void TaskAgent(string commandLine, CommandId commandId, ParameterDictionary parameters)
+        public async Task TaskAgent(string commandLine, CommandId commandId, ParameterDictionary parameters)
         {
-            _ = _client.TaskAgent(commandLine, _agent.Id, commandId, parameters);
+            await _client.TaskAgent(commandLine, _agent.Id, commandId, parameters);
             this.WriteSuccess($"Command {commandLine} tasked to agent {this.Metadata?.Name}.");
         }
     }

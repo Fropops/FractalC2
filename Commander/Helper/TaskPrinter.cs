@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using BinarySerializer;
 using Commander.Executor;
 using Commander.Terminal;
@@ -15,18 +16,18 @@ namespace Commander.Helper
     public class TaskPrinter
     {
 
-        private static Dictionary<CommandId, Action<TeamServerAgentTask, AgentTaskResult, ITerminal>> _printObjectsFunctions = new Dictionary<CommandId, Action<TeamServerAgentTask, AgentTaskResult, ITerminal>>();
+        private static Dictionary<CommandId, Func<TeamServerAgentTask, AgentTaskResult, ITerminal, Task>> _printObjectsFunctions = new Dictionary<CommandId, Func<TeamServerAgentTask, AgentTaskResult, ITerminal, Task>>();
 
         static TaskPrinter()
         {
-            _printObjectsFunctions.Add(CommandId.Ls, PrintLs);
-            _printObjectsFunctions.Add(CommandId.Job, PrintJobs);
-            _printObjectsFunctions.Add(CommandId.Link, PrintLinks);
-            _printObjectsFunctions.Add(CommandId.ListProcess, PrintProcessList);
-            _printObjectsFunctions.Add(CommandId.RportFwd, PrintRportFwd);
+            _printObjectsFunctions.Add(CommandId.Ls, PrintLsAsync);
+            _printObjectsFunctions.Add(CommandId.Job, PrintJobsAsync);
+            _printObjectsFunctions.Add(CommandId.Link, PrintLinksAsync);
+            _printObjectsFunctions.Add(CommandId.ListProcess, PrintProcessListAsync);
+            _printObjectsFunctions.Add(CommandId.RportFwd, PrintRportFwdAsync);
         }
 
-        public static void Print(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal, bool fullLabel = false)
+        public static async Task PrintAsync(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal, bool fullLabel = false)
         {
             var cmd = task.Command;
             var status = result.Status;
@@ -60,13 +61,13 @@ namespace Commander.Helper
             if (!string.IsNullOrEmpty(result.Error))
                 terminal.WriteError(result.Error);
 
-            WriteObjects(task, result, terminal);
+            await WriteObjectsAsync(task, result, terminal);
             return;
         }
 
 
 
-        private static void WriteObjects(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
+        private static async Task WriteObjectsAsync(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
         {
             if (result.Objects == null || result.Objects.Length == 0)
                 return;
@@ -74,14 +75,14 @@ namespace Commander.Helper
             if (!_printObjectsFunctions.ContainsKey(task.CommandId))
                 return;
 
-            _printObjectsFunctions[task.CommandId](task, result, terminal);
+            await _printObjectsFunctions[task.CommandId](task, result, terminal);
 
             terminal.WriteLine();
         }
 
-        private static void PrintLs(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
+        private static async Task PrintLsAsync(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
         {
-            var list = result.Objects.BinaryDeserializeAsync<ListDirectoryResult>().Result;
+            var list = await result.Objects.BinaryDeserializeAsync<ListDirectoryResult>();
             var table = new Table();
             table.Border(TableBorder.Rounded);
             // Add some columns
@@ -96,9 +97,9 @@ namespace Commander.Helper
             terminal.Write(table);
         }
 
-        private static void PrintJobs(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
+        private static async Task PrintJobsAsync(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
         {
-            var list = result.Objects.BinaryDeserializeAsync<List<Job>>().Result;
+            var list = await result.Objects.BinaryDeserializeAsync<List<Job>>();
             var table = new Table();
             table.Border(TableBorder.Rounded);
             // Add some columns
@@ -112,9 +113,9 @@ namespace Commander.Helper
             terminal.Write(table);
         }
 
-        private static void PrintLinks(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
+        private static async Task PrintLinksAsync(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
         {
-            var list = result.Objects.BinaryDeserializeAsync<List<LinkInfo>>().Result;
+            var list = await result.Objects.BinaryDeserializeAsync<List<LinkInfo>>();
             var table = new Table();
             table.Border(TableBorder.Rounded);
             // Add some columns
@@ -127,9 +128,9 @@ namespace Commander.Helper
             terminal.Write(table);
         }
 
-        private static void PrintProcessList(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
+        private static async Task PrintProcessListAsync(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
         {
-            var list = result.Objects.BinaryDeserializeAsync<List<ListProcessResult>>().Result;
+            var list = await result.Objects.BinaryDeserializeAsync<List<ListProcessResult>>();
             var table = new Table();
             table.Border(TableBorder.Rounded);
             // Add some columns
@@ -196,9 +197,9 @@ namespace Commander.Helper
             return new Markup(value);
         }
 
-        private static void PrintRportFwd(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
+        private static async Task PrintRportFwdAsync(TeamServerAgentTask task, AgentTaskResult result, ITerminal terminal)
         {
-            var list = result.Objects.BinaryDeserializeAsync<List<ReversePortForwarResult>>().Result;
+            var list = await result.Objects.BinaryDeserializeAsync<List<ReversePortForwarResult>>();
             var table = new Table();
             table.Border(TableBorder.Rounded);
             // Add some columns

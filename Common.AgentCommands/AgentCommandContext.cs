@@ -1,4 +1,5 @@
-﻿using Common.APIModels;
+﻿using System.Threading.Tasks;
+using Common.APIModels;
 using Common.Command;
 using Common.CommandLine.Core;
 using Common.Payload;
@@ -35,9 +36,9 @@ namespace Common.AgentCommands
         void WriteInfo(string message);
 
         Task<APIImplant> GeneratePayload(ImplantConfig options);
-        void TaskAgent(string commandLine, CommandId commandId);
+        Task TaskAgent(string commandLine, CommandId commandId);
 
-        void TaskAgent(string commandLine, CommandId commandId, ParameterDictionary parameters);
+        Task TaskAgent(string commandLine, CommandId commandId, ParameterDictionary parameters);
         
         AgentMetadata Metadata { get; }
     }
@@ -128,14 +129,14 @@ namespace Common.AgentCommands
             this.Adapter.Shell(cmd);
         }
 
-        public void TaskAgent(string commandLine, CommandId commandId)
+        public async Task TaskAgent(string commandLine, CommandId commandId)
         {
-            this.Adapter.TaskAgent(commandLine, commandId);
+            await this.Adapter.TaskAgent(commandLine, commandId);
         }
 
-        public void TaskAgent(string commandLine, CommandId commandId, ParameterDictionary parameters)
+        public async Task TaskAgent(string commandLine, CommandId commandId, ParameterDictionary parameters)
         {
-            this.Adapter.TaskAgent(commandLine, commandId, parameters);
+            await this.Adapter.TaskAgent(commandLine, commandId, parameters);
         }
 
         public void Upload(byte[] fileBytes, string path)

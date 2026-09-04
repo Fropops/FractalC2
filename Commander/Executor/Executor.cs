@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using BinarySerializer;
 using Commander.Commands;
 using Commander.Commands.Agent;
@@ -111,7 +112,7 @@ namespace Commander.Executor
             }
         }
 
-        private void CommModule_TaskResultUpdated(object sender, AgentTaskResult res)
+        private async void CommModule_TaskResultUpdated(object sender, AgentTaskResult res)
         {
             var task = this.CommModule.GetTask(res.Id);
             if (task == null)
@@ -130,13 +131,13 @@ namespace Commander.Executor
                 return;
 
             this.Terminal.Interrupt();
-            TaskPrinter.Print(task, res, this.Terminal);
+            await TaskPrinter.PrintAsync(task, res, this.Terminal);
 
             if(task.CommandId == CommandId.Capture)
             {
                 if (res.Objects == null || res.Objects.Length == 0)
                     return;
-                var list = res.Objects.BinaryDeserializeAsync<List<DownloadFile>>().Result;
+                var list = await res.Objects.BinaryDeserializeAsync<List<DownloadFile>>();
 
                 if (!Directory.Exists("media"))
                     Directory.CreateDirectory("media");
@@ -202,17 +203,17 @@ namespace Commander.Executor
 
         private void Instance_InputValidated(object sender, string e)
         {
-            this.HandleInput(e);
+            _ = Task.Run(async () => await this.HandleInputAsync(e));
         }
 
-        public void HandleInput(string input)
+        public async Task HandleInputAsync(string input)
         {
             this.Terminal.CanHandleInput = false;
             string error = $"Command {input} is unknow.";
 
             try
             {
-                var commandDef = this.CommandExecutor.GetCommand(input).Result;
+                var commandDef = await this.CommandExecutor.GetCommand(input);
                 if(commandDef == null)
                 {
                     this.Terminal.WriteError(error);
@@ -225,7 +226,7 @@ namespace Commander.Executor
                     return;
                 }
 
-                var result = this.CommandExecutor.ExecuteAsync(input).Result;
+                var result = await this.CommandExecutor.ExecuteAsync(input);
                 if(result.Failed && !string.IsNullOrEmpty(result.Message))
                 {
                     this.Terminal.WriteError($"{result.Message}");

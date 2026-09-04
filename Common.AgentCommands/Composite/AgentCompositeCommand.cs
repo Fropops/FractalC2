@@ -25,7 +25,7 @@ namespace Common.AgentCommands.Composite
 
             context.AddParameter(ParameterId.Parameters, context.GetTasks());
 
-            context.TaskAgent(options.CommandLine, this.CommandId, context.GetParameters());
+            await context.TaskAgent(options.CommandLine, this.CommandId, context.GetParameters());
             return true;
         }
 

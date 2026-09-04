@@ -35,16 +35,16 @@ namespace Common.AgentCommands
 
         public virtual async Task<bool> Execute(AgentCommandContext context, TOption options)
         {
-            this.CallEndPointCommand(context, options);
+            await this.CallEndPointCommand(context, options);
             return true;
         }
 
-        protected void CallEndPointCommand(AgentCommandContext context, TOption options)
+        protected async Task CallEndPointCommand(AgentCommandContext context, TOption options)
         {
             if (!this.CheckParams(context, options))
                 return;
             this.SpecifyParameters(context, options);
-            context.TaskAgent(options.CommandLine, this.CommandId);
+            await context.TaskAgent(options.CommandLine, this.CommandId);
         }
 
         protected virtual void SpecifyParameters(AgentCommandContext context, TOption options)

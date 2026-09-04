@@ -46,7 +46,7 @@ namespace Commander.Commands.Agent
                     context.Terminal.WriteInfo($"Task : {task.Command} is queued.");
                 else
                 {
-                    TaskPrinter.Print(task, result, context.Terminal);
+                    await TaskPrinter.PrintAsync(task, result, context.Terminal);
 
                     if (options.loot)
                     {

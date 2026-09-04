@@ -51,7 +51,7 @@ namespace Common.AgentCommands
             context.AddParameter(ParameterId.Id, options.ProcessId);
             context.AddParameter(ParameterId.Bind, endpoint.ToString());
             context.AddParameter(ParameterId.Target, options.X86 ? "x86" : "x64");
-            context.TaskAgent(options.CommandLine, this.CommandId, context.GetParameters());
+            await context.TaskAgent(options.CommandLine, this.CommandId, context.GetParameters());
 
             return true;
         }

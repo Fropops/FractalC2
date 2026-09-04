@@ -74,7 +74,7 @@ namespace Commander.Commands
             parameters.AddParameter(ParameterId.Parameters, dest);
             parameters.AddParameter(ParameterId.Verb, CommandVerbs.Start);
 
-            context.TaskAgent(options.CommandLine, this.CommandId, parameters);
+            await context.TaskAgent(options.CommandLine, this.CommandId, parameters);
 
             return true;
         }
@@ -91,7 +91,7 @@ namespace Commander.Commands
             parameters.AddParameter(ParameterId.Port, options.port.Value);
             parameters.AddParameter(ParameterId.Verb, CommandVerbs.Stop);
 
-            context.TaskAgent(options.CommandLine, this.CommandId, parameters);
+            await context.TaskAgent(options.CommandLine, this.CommandId, parameters);
 
             return true;
         }
@@ -101,7 +101,7 @@ namespace Commander.Commands
            
             var parameters = new ParameterDictionary();
             parameters.AddParameter(ParameterId.Verb, CommandVerbs.Show);
-            context.TaskAgent(options.CommandLine, this.CommandId, parameters);
+            await context.TaskAgent(options.CommandLine, this.CommandId, parameters);
             return true;
         }
     }

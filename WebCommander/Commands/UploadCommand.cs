@@ -46,7 +46,7 @@ namespace WebCommander.Commands
             string filename = options.remoteFile ?? fileInfo.FileName;
             context.AddParameter(ParameterId.Name, filename);
 
-            context.TaskAgent(options.CommandLine, CommandId.Upload);
+            await context.TaskAgent(options.CommandLine, CommandId.Upload);
 
             return true;
         }

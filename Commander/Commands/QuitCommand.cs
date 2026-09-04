@@ -17,7 +17,7 @@ namespace Commander.Commands
         public async Task<bool> Execute(CommanderCommandContext context, CommandOption options)
         {
             if (context.CommModule.ConnectionStatus == ConnectionStatus.Connected)
-                context.CommModule.CloseSession().Wait();
+                await context.CommModule.CloseSession();
             context.Executor.Stop();
 
             return true;
