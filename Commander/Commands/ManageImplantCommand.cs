@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
@@ -136,7 +136,7 @@ namespace Commander.Commands
 
             if (!string.IsNullOrEmpty(listenerName))
             {
-                var listener = context.CommModule.GetListeners().FirstOrDefault(l => l.Name.Equals(listenerName, StringComparison.OrdinalIgnoreCase));
+                var listener = context.CommModule.GetListeners().FirstOrDefault(l => l.Name?.Equals(listenerName, StringComparison.OrdinalIgnoreCase) == true);
                 if (listener == null)
                 {
                     context.Terminal.WriteError($"Listener '{listenerName}' not found.");
@@ -227,7 +227,7 @@ namespace Commander.Commands
             try
             {
                 var implants = context.CommModule.GetImplants();
-                var implantInfo = implants.FirstOrDefault(i => string.Equals(i.Config?.ImplantName, name, StringComparison.OrdinalIgnoreCase));
+                var implantInfo = implants.FirstOrDefault(i => i.Config?.ImplantName?.Equals(name, StringComparison.OrdinalIgnoreCase) == true);
 
                 if (implantInfo == null)
                 {
@@ -238,7 +238,7 @@ namespace Commander.Commands
                 context.Terminal.WriteInfo($"Downloading implant {name}...");
                 var implant = await context.CommModule.GetImplantBinary(implantInfo.Id);
 
-                if (string.IsNullOrEmpty(implant.Data))
+                if (implant == null || string.IsNullOrEmpty(implant.Data))
                 {
                     context.Terminal.WriteError("No data found for this implant.");
                     return false;
@@ -270,7 +270,7 @@ namespace Commander.Commands
             }
 
             var implants = context.CommModule.GetImplants();
-            var implantInfo = implants.FirstOrDefault(i => string.Equals(i.Config?.ImplantName, name, StringComparison.OrdinalIgnoreCase));
+            var implantInfo = implants.FirstOrDefault(i => i.Config?.ImplantName?.Equals(name, StringComparison.OrdinalIgnoreCase) == true);
 
             if (implantInfo == null)
             {
@@ -293,7 +293,7 @@ namespace Commander.Commands
             }
 
             var implants = context.CommModule.GetImplants();
-            var selectedImplant = implants.FirstOrDefault(i => string.Equals(i.Config?.ImplantName, name, StringComparison.OrdinalIgnoreCase));
+            var selectedImplant = implants.FirstOrDefault(i => i.Config?.ImplantName?.Equals(name, StringComparison.OrdinalIgnoreCase) == true);
 
             if (selectedImplant == null)
             {

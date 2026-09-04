@@ -1,4 +1,5 @@
-﻿using System.CommandLine;
+using System;
+using System.CommandLine;
 using System.Linq;
 using System.Threading.Tasks;
 using Commander.Executor;
@@ -26,7 +27,7 @@ namespace Commander.Commands
             if (int.TryParse(options.id, out index))
                 agent = context.CommModule.GetAgent(index);
             else
-                agent = context.CommModule.GetAgents().FirstOrDefault(a => a.Metadata.Id.ToLower().Equals(options.id.ToLower()));
+                agent = context.CommModule.GetAgents().FirstOrDefault(a => a.Metadata?.Id?.Equals(options.id, StringComparison.OrdinalIgnoreCase) == true);
 
             if (agent == null)
             {

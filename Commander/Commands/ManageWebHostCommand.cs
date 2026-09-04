@@ -1,3 +1,4 @@
+using System;
 using Commander.Helper;
 using Common.APIModels.WebHost;
 using Common.CommandLine.Core;
@@ -78,21 +79,34 @@ namespace Commander.Commands
             var list = await context.CommModule.GetWebHosts();
             if (!string.IsNullOrEmpty(options.path))
             {
-                if (!list.Any(h => h.Path.ToLower() == options.path.ToLower()))
+                var host = list.FirstOrDefault(h => string.Equals(h.Path, options.path, StringComparison.OrdinalIgnoreCase));
+                if (host == null)
                 {
                     context.Terminal.WriteError($"[X] Host {options.path} not found");
                     return false;
                 }
                 else
-                    list = new List<FileWebHost> { list.First(h => h.Path.ToLower() == options.path.ToLower()) };
+                {
+                    list = new List<FileWebHost> { host };
+                }
             }
 
 
             List<TeamServerListener> listeners = null;
             if (!string.IsNullOrEmpty(options.listener))
-                listeners = new List<TeamServerListener>() { context.CommModule.GetListeners().First(l => l.Name.ToLower() == options.listener.ToLower()) };
+            {
+                var listener = context.CommModule.GetListeners().FirstOrDefault(l => string.Equals(l.Name, options.listener, StringComparison.OrdinalIgnoreCase));
+                if (listener == null)
+                {
+                    context.Terminal.WriteError($"[X] Listener '{options.listener}' not found");
+                    return false;
+                }
+                listeners = new List<TeamServerListener>() { listener };
+            }
             else
+            {
                 listeners = context.CommModule.GetListeners().ToList();
+            }
 
             foreach (var listener in listeners)
             {
@@ -169,7 +183,7 @@ namespace Commander.Commands
         protected async Task<bool> Remove(CommanderCommandContext context, ManageWebHostCommandOptions options)
         {
             var list = await context.CommModule.GetWebHosts();
-            if (!list.Any(h => h.Path.ToLower() == options.path.ToLower()))
+            if (!list.Any(h => string.Equals(h.Path, options.path, StringComparison.OrdinalIgnoreCase)))
             {
                 context.Terminal.WriteError($"[X] Host {options.path} not found");
                 return false;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -51,7 +51,7 @@ namespace Commander.Commands
                     options.port = 80;
             }
 
-            if (context.CommModule.GetListeners().Any(l => l.Name.ToLower().Equals(options.name.ToLower())))
+            if (context.CommModule.GetListeners().Any(l => l.Name?.Equals(options.name, StringComparison.OrdinalIgnoreCase) == true))
             {
                 context.Terminal.WriteError($"A listener with the name {options.name} already exists !");
                 return false;
@@ -80,7 +80,7 @@ namespace Commander.Commands
                 return false;
             }
 
-            var listener = context.CommModule.GetListeners().FirstOrDefault(l => l.Name.ToLower().Equals(options.name.ToLower()));
+            var listener = context.CommModule.GetListeners().FirstOrDefault(l => l.Name?.Equals(options.name, StringComparison.OrdinalIgnoreCase) == true);
             if (listener == null)
             {
                 context.Terminal.WriteError($"Cannot find listener with the name {options.name} !");

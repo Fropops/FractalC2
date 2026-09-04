@@ -137,9 +137,14 @@ namespace Commander.Commands
                 if (int.TryParse(options.index, out index))
                     agt = context.CommModule.GetAgent(index);
                 else
-                    agt = context.CommModule.GetAgents().FirstOrDefault(a => a.Metadata.Name.ToLower().Equals(options.index.ToLower()));
+                    agt = context.CommModule.GetAgents().FirstOrDefault(a => a.Metadata?.Name?.Equals(options.index, StringComparison.OrdinalIgnoreCase) == true);
                 if (agt != null)
                     agents.Add(agt);
+                else
+                {
+                    context.Terminal.WriteError($"Agent '{options.index}' not found.");
+                    return false;
+                }
             }
 
             foreach (var agent in agents)
