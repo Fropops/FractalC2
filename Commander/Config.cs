@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,8 +18,8 @@ namespace Commander
         public int Port { get; set; }
         public string User { get; set; }
         public string ApiKey { get; set; }
-
-    
+        public bool Secured { get; set; } = false;
+        public bool IgnoreCertificateErrors { get; set; } = true;
 
         public int Delay { get; set; } = 500;
         public string EndPoint => this.Address + ":" + this.Port;
@@ -30,6 +30,19 @@ namespace Commander
             this.Port = section.GetValue<int>("Port");
             this.User = section.GetValue<string>("User");
             this.ApiKey = section.GetValue<string>("ApiKey");
+            if (section.GetSection("Secured").Exists())
+            {
+                this.Secured = section.GetValue<bool>("Secured");
+            }
+            else if (!string.IsNullOrEmpty(this.Address) && this.Address.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                this.Secured = true;
+            }
+
+            if (section.GetSection("IgnoreCertificateErrors").Exists())
+            {
+                this.IgnoreCertificateErrors = section.GetValue<bool>("IgnoreCertificateErrors");
+            }
         }
     }
 

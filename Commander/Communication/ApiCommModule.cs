@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Shared;
 using CommandId = Shared.CommandId;
 using ParameterDictionary = Shared.ParameterDictionary;
@@ -8,6 +8,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
 using Commander.Terminal;
@@ -34,6 +36,7 @@ namespace Commander.Communication
         private FractalApiClient _apiClient;
         private FractalApiCache _apiCache;
         private StateSyncService _syncService;
+        private SocketsHttpHandler _httpHandler;
         private HttpClient _httpClient;
         private HashSet<string> _knownAgents = new HashSet<string>();
 
@@ -90,12 +93,49 @@ namespace Commander.Communication
             this.UpdateConfig();
         }
 
+        private SocketsHttpHandler CreateHttpHandler()
+        {
+            return new SocketsHttpHandler
+            {
+                PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+                SslOptions = new SslClientAuthenticationOptions
+                {
+                    RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
+                    {
+                        if (this.Config?.ApiConfig?.IgnoreCertificateErrors ?? true)
+                        {
+                            return true;
+                        }
+                        return sslPolicyErrors == SslPolicyErrors.None;
+                    }
+                }
+            };
+        }
+
         public void UpdateConfig()
         {
             var previousHttpClient = _httpClient;
-            var httpClient = new HttpClient();
+
+            if (_httpHandler == null)
+            {
+                _httpHandler = CreateHttpHandler();
+            }
+
+            var scheme = (this.Config?.ApiConfig?.Secured == true) ? "https" : "http";
+            var rawAddress = this.Config?.ApiConfig?.Address ?? string.Empty;
+            var cleanAddress = rawAddress.Trim();
+            if (cleanAddress.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+                cleanAddress = cleanAddress.Substring("http://".Length);
+            else if (cleanAddress.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                cleanAddress = cleanAddress.Substring("https://".Length);
+            cleanAddress = cleanAddress.TrimEnd('/');
+
+            var port = this.Config?.ApiConfig?.Port ?? 0;
+            var baseUri = new Uri($"{scheme}://{cleanAddress}:{port}");
+
+            var httpClient = new HttpClient(_httpHandler, disposeHandler: false);
             httpClient.Timeout = new TimeSpan(0, 0, 5);
-            httpClient.BaseAddress = new Uri($"http://{this.Config.ApiConfig.EndPoint}");
+            httpClient.BaseAddress = baseUri;
             httpClient.DefaultRequestHeaders.Clear();
             // TODO: Token generation logic should be in BaseApiClient or handled here.
             // Current BaseApiClient takes HttpClient. So we configure HttpClient here.
@@ -431,6 +471,8 @@ namespace Commander.Communication
             this.Stop();
             _syncService?.Dispose();
             _httpClient?.Dispose();
+            _httpHandler?.Dispose();
+            _httpHandler = null;
         }
 
     }
