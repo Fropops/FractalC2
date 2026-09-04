@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using BinarySerializer;
 using System.Diagnostics;
 #if WINDOWS
+using WinAPI;
 using WinAPI.DInvoke;
 #endif
 
@@ -36,17 +37,16 @@ namespace Agent
         private List<AgentCommand> _commands = new List<AgentCommand>();
 
 #if WINDOWS
-        private IntPtr _impersonationToken;
-        public IntPtr ImpersonationToken
+        private SafeTokenHandle _impersonationToken = SafeTokenHandle.InvalidHandle;
+        public SafeTokenHandle ImpersonationToken
         {
             get => _impersonationToken;
             set
             {
                 // ensure the handle is closed first
-                if (_impersonationToken != IntPtr.Zero)
-                    Kernel32.CloseHandle(_impersonationToken);
+                _impersonationToken?.Dispose();
 
-                _impersonationToken = value;
+                _impersonationToken = value ?? SafeTokenHandle.InvalidHandle;
             }
         }
 #endif
@@ -293,9 +293,9 @@ namespace Agent
             TaskTokens.Add(task.Id, tokenSource);
 #if WINDOWS
             // get the current identity
-            using (var identity = ImpersonationToken == IntPtr.Zero
+            using (var identity = ImpersonationToken == null || ImpersonationToken.IsInvalid
                 ? WindowsIdentity.GetCurrent()
-                : new WindowsIdentity(ImpersonationToken))
+                : new WindowsIdentity(ImpersonationToken.DangerousGetHandle()))
 #endif
             {
 #if WINDOWS

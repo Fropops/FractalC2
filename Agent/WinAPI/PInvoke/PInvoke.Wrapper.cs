@@ -8,10 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using WinAPI.Data.AdvApi;
 using WinAPI.Data.Kernel32;
-using WinAPI.PInvoke;
+using WinAPI.Data.Native;
 using WinAPI.Wrapper;
-using static WinAPI.DInvoke.Data.Native;
-using static WinAPI.DInvoke.Kernel32;
 
 namespace WinAPI.PInvoke
 {
@@ -21,7 +19,8 @@ namespace WinAPI.PInvoke
         {
             return Kernel32.CloseHandle(handle);
         }
-        public static ProcessCreationResult CreateProcess(ProcessCreationParameters parms)
+
+        public static ProcessCreationResult CreateProcess(WinAPI.Wrapper.ProcessCreationParameters parms)
         {
             var startupInfoEx = new STARTUPINFOEX();
             startupInfoEx.StartupInfo.cb = (uint)Marshal.SizeOf(startupInfoEx);
@@ -58,7 +57,7 @@ namespace WinAPI.PInvoke
 
                 if (parms.ParentProcessId != 0)
                 {
-                    hParentProcess = Kernel32.OpenProcess(ProcessAccessFlags.PROCESS_CREATE_PROCESS, false, parms.ParentProcessId);
+                    hParentProcess = Kernel32.OpenProcess(ProcessAccessFlags.PROCESS_CREATE_PROCESS, false, (int)parms.ParentProcessId);
                     if (hParentProcess != IntPtr.Zero)
                     {
                         parentAttributeValue = Marshal.AllocHGlobal(IntPtr.Size);
@@ -108,10 +107,10 @@ namespace WinAPI.PInvoke
                     if (!Advapi.CreateProcessWithLogonW(parms.Credentials.Username, parms.Credentials.Domain, parms.Credentials.Password, (uint)LogonFlags.LogonWithProfile, parms.Application, parms.Command, (uint)creationFlags, IntPtr.Zero, parms.CurrentDirectory, ref startupInfoEx, out pInfo))
                         throw new InvalidOperationException($"Error in CreateProcessWithLogonW : {Marshal.GetLastWin32Error()}");
                 }
-                else if (parms.Token != IntPtr.Zero)
+                else if (parms.Token != null && !parms.Token.IsInvalid)
                 {
 
-                    if (!Advapi.CreateProcessWithTokenW(parms.Token, (uint)LogonFlags.LogonWithProfile, parms.Application, parms.Command, (uint)creationFlags, IntPtr.Zero, parms.CurrentDirectory, ref startupInfoEx, out pInfo))
+                    if (!Advapi.CreateProcessWithTokenW(parms.Token.DangerousGetHandle(), (uint)LogonFlags.LogonWithProfile, parms.Application, parms.Command, (uint)creationFlags, IntPtr.Zero, parms.CurrentDirectory, ref startupInfoEx, out pInfo))
                         throw new InvalidOperationException($"Error in CreateProcessWithTokenW : {Marshal.GetLastWin32Error()}");
                 }
                 else
@@ -151,9 +150,9 @@ namespace WinAPI.PInvoke
             return result;
         }
 
-        public static IntPtr StealToken(int processId)
+        public static SafeTokenHandle StealToken(uint processId)
         {
-            var process = Process.GetProcessById(processId);
+            var process = Process.GetProcessById((int)processId);
 
             var hToken = IntPtr.Zero;
             var hTokenDup = IntPtr.Zero;
@@ -179,7 +178,7 @@ namespace WinAPI.PInvoke
                     throw new InvalidOperationException($"Failed to impersonate token");
 
                 //var identity = new WindowsIdentity(hTokenDup);
-                return hTokenDup;
+                return new SafeTokenHandle(hTokenDup, true);
             }
             finally
             {
@@ -289,7 +288,7 @@ namespace WinAPI.PInvoke
         public static IntPtr OpenProcess(uint processId, ProcessAccessFlags desiredAccess)
         {
             IntPtr hProcess;
-            var oa = new OBJECT_ATTRIBUTES();
+            var oa = new DInvoke.Data.Native.OBJECT_ATTRIBUTES();
             var clientId = new CLIENT_ID { UniqueProcess = (IntPtr)processId };
 
             _ = Native.NtOpenProcess(

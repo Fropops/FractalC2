@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Agent.Models;
+using Microsoft.Win32.SafeHandles;
 using WinAPI.DInvoke;
 using WinAPI.Data.AdvApi;
 using Shared;
@@ -42,44 +43,65 @@ namespace Agent.Commands.Execution
             context.AppendResult($"service : {serviceName}");
 
             // open handle to scm
-            var scmHandle = Advapi.OpenSCManager(
+            using (var scmHandle = new SafeServiceHandle(Advapi.OpenSCManager(
                 target,
-                SCM_ACCESS_RIGHTS.SC_MANAGER_CREATE_SERVICE);
-
-            if (scmHandle == IntPtr.Zero)
-                throw new Win32Exception(Marshal.GetLastWin32Error());
-
-           
-
-            // create service
-            var svcHandle = Advapi.CreateService(
-                scmHandle,
-                serviceName,
-                displayName,
-                SERVICE_ACCESS_RIGHTS.SERVICE_ALL_ACCESS,
-                SERVICE_TYPE.SERVICE_WIN32_OWN_PROCESS,
-                START_TYPE.SERVICE_DEMAND_START,
-                binpath);
-
-            if (svcHandle == IntPtr.Zero)
+                SCM_ACCESS_RIGHTS.SC_MANAGER_CREATE_SERVICE)))
             {
-                Advapi.CloseServiceHandle(scmHandle);
-                throw new Win32Exception(Marshal.GetLastWin32Error());
+                if (scmHandle.IsInvalid)
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+
+                // create service
+                using (var svcHandle = new SafeServiceHandle(Advapi.CreateService(
+                    scmHandle.DangerousGetHandle(),
+                    serviceName,
+                    displayName,
+                    SERVICE_ACCESS_RIGHTS.SERVICE_ALL_ACCESS,
+                    SERVICE_TYPE.SERVICE_WIN32_OWN_PROCESS,
+                    START_TYPE.SERVICE_DEMAND_START,
+                    binpath)))
+                {
+                    if (svcHandle.IsInvalid)
+                        throw new Win32Exception(Marshal.GetLastWin32Error());
+
+                    // start service
+                    // this will fail on generic commands, so don't expect a true result
+                    Advapi.StartService(svcHandle.DangerousGetHandle());
+
+                    // little sleep
+                    await Task.Delay(3000, token);
+
+                    // delete service
+                    Advapi.DeleteService(svcHandle.DangerousGetHandle());
+                }
             }
+        }
+    }
 
-            // start service
-            // this will fail on generic commands, so don't expect a true result
-            Advapi.StartService(svcHandle);
+    [SecurityCritical]
+    internal sealed class SafeServiceHandle : SafeHandleZeroOrMinusOneIsInvalid
+    {
+        private SafeServiceHandle()
+            : base(true)
+        {
+        }
 
-            // little sleep
-            Thread.Sleep(3000);
+        public SafeServiceHandle(IntPtr preexistingHandle, bool ownsHandle = true)
+            : base(ownsHandle)
+        {
+            SetHandle(preexistingHandle);
+        }
 
-            // delete service
-            Advapi.DeleteService(svcHandle);
-
-            // close handles
-            Advapi.CloseServiceHandle(svcHandle);
-            Advapi.CloseServiceHandle(scmHandle);
+        [SecurityCritical]
+        protected override bool ReleaseHandle()
+        {
+            try
+            {
+                return Advapi.CloseServiceHandle(handle);
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

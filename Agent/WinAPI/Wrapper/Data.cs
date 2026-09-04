@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WinAPI;
 
 namespace WinAPI.Wrapper
 {
@@ -16,12 +17,12 @@ namespace WinAPI.Wrapper
     {
         public string Application { get; set; }
         public string Command { get; set; }
-        public IntPtr Token { get; set; }
+        public SafeTokenHandle Token { get; set; }
         public bool RedirectOutput { get; set; }
         public bool CreateSuspended { get; set; }
         public bool CreateNoWindow { get; set; }
         public string CurrentDirectory { get; set; }
-        public int ParentProcessId { get; set; }
+        public uint ParentProcessId { get; set; }
 
         public ProcessCredentials Credentials { get; set; }
     }

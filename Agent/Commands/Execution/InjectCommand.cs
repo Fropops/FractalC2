@@ -35,7 +35,7 @@ namespace Agent.Commands
             //    return;
             //}
 
-            IntPtr hProcess = APIWrapper.OpenProcess(processId, ProcessAccessFlags.PROCESS_VM_WRITE |
+            IntPtr hProcess = APIWrapper.OpenProcess((uint)processId, ProcessAccessFlags.PROCESS_VM_WRITE |
     ProcessAccessFlags.PROCESS_VM_OPERATION |
     ProcessAccessFlags.PROCESS_CREATE_THREAD);
             // OUVRIR UN NOUVEAU HANDLE AVEC LES BONS DROITS

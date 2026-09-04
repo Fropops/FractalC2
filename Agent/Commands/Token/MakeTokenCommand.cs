@@ -5,6 +5,7 @@ using System;
 using System.Security.Principal;
 using System.Threading.Tasks;
 using System.Threading;
+using WinAPI;
 using WinAPI.Data.AdvApi;
 using WinAPI.PInvoke;
 using Shared;
@@ -27,12 +28,21 @@ namespace Commands
             IntPtr hToken = IntPtr.Zero;
             if (Advapi.LogonUserA(username, domain, password, LogonProvider.LOGON32_LOGON_NEW_CREDENTIALS, LogonUserProvider.LOGON32_PROVIDER_DEFAULT, ref hToken))
             {
-                if (Advapi.ImpersonateLoggedOnUser(hToken))
+                var safeToken = new SafeTokenHandle(hToken, true);
+                try
                 {
-                    var identity = new WindowsIdentity(hToken);
-                    context.AppendResult($"Successfully impersonated {identity.Name}");
-                    context.Agent.ImpersonationToken = hToken;
-                    return;
+                    if (Advapi.ImpersonateLoggedOnUser(safeToken.DangerousGetHandle()))
+                    {
+                        var identity = new WindowsIdentity(safeToken.DangerousGetHandle());
+                        context.AppendResult($"Successfully impersonated {identity.Name}");
+                        context.Agent.ImpersonationToken = safeToken;
+                        safeToken = null; // ownership transferred to the agent
+                        return;
+                    }
+                }
+                finally
+                {
+                    safeToken?.Dispose();
                 }
 
                 context.Error($"Successfully made token but failed to impersonate");

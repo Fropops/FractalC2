@@ -10,6 +10,7 @@ using WinAPI.Data.AdvApi;
 using WinAPI.Data.Native;
 using WinAPI.Data.Kernel32;
 using WinAPI.Wrapper;
+using WinAPI;
 
 namespace WinAPI
 {
@@ -23,7 +24,7 @@ namespace WinAPI
     {
         public static APIWrapperConfig Config { get; private set; } = new APIWrapperConfig();
 
-        public static IntPtr StealToken(int processId)
+        public static SafeTokenHandle StealToken(uint processId)
         {
             if (Config.PreferedAccessType == APIAccessType.PInvoke)
                 return PInvoke.Wrapper.StealToken(processId);
@@ -39,51 +40,29 @@ namespace WinAPI
                 return DInvoke.Wrapper.CreateProcess(parms);
         }
 
-        public static IntPtr OpenProcess(int processId, ProcessAccessFlags desiredAccess)
+        public static IntPtr OpenProcess(uint processId, ProcessAccessFlags desiredAccess)
         {
             if (Config.PreferedAccessType == APIAccessType.PInvoke)
-                return PInvoke.Wrapper.OpenProcess((uint)processId, desiredAccess);
+                return PInvoke.Wrapper.OpenProcess(processId, desiredAccess);
             else
-                return DInvoke.Wrapper.OpenProcess((uint)processId, desiredAccess);
+                return DInvoke.Wrapper.OpenProcess(processId, desiredAccess);
         }
 
-        public static string ReadPipeToEnd(IntPtr pipeHandle, Action<string> callback = null, uint buffSize = 1024)
+        public static string ReadPipeToEnd(IntPtr pipeHandle, Action<string> callback = null, uint buffSize = 1024, CancellationToken cancellationToken = default)
         {
             string output = string.Empty;
             string chunck = string.Empty;
-            //var process = System.Diagnostics.Process.GetProcessById(processId);
-            //if (process == null)
-            //    return output;
-
 
             byte[] b = null;
-            /*while (!process.HasExited)
-            {
-                if (Config.PreferedAccessType == APIAccessType.PInvoke)
-                    b = PInvoke.Wrapper.ReadFromPipe(pipeHandle, buffSize);
-                else
-                    b = DInvoke.Wrapper.ReadFromPipe(pipeHandle, buffSize);
 
-                if (b != null)
-                {
-                    chunck = Encoding.UTF8.GetString(b);
-                    output += chunck;
-                    callback?.Invoke(chunck);
-                }
-                Thread.Sleep(100);
-            }
-
-           
-            if (b != null)
-            {
-                chunck = Encoding.UTF8.GetString(b);
-                output += chunck;
-                callback?.Invoke(chunck);
-            }*/
-
-            //while (!process.HasExited)
             while (true)
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    CloseHandle(pipeHandle);
+                    break;
+                }
+
                 if (Config.PreferedAccessType == APIAccessType.PInvoke)
                     b = PInvoke.Wrapper.ReadFromPipe(pipeHandle, buffSize);
                 else

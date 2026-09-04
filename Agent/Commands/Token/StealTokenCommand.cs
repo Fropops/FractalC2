@@ -27,11 +27,11 @@ namespace Commands
             task.ThrowIfParameterMissing(ParameterId.Id);
   
             var processId = task.GetParameter<int>(ParameterId.Id);
-            var hToken = APIWrapper.StealToken(processId);
+            var hToken = APIWrapper.StealToken((uint)processId);
 
             context.Agent.ImpersonationToken = hToken;
-            var identity = new WindowsIdentity(hToken);
-            context.AppendResult($"Successfully impersonate token {identity.Name}");
+            using (var identity = new WindowsIdentity(hToken.DangerousGetHandle()))
+                context.AppendResult($"Successfully impersonate token {identity.Name}");
         }
     }
 }

@@ -236,6 +236,7 @@
     <Compile Include="Service\RunningService\RunningService.cs" />
     <Compile Include="Service\ServiceProvider.cs" />
     <Compile Include="Service\WebHostService.cs" />
+    <Compile Include="WinAPI\SafeTokenHandle.cs" />
     <Compile Include="WinAPI\APIWrapper.cs" />
     <Compile Include="WinAPI\Data\AdvApi.cs" />
     <Compile Include="WinAPI\Data\Kernel32.cs" />

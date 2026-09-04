@@ -38,10 +38,10 @@ namespace EntryPoint
                 Log($"ReflectiveFunction: {reflectiveFunctionName}");
                 Log($"Delay: {delay}");
 
-                int targetPid = 0;
+                uint targetPid = 0;
 
                 // 1. ProcessId
-                if (!string.IsNullOrEmpty(procIdStr) && int.TryParse(procIdStr, out int pid))
+                if (!string.IsNullOrEmpty(procIdStr) && uint.TryParse(procIdStr, out uint pid))
                 {
                     Log($"[>] Targeting ProcessId: {pid}");
                     targetPid = pid;
@@ -56,7 +56,7 @@ namespace EntryPoint
                     var proc = processes.FirstOrDefault();
                     if (proc != null)
                     {
-                        targetPid = (int)proc.ProcessId;
+                        targetPid = (uint)proc.ProcessId;
                         Log($"[>] Found ProcessId: {targetPid}");
                         hProcess = APIWrapper.OpenProcess(targetPid, ProcessAccessFlags.PROCESS_ALL_ACCESS);
                     }

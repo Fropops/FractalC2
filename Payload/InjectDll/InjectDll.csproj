@@ -163,6 +163,9 @@
     <Compile Include="..\..\Agent\WinAPI\PInvoke\PInvoke.Wrapper.cs">
       <Link>WinAPI\PInvoke\PInvoke.Wrapper.cs</Link>
     </Compile>
+    <Compile Include="..\..\Agent\WinAPI\SafeTokenHandle.cs">
+      <Link>WinAPI\SafeTokenHandle.cs</Link>
+    </Compile>
     <Compile Include="..\..\Agent\WinAPI\Wrapper\Data.cs">
       <Link>WinAPI\Wrapper\Data.cs</Link>
     </Compile>
