@@ -18,7 +18,7 @@ public interface IFrameService
     byte[] GetData(NetFrame frame);
     //NetFrame CreateFrame(string source, string destination, NetFrameType typ, byte[] data);
     //NetFrame CreateFrame(string destination, NetFrameType typ, byte[] data);
-    void AddCahedFrames(NetFrame frame);
+    void AddCachedFrames(NetFrame frame);
     NetFrame CacheFrame(string source, string destination, NetFrameType typ, byte[] data);
     NetFrame CacheFrame(string destination, NetFrameType typ, byte[] data);
 
@@ -41,7 +41,7 @@ public class FrameService : IFrameService
         _cryptoService = cryptoService;
     }
 
-    public void AddCahedFrames(NetFrame frame)
+    public void AddCachedFrames(NetFrame frame)
     {
         var q = _CachedFrames.GetOrAdd(frame.Destination, _ => new ConcurrentQueue<NetFrame>());
         q.Enqueue(frame);
@@ -50,7 +50,7 @@ public class FrameService : IFrameService
     public NetFrame CacheFrame(string source, string destination, NetFrameType typ, byte[] data)
     {
         var frame = CreateFrame(source, destination, typ, data);
-        this.AddCahedFrames(frame);
+        this.AddCachedFrames(frame);
         return frame;
     }
 
@@ -67,20 +67,20 @@ public class FrameService : IFrameService
     public async Task<NetFrame> CacheFrameAsync<T>(string source, string destination, NetFrameType typ, T item)
     {
         var frame = await CreateFrameAsync(source, destination, typ, item);
-        this.AddCahedFrames(frame);
+        this.AddCachedFrames(frame);
         return frame;
     }
     public async Task<NetFrame> CacheFrameAsync<T>(string destination, NetFrameType typ, T item)
     {
         var frame = await CreateFrameAsync(destination, typ, item);
-        this.AddCahedFrames(frame);
+        this.AddCachedFrames(frame);
         return frame;
     }
 
     public NetFrame CacheFrame(string destination, NetFrameType typ, byte[] data)
     {
         var frame = CreateFrame(destination, typ, data);
-        this.AddCahedFrames(frame);
+        this.AddCachedFrames(frame);
         return frame;
     }
 

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
-using System.Linq;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -72,8 +71,8 @@ public class CryptoService : ICryptoService
         var enc = new byte[data.Length - 48];
         Buffer.BlockCopy(data, 48, enc, 0, data.Length - 48);
 
-        if (!ComputeHmac(enc).SequenceEqual(checksum))
-            throw new Exception("Invalid Checksum");
+        if (!CryptographicOperations.FixedTimeEquals(ComputeHmac(enc), checksum))
+            throw new CryptographicException("Invalid Checksum");
 
         using (var aes = Aes.Create())
         {

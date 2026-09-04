@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -61,8 +60,8 @@ namespace Agent.Service
             var enc = new byte[data.Length - 48];
             Buffer.BlockCopy(data, 48, enc, 0, data.Length - 48);
 
-            if (!ComputeHmac(enc).SequenceEqual(checksum))
-                throw new Exception("Invalid Checksum");
+            if (!FixedTimeEquals(ComputeHmac(enc), checksum))
+                throw new CryptographicException("Invalid Checksum");
 
             using (var aes = Aes.Create())
             {
@@ -84,6 +83,20 @@ namespace Agent.Service
             {
                 return hmac.ComputeHash(data);
             }
+        }
+
+        private static bool FixedTimeEquals(byte[] a, byte[] b)
+        {
+            if (a.Length != b.Length)
+                return false;
+
+            int accumulator = 0;
+            for (int i = 0; i < a.Length; i++)
+            {
+                accumulator |= a[i] ^ b[i];
+            }
+
+            return accumulator == 0;
         }
     }
 }

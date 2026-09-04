@@ -140,7 +140,7 @@ namespace TeamServer.Services
 
             // send a disconnect
             packet = new ReversePortForwardPacket(client.Id, ReversePortForwardPacket.PacketType.DISCONNECT);
-            await _frameService.CacheFrameAsync(client.AgentId, NetFrameType.Socks, packet);
+            await _frameService.CacheFrameAsync(client.AgentId, NetFrameType.ReversePortForward, packet);
             if (this._log)
                 Logger.Log($"PFWD [{client.Id}] : Disconnect.");
             this._RPortFwrdClients.Remove(client.Id);

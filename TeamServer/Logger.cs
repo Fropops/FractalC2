@@ -10,12 +10,18 @@ namespace TeamServer
         public static bool Active { get; set; } = true;
 
         public static string FileName { get; set; } = "log.log";
+
+        private static readonly object _lock = new object();
+
         public static void Log(string message)
         {
             if (!Active)
                 return;
 
-            System.IO.File.AppendAllText(FileName, DateTime.Now.ToString() + " => " + message + Environment.NewLine);
+            lock (_lock)
+            {
+                System.IO.File.AppendAllText(FileName, DateTime.Now.ToString() + " => " + message + Environment.NewLine);
+            }
         }
     }
 }
