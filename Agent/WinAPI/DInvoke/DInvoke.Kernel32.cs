@@ -140,7 +140,10 @@ namespace WinAPI.DInvoke
 
             var retVal = (bool)Generic.DynamicApiInvoke(@"kernel32.dll", @"ReadFile", typeof(Delegates.ReadFile), ref parameters);
 
-            var lpNumberOfBytesRead = (uint)parameters[3];
+            uint lpNumberOfBytesRead = 0;
+            if (parameters[3] != null)
+                lpNumberOfBytesRead = (uint)parameters[3];
+
             lpBuffer = new byte[lpNumberOfBytesRead];
             Marshal.Copy(buff, lpBuffer, 0, (int)lpNumberOfBytesRead);
 

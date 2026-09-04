@@ -179,10 +179,16 @@ namespace WinAPI.DInvoke
             if (!Kernel32.ReadFile(pipe, out var buff, buffSize))
             {
                 int lastError = Marshal.GetLastWin32Error();
-                if (lastError == 109) //Broken Pipe
+                // 109 = ERROR_BROKEN_PIPE : fin normale du pipe (côté écriture fermé)
+                // 0  = pas d'erreur réelle / EOF
+                if (lastError == 109 || lastError == 0)
                     return null;
                 throw new InvalidOperationException($"Failed reading pipe : {lastError}");
             }
+
+            if (buff == null || buff.Length == 0)
+                return null;
+
             return buff;
         }
 

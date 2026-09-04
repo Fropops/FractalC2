@@ -195,10 +195,15 @@ namespace WinAPI.PInvoke
             if (!bSuccess)
             {
                 int lastError = Marshal.GetLastWin32Error();
-                if (lastError == 109) //Broken Pipe
+                // 109 = ERROR_BROKEN_PIPE : fin normale du pipe (côté écriture fermé)
+                // 0  = pas d'erreur réelle / EOF
+                if (lastError == 109 || lastError == 0)
                     return null;
                 throw new InvalidOperationException($"Failed reading pipe : {lastError}");
             }
+
+            if (nbBytesRead == 0)
+                return null;
 
             byte[] ret = new byte[nbBytesRead];
             Array.Copy(chBuf, ret, nbBytesRead);
