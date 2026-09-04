@@ -13,7 +13,7 @@ namespace Commander.Terminal
 
 
 
-    public partial class Terminal : ITerminal
+    public partial class Terminal : ITerminal, IDisposable
     {
         public const string DefaultPrompt = "$> ";
 
@@ -24,6 +24,8 @@ namespace Commander.Terminal
             new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
         private readonly Channel<bool> _resizeChannel = Channel.CreateUnbounded<bool>(
             new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
+
+        private bool _disposed;
 
         private int _lastWindowWidth;
         private int _lastWindowHeight;
@@ -348,6 +350,18 @@ namespace Commander.Terminal
         {
             this.CurrentCommand.Reset(Console.CursorTop);
             this.CurrentCommand.Print();
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+            this.stop();
+            _inputChannel.Writer.Complete();
+            _resizeChannel.Writer.Complete();
+            _token.Dispose();
         }
 
 

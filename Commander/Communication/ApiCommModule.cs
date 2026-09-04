@@ -21,7 +21,7 @@ using Spectre.Console;
 
 namespace Commander.Communication
 {
-    public class ApiCommModule : ICommModule
+    public class ApiCommModule : ICommModule, IDisposable
     {
         public event EventHandler<ConnectionStatus> ConnectionStatusChanged;
 
@@ -34,6 +34,7 @@ namespace Commander.Communication
         private FractalApiClient _apiClient;
         private FractalApiCache _apiCache;
         private StateSyncService _syncService;
+        private HttpClient _httpClient;
         private HashSet<string> _knownAgents = new HashSet<string>();
 
         private ITerminal Terminal;
@@ -91,6 +92,7 @@ namespace Commander.Communication
 
         public void UpdateConfig()
         {
+            var previousHttpClient = _httpClient;
             var httpClient = new HttpClient();
             httpClient.Timeout = new TimeSpan(0, 0, 5);
             httpClient.BaseAddress = new Uri($"http://{this.Config.ApiConfig.EndPoint}");
@@ -99,10 +101,13 @@ namespace Commander.Communication
             // Current BaseApiClient takes HttpClient. So we configure HttpClient here.
             httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + GenerateToken());
 
+            _httpClient = httpClient;
             _apiClient = new FractalApiClient(httpClient);
             
-            if (_syncService != null) _syncService.Dispose();
+            _syncService?.Dispose();
             _syncService = new StateSyncService(_apiClient, _apiCache);
+
+            previousHttpClient?.Dispose();
             _syncService.OnConnectionStatusChanged += (isConnected) => 
             {
                  ConnectionStatus = isConnected ? ConnectionStatus.Connected : ConnectionStatus.Disconnected;
@@ -419,6 +424,13 @@ namespace Commander.Communication
         public async Task CloseSession()
         {
             await _apiClient.CloseSessionAsync();
+        }
+
+        public void Dispose()
+        {
+            this.Stop();
+            _syncService?.Dispose();
+            _httpClient?.Dispose();
         }
 
     }

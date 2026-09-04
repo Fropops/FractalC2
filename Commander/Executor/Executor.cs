@@ -26,9 +26,11 @@ namespace Commander.Executor
         {
             get
             {
-                return !this._tokenSource.IsCancellationRequested;
+                return !this._tokenSource.IsCancellationRequested && !this._disposed;
             }
         }
+
+        public event Action Stopped;
 
 
         private Common.Models.Agent _currentAgent = null;
@@ -59,6 +61,7 @@ namespace Commander.Executor
         public ITerminal Terminal { get; set; }
 
         private CancellationTokenSource _tokenSource = new CancellationTokenSource();
+        private bool _disposed;
 
         public bool IsBusy { get; private set; }
 
@@ -260,9 +263,23 @@ namespace Commander.Executor
 
         public void Stop()
         {
+            if (!this.IsRunning)
+                return;
+
             this._tokenSource.Cancel();
             this.CommModule.Stop();
             this.Terminal.stop();
+            this.Stopped?.Invoke();
+        }
+
+        public void Dispose()
+        {
+            if (this._disposed)
+                return;
+
+            this._disposed = true;
+            this._tokenSource.Cancel();
+            this._tokenSource.Dispose();
         }
 
     }
