@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -16,7 +17,7 @@ namespace TeamServer.Models
 {
     public class HttpListener : Listener
     {
-        public static Dictionary<int, List<HttpListener>> ListenersByPorts = new Dictionary<int, List<HttpListener>>();
+        public static ConcurrentDictionary<int, List<HttpListener>> ListenersByPorts = new ConcurrentDictionary<int, List<HttpListener>>();
 
         public override string Protocol => this.Secured ? "https" : "http";
 
@@ -36,18 +37,12 @@ namespace TeamServer.Models
         {
             var port = this.BindPort;
             bool shouldStart = false;
-            if (ListenersByPorts.ContainsKey(port))
+            var list = ListenersByPorts.GetOrAdd(port, _ => new List<HttpListener>());
+            lock (list)
             {
-                var list = ListenersByPorts[port];
                 if (list.Count == 0)
                     shouldStart = true;
                 list.Add(this);
-
-            }
-            else
-            {
-                ListenersByPorts.Add(port, new List<HttpListener>() { this });
-                shouldStart = true;
             }
 
             if (!shouldStart)
@@ -118,12 +113,19 @@ namespace TeamServer.Models
         {
             var port = this.BindPort;
 
-            var list = ListenersByPorts[port];
-            list.Remove(this);
+            if (!ListenersByPorts.TryGetValue(port, out var list))
+                return;
 
+            lock (list)
+            {
+                list.Remove(this);
 
-            if (list.Count == 0)
-                _tokenSource.Cancel();
+                if (list.Count == 0)
+                {
+                    ListenersByPorts.TryRemove(port, out _);
+                    _tokenSource.Cancel();
+                }
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Common.Models;
@@ -24,8 +25,8 @@ public class TaskService : ITaskService
 {
     private readonly IDatabaseService _dbService;
 
-    private Dictionary<string, TeamServerAgentTask> _tasks = new Dictionary<string, TeamServerAgentTask>();
-    private Dictionary<string, List<TeamServerAgentTask>> _agentTasks = new Dictionary<string, List<TeamServerAgentTask>>();
+    private readonly ConcurrentDictionary<string, TeamServerAgentTask> _tasks = new();
+    private readonly ConcurrentDictionary<string, List<TeamServerAgentTask>> _agentTasks = new();
 
     public TaskService(IDatabaseService dbService)
     {
@@ -34,60 +35,67 @@ public class TaskService : ITaskService
 
     public async Task AddAsync(TeamServerAgentTask task)
     {
-        _tasks.Add(task.Id, task);
-        if (!_agentTasks.ContainsKey(task.AgentId))
-            _agentTasks.Add(task.AgentId, new List<TeamServerAgentTask>() { task });
-        else
-            _agentTasks[task.AgentId].Add(task);
+        _tasks[task.Id] = task;
+        var taskList = _agentTasks.GetOrAdd(task.AgentId, _ => new List<TeamServerAgentTask>());
+        lock (taskList)
+        {
+            taskList.Add(task);
+        }
 
         await this._dbService.Insert((TaskDao)task);
     }
 
     public TeamServerAgentTask Get(string id)
     {
-        if (!this._tasks.ContainsKey(id))
-            return null;
-
-        return this._tasks[id];
+        return _tasks.TryGetValue(id, out var task) ? task : null;
     }
 
     public List<TeamServerAgentTask> GetForAgent(string agentId)
     {
-        if(!_agentTasks.ContainsKey(agentId))
+        if (!_agentTasks.TryGetValue(agentId, out var taskList))
             return new List<TeamServerAgentTask>();
 
-        return _agentTasks[agentId];
+        lock (taskList)
+        {
+            return new List<TeamServerAgentTask>(taskList);
+        }
     }
 
     public async Task<List<TeamServerAgentTask>> RemoveAgentAsync(string agentId)
     {
-        if(!_agentTasks.ContainsKey(agentId))
+        if (!_agentTasks.TryRemove(agentId, out var tasks))
             return new List<TeamServerAgentTask>();
-        var tasks = _agentTasks[agentId];
-        _agentTasks.Remove(agentId);
-        foreach(var task in tasks)
+
+        List<TeamServerAgentTask> tasksCopy;
+        lock (tasks)
+        {
+            tasksCopy = new List<TeamServerAgentTask>(tasks);
+        }
+
+        foreach (var task in tasksCopy)
         {
             var dao = (TaskDao)task;
             dao.IsDeleted = true;
             await this._dbService.Update(dao);
-            this._tasks.Remove(task.Id);
+            this._tasks.TryRemove(task.Id, out _);
         }
-        return tasks;
+        return tasksCopy;
     }
 
     public async Task LoadFromDB()
     {
         this.Clear();
         var tasks = await _dbService.Load<TaskDao>();
-        foreach(var task in tasks)
+        foreach (var task in tasks)
         {
-            if(task.IsDeleted) continue;
+            if (task.IsDeleted) continue;
 
-            _tasks.Add(task.Id, task);
-            if (!_agentTasks.ContainsKey(task.AgentId))
-                _agentTasks.Add(task.AgentId, new List<TeamServerAgentTask>() { task });
-            else
-                _agentTasks[task.AgentId].Add(task);
+            _tasks[task.Id] = task;
+            var taskList = _agentTasks.GetOrAdd(task.AgentId, _ => new List<TeamServerAgentTask>());
+            lock (taskList)
+            {
+                taskList.Add(task);
+            }
         }
     }
 

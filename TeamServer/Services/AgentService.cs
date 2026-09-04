@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -34,14 +35,11 @@ namespace TeamServer.Services
             _dbService = dbService;
         }
 
-        private readonly Dictionary<string, Agent> _agents = new();
+        private readonly ConcurrentDictionary<string, Agent> _agents = new();
 
         public async Task AddAgentAsync(Agent agent)
         {
-            if (!_agents.ContainsKey(agent.Id))
-                _agents.Add(agent.Id, agent);
-            else
-                _agents[agent.Id] = agent;
+            _agents[agent.Id] = agent;
 
             var existingDbAgent = await this._dbService.Get<AgentDao>(d => d.Id == agent.Id);
             if (existingDbAgent != null)
@@ -61,9 +59,8 @@ namespace TeamServer.Services
 
         public Agent GetAgent(string id)
         {
-            if (!_agents.ContainsKey(id))
-                return null;
-            return _agents[id];
+            _agents.TryGetValue(id, out var agent);
+            return agent;
         }
 
         public List<Agent> GetAgentToRelay(string id)
@@ -73,12 +70,12 @@ namespace TeamServer.Services
 
         public IEnumerable<Agent> GetAgents()
         {
-            return _agents.Values;
+            return _agents.Values.ToList();
         }
 
         public async Task RemoveAgentAsync(Agent agent)
         {
-            _agents.Remove(agent.Id);
+            _agents.TryRemove(agent.Id, out _);
             AgentDao agentDao = agent;
             agentDao.IsDeleted = true;
             await this._dbService.Update(agentDao);
@@ -105,7 +102,7 @@ namespace TeamServer.Services
                 if (agent.IsDeleted)
                     continue;
 
-                this._agents.Add(agent.Id, agent);
+                this._agents[agent.Id] = agent;
             }
 
         }

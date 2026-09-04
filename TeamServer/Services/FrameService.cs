@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Linq;
 using System;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 using Shared;
 using System.Collections.Generic;
 using Mono.Cecil;
@@ -31,7 +32,7 @@ public interface IFrameService
 [InjectableServiceImplementation(typeof(IFrameService))]
 public class FrameService : IFrameService
 {
-    private Dictionary<string, Queue<NetFrame>> _CachedFrames = new Dictionary<string, Queue<NetFrame>>();
+    private readonly ConcurrentDictionary<string, ConcurrentQueue<NetFrame>> _CachedFrames = new();
 
     private readonly ICryptoService _cryptoService;
     public string Key { get; private set; }
@@ -42,14 +43,8 @@ public class FrameService : IFrameService
 
     public void AddCahedFrames(NetFrame frame)
     {
-        if(this._CachedFrames.ContainsKey(frame.Destination))
-            this._CachedFrames[frame.Destination].Enqueue(frame);
-        else
-        {
-            var q = new System.Collections.Generic.Queue<NetFrame>();
-            q.Enqueue(frame);
-            this._CachedFrames.Add(frame.Destination, q);
-        }
+        var q = _CachedFrames.GetOrAdd(frame.Destination, _ => new ConcurrentQueue<NetFrame>());
+        q.Enqueue(frame);
     }
 
     public NetFrame CacheFrame(string source, string destination, NetFrameType typ, byte[] data)
@@ -91,12 +86,9 @@ public class FrameService : IFrameService
 
     public Queue<NetFrame> ExtractCachedFrame(string destination)
     {
-        if(!this._CachedFrames.ContainsKey(destination))
-            return new Queue<NetFrame>();
-
-        var q = this._CachedFrames[destination];
-        this._CachedFrames.Remove(destination);
-        return q;
+        if (_CachedFrames.TryRemove(destination, out var q))
+            return new Queue<NetFrame>(q);
+        return new Queue<NetFrame>();
     }
 
     public NetFrame CreateFrame(string source, string destination, NetFrameType typ, byte[] data)
