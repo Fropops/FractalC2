@@ -90,14 +90,14 @@ namespace TeamServer.Controllers
         }
 
         [HttpPost("{agentId}")]
-        public ActionResult TaskAgent(string agentId, [FromBody] CreateTaskRequest ctr)
+        public async Task<ActionResult> TaskAgent(string agentId, [FromBody] CreateTaskRequest ctr)
         {
             var agent = this._agentService.GetAgent(agentId);
             if (agent is null)
                 return NotFound();
 
             byte[] ser = Convert.FromBase64String(ctr.TaskBin);
-            var task = ser.BinaryDeserializeAsync<AgentTask>().Result;
+            var task = await ser.BinaryDeserializeAsync<AgentTask>();
 
 
             var interceptionResult = this._taskInterceptionService.Intercept(task, agent);
@@ -105,12 +105,12 @@ namespace TeamServer.Controllers
                 return Problem(interceptionResult.Error);
           
 
-            this._frameService.CacheFrame(agentId, NetFrameType.Task, task);
+            await this._frameService.CacheFrameAsync(agentId, NetFrameType.Task, task);
 
 
 
             var teamTask = new TeamServerAgentTask(ctr.Id, task.CommandId, agentId, ctr.Command, DateTime.Now);
-            this._taskService.Add(teamTask);
+            await this._taskService.AddAsync(teamTask);
             this._changeService.TrackChange(ChangingElement.Task, task.Id);
 
             var root = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}{HttpContext.Request.Path}";
@@ -124,20 +124,20 @@ namespace TeamServer.Controllers
       
 
         [HttpDelete("{agentId}")]
-        public ActionResult StopAgent(string agentId)
+        public async Task<ActionResult> StopAgent(string agentId)
         {
             var agent = this._agentService.GetAgent(agentId);
             if (agent is null)
                 return NotFound("Agent not found");
 
-            this._agentService.RemoveAgent(agent);
+            await this._agentService.RemoveAgentAsync(agent);
 
             var tasks = this._taskService.GetForAgent(agent.Id);
-            foreach(var task in _taskService.RemoveAgent(agent.Id))
+            foreach(var task in await _taskService.RemoveAgentAsync(agent.Id))
             {
                 var res = _agentTaskResultService.GetAgentTaskResult(task.Id);
                 if (res != null)
-                    _agentTaskResultService.Remove(res);
+                    await _agentTaskResultService.RemoveAsync(res);
             }
 
             this._changeService.TrackChange(ChangingElement.Agent, agentId);

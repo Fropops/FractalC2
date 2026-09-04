@@ -10,11 +10,11 @@ namespace TeamServer.Service;
 [InjectableService]
 public interface ITaskService : IStorable
 {
-    void Add(TeamServerAgentTask task);
+    Task AddAsync(TeamServerAgentTask task);
 
     TeamServerAgentTask Get(string id);
 
-    List<TeamServerAgentTask> RemoveAgent(string agentId);
+    Task<List<TeamServerAgentTask>> RemoveAgentAsync(string agentId);
 
     List<TeamServerAgentTask> GetForAgent(string agentId);
 }
@@ -32,7 +32,7 @@ public class TaskService : ITaskService
         _dbService = dbService;
     }
 
-    public void Add(TeamServerAgentTask task)
+    public async Task AddAsync(TeamServerAgentTask task)
     {
         _tasks.Add(task.Id, task);
         if (!_agentTasks.ContainsKey(task.AgentId))
@@ -40,7 +40,7 @@ public class TaskService : ITaskService
         else
             _agentTasks[task.AgentId].Add(task);
 
-        this._dbService.Insert((TaskDao)task).Wait();
+        await this._dbService.Insert((TaskDao)task);
     }
 
     public TeamServerAgentTask Get(string id)
@@ -59,7 +59,7 @@ public class TaskService : ITaskService
         return _agentTasks[agentId];
     }
 
-    public List<TeamServerAgentTask> RemoveAgent(string agentId)
+    public async Task<List<TeamServerAgentTask>> RemoveAgentAsync(string agentId)
     {
         if(!_agentTasks.ContainsKey(agentId))
             return new List<TeamServerAgentTask>();
@@ -69,7 +69,7 @@ public class TaskService : ITaskService
         {
             var dao = (TaskDao)task;
             dao.IsDeleted = true;
-            this._dbService.Update(dao).Wait();
+            await this._dbService.Update(dao);
             this._tasks.Remove(task.Id);
         }
         return tasks;

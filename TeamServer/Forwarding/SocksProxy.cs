@@ -228,8 +228,8 @@ namespace TeamServer.Forwarding
             }
 
             // otherwise, send "connect" task to drone
-            var packet = new Socks4Packet(client.Id, Socks4Packet.PacketType.CONNECT, connectReq.BinarySerializeAsync().Result);
-            _frameService.CacheFrame(AgentId, Shared.NetFrameType.Socks, packet);
+            var packet = new Socks4Packet(client.Id, Socks4Packet.PacketType.CONNECT, await connectReq.BinarySerializeAsync());
+            await _frameService.CacheFrameAsync(AgentId, Shared.NetFrameType.Socks, packet);
 
             // wait for confirmation from drone
             client.WaitConnectionResult();
@@ -267,7 +267,7 @@ namespace TeamServer.Forwarding
 
                         // send to the drone
                         packet = new Socks4Packet(client.Id, Socks4Packet.PacketType.DATA, data);
-                        _frameService.CacheFrame(AgentId, Shared.NetFrameType.Socks, packet);
+                        await _frameService.CacheFrameAsync(AgentId, Shared.NetFrameType.Socks, packet);
                     }
 
                     byte[] response;
@@ -285,7 +285,7 @@ namespace TeamServer.Forwarding
 
                 // send a disconnect
                 packet = new Socks4Packet(client.Id, Socks4Packet.PacketType.DISCONNECT);
-                _frameService.CacheFrame(AgentId, NetFrameType.Socks, packet);
+                await _frameService.CacheFrameAsync(AgentId, NetFrameType.Socks, packet);
                 if (this._log)
                     Logger.Log($"SOCKS [{client.Id}] : Disconnect.");
                 _socksClients.Remove(client.Id);
@@ -299,7 +299,7 @@ namespace TeamServer.Forwarding
             finally
             {
                 packet = new Socks4Packet(client.Id, Socks4Packet.PacketType.DISCONNECT);
-                _frameService.CacheFrame(AgentId, NetFrameType.Socks, packet);
+                await _frameService.CacheFrameAsync(AgentId, NetFrameType.Socks, packet);
                 _socksClients.Remove(client.Id);
                 client.Dispose();
             }

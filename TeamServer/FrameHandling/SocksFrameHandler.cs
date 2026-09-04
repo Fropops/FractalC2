@@ -25,7 +25,7 @@ public class SocksFrameHandler : FrameHandler
         {
             case Socks4Packet.PacketType.CONNECT:
                 {
-                    var connected = packet.Data.BinaryDeserializeAsync<bool>().Result;
+                    var connected = await packet.Data.BinaryDeserializeAsync<bool>();
                     socks.Unblock(connected);
                     break;
                 }

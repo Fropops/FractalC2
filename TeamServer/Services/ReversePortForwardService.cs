@@ -58,7 +58,7 @@ namespace TeamServer.Services
                 if (this._log)
                     Logger.Log($"PFWD [{client.Id}] : connection refused.");
                 var packet = new ReversePortForwardPacket(client.Id, ReversePortForwardPacket.PacketType.DISCONNECT);
-                _frameService.CacheFrame(client.AgentId, NetFrameType.ReversePortForward, packet);
+                await _frameService.CacheFrameAsync(client.AgentId, NetFrameType.ReversePortForward, packet);
                 return false;
             }
 
@@ -116,7 +116,7 @@ namespace TeamServer.Services
 
                         // send to the drone
                         packet = new ReversePortForwardPacket(client.Id, ReversePortForwardPacket.PacketType.DATA, data);
-                        _frameService.CacheFrame(client.AgentId, NetFrameType.ReversePortForward, packet);
+                        await _frameService.CacheFrameAsync(client.AgentId, NetFrameType.ReversePortForward, packet);
                     }
 
                     byte[] response;
@@ -140,7 +140,7 @@ namespace TeamServer.Services
 
             // send a disconnect
             packet = new ReversePortForwardPacket(client.Id, ReversePortForwardPacket.PacketType.DISCONNECT);
-            _frameService.CacheFrame(client.AgentId, NetFrameType.Socks, packet);
+            await _frameService.CacheFrameAsync(client.AgentId, NetFrameType.Socks, packet);
             if (this._log)
                 Logger.Log($"PFWD [{client.Id}] : Disconnect.");
             this._RPortFwrdClients.Remove(client.Id);

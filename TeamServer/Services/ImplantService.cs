@@ -14,11 +14,11 @@ namespace TeamServer.Services
     [InjectableService]
     public interface IImplantService : IStorable
     {
-        void AddImplant(Implant implant);
+        Task AddImplantAsync(Implant implant);
         IEnumerable<Implant> GetImplants();
         Implant GetImplant(string id);
         Implant GetImplantbyName(string name);
-        void RemoveImplant(Implant implant);
+        Task RemoveImplantAsync(Implant implant);
     }
 
     [InjectableServiceImplementation(typeof(IImplantService))]
@@ -34,7 +34,7 @@ namespace TeamServer.Services
 
         private readonly Dictionary<string, Implant> _implants = new();
 
-        public void AddImplant(Implant implant)
+        public async Task AddImplantAsync(Implant implant)
         {
             if (string.IsNullOrEmpty(implant.Name))
                 implant.Name = implant.Config.ImplantName;
@@ -47,11 +47,11 @@ namespace TeamServer.Services
             else
                 _implants[implant.Id] = implant;
 
-            var existingDbImplant = this._dbService.Get<ImplantDao>(d => d.Id == implant.Id).Result;
+            var existingDbImplant = await this._dbService.Get<ImplantDao>(d => d.Id == implant.Id);
             if (existingDbImplant != null)
-                this._dbService.Update((ImplantDao)implant).Wait();
+                await this._dbService.Update((ImplantDao)implant);
             else
-                this._dbService.Insert((ImplantDao)implant).Wait();
+                await this._dbService.Insert((ImplantDao)implant);
         }
 
         public Implant GetImplant(string id)
@@ -77,12 +77,12 @@ namespace TeamServer.Services
             return _implants.Values;
         }
 
-        public void RemoveImplant(Implant implant)
+        public async Task RemoveImplantAsync(Implant implant)
         {
             _implants.Remove(implant.Id);
             ImplantDao implantDao = implant;
             implantDao.IsDeleted = true;
-            this._dbService.Update(implantDao).Wait();
+            await this._dbService.Update(implantDao);
         }
 
 

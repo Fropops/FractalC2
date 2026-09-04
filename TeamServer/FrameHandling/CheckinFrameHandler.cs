@@ -11,14 +11,14 @@ public class CheckinFrameHandler : FrameHandler
     public override async Task ProcessFrame(NetFrame frame, string relay)
     {
         var metaData = await this.ExtractFrameData<AgentMetadata>(frame);
-        var ag = this.Server.AgentService.GetOrCreateAgent(frame.Source);
+        var ag = await this.Server.AgentService.GetOrCreateAgentAsync(frame.Source);
         if (ag.Id != relay)
         {
             ag.RelayId = relay;
             this.Server.ChangeTrackingService.TrackChange(ChangingElement.Agent, ag.Id);
         }
 
-        this.Server.AgentService.Checkin(ag, metaData);
+        await this.Server.AgentService.CheckinAsync(ag, metaData);
         this.Server.ChangeTrackingService.TrackChange(ChangingElement.Metadata, metaData.Id);
     }
 }

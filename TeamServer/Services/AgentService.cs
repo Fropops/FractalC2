@@ -13,14 +13,14 @@ namespace TeamServer.Services
     [InjectableService]
     public interface IAgentService : IStorable
     {
-        void AddAgent(Agent agent);
+        Task AddAgentAsync(Agent agent);
         IEnumerable<Agent> GetAgents();
         Agent GetAgent(string id);
-        void RemoveAgent(Agent agent);
+        Task RemoveAgentAsync(Agent agent);
         List<Agent> GetAgentToRelay(string id);
-        Agent GetOrCreateAgent(string agentId);
+        Task<Agent> GetOrCreateAgentAsync(string agentId);
 
-        void Checkin(Agent agent, AgentMetadata metaData = null);
+        Task CheckinAsync(Agent agent, AgentMetadata metaData = null);
     }
 
     [InjectableServiceImplementation(typeof(IAgentService))]
@@ -36,26 +36,26 @@ namespace TeamServer.Services
 
         private readonly Dictionary<string, Agent> _agents = new();
 
-        public void AddAgent(Agent agent)
+        public async Task AddAgentAsync(Agent agent)
         {
             if (!_agents.ContainsKey(agent.Id))
                 _agents.Add(agent.Id, agent);
             else
                 _agents[agent.Id] = agent;
 
-            var existingDbAgent = this._dbService.Get<AgentDao>(d => d.Id == agent.Id).Result;
+            var existingDbAgent = await this._dbService.Get<AgentDao>(d => d.Id == agent.Id);
             if (existingDbAgent != null)
-                this._dbService.Update((AgentDao)agent).Wait();
+                await this._dbService.Update((AgentDao)agent);
             else
-                this._dbService.Insert((AgentDao)agent).Wait();
+                await this._dbService.Insert((AgentDao)agent);
         }
 
-        public void Checkin(Agent agent, AgentMetadata metaData = null)
+        public async Task CheckinAsync(Agent agent, AgentMetadata metaData = null)
         {
             agent.LastSeen = DateTime.UtcNow;
             if (metaData != null)
                 agent.Metadata = metaData;
-            this.AddAgent(agent);
+            await this.AddAgentAsync(agent);
         }
 
 
@@ -76,21 +76,21 @@ namespace TeamServer.Services
             return _agents.Values;
         }
 
-        public void RemoveAgent(Agent agent)
+        public async Task RemoveAgentAsync(Agent agent)
         {
             _agents.Remove(agent.Id);
             AgentDao agentDao = agent;
             agentDao.IsDeleted = true;
-            this._dbService.Update(agentDao).Wait();
+            await this._dbService.Update(agentDao);
         }
 
-        public Agent GetOrCreateAgent(string agentId)
+        public async Task<Agent> GetOrCreateAgentAsync(string agentId)
         {
             var agent = this.GetAgent(agentId);
             if (agent == null)
             {
                 agent = new Agent(agentId);
-                this.AddAgent(agent);
+                await this.AddAgentAsync(agent);
                 this._changeTrackingService.TrackChange(ChangingElement.Agent, agentId);
             }
             return agent;

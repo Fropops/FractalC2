@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using System.Linq;
 using System;
+using System.Threading.Tasks;
 using Shared;
 using System.Collections.Generic;
 using Mono.Cecil;
@@ -20,10 +21,10 @@ public interface IFrameService
     NetFrame CacheFrame(string source, string destination, NetFrameType typ, byte[] data);
     NetFrame CacheFrame(string destination, NetFrameType typ, byte[] data);
 
-    NetFrame CacheFrame<T>(string source, string destination, NetFrameType typ, T item);
-    NetFrame CacheFrame<T>(string destination, NetFrameType typ, T item);
+    Task<NetFrame> CacheFrameAsync<T>(string source, string destination, NetFrameType typ, T item);
+    Task<NetFrame> CacheFrameAsync<T>(string destination, NetFrameType typ, T item);
 
-    NetFrame CacheCheckInFrame(string destination);
+    Task<NetFrame> CacheCheckInFrameAsync(string destination);
     Queue<NetFrame> ExtractCachedFrame(string destination);
 }
 
@@ -58,25 +59,25 @@ public class FrameService : IFrameService
         return frame;
     }
 
-    public NetFrame CacheCheckInFrame(string destination)
+    public async Task<NetFrame> CacheCheckInFrameAsync(string destination)
     {
         var task = new AgentTask()
         {
             Id = Guid.NewGuid().ToString(),
             CommandId = CommandId.CheckIn,
         };
-        return this.CacheFrame(destination, NetFrameType.Task, task);
+        return await this.CacheFrameAsync(destination, NetFrameType.Task, task);
     }
 
-    public NetFrame CacheFrame<T>(string source, string destination, NetFrameType typ, T item)
+    public async Task<NetFrame> CacheFrameAsync<T>(string source, string destination, NetFrameType typ, T item)
     {
-        var frame = CreateFrame(source, destination, typ, item);
+        var frame = await CreateFrameAsync(source, destination, typ, item);
         this.AddCahedFrames(frame);
         return frame;
     }
-    public NetFrame CacheFrame<T>(string destination, NetFrameType typ, T item)
+    public async Task<NetFrame> CacheFrameAsync<T>(string destination, NetFrameType typ, T item)
     {
-        var frame = CreateFrame(destination, typ, item);
+        var frame = await CreateFrameAsync(destination, typ, item);
         this.AddCahedFrames(frame);
         return frame;
     }
@@ -105,15 +106,15 @@ public class FrameService : IFrameService
         return frame;
     }
 
-    public NetFrame CreateFrame<T>(string destination, NetFrameType typ, T item)
+    public async Task<NetFrame> CreateFrameAsync<T>(string destination, NetFrameType typ, T item)
     {
-        var data = item.BinarySerializeAsync().Result;
+        var data = await item.BinarySerializeAsync();
         return this.CreateFrame(string.Empty, destination, typ, data);
     }
 
-    public NetFrame CreateFrame<T>(string source, string destination, NetFrameType typ, T item)
+    public async Task<NetFrame> CreateFrameAsync<T>(string source, string destination, NetFrameType typ, T item)
     {
-        var data = item.BinarySerializeAsync().Result;
+        var data = await item.BinarySerializeAsync();
         var newData = this._cryptoService.EncryptFrames ? this._cryptoService.Encrypt(data) : data;
         var frame = new NetFrame(source, destination, typ, newData);
         return frame;

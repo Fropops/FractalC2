@@ -37,7 +37,7 @@ public class TaskFrameHandler : FrameHandler
             }
         }
 
-        this.Server.TaskResultService.AddTaskResult(taskOutput);
+        await this.Server.TaskResultService.AddTaskResultAsync(taskOutput);
         this.Server.ChangeTrackingService.TrackChange(ChangingElement.Result, taskOutput.Id);
 
 

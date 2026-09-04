@@ -10,20 +10,20 @@ namespace TeamServer.Services;
 [InjectableService]
 public interface IWebHostService : IStorable
 {
-    void Add(string path, FileWebHost file);
-    void Remove(string path);
+    Task AddAsync(string path, FileWebHost file);
+    Task RemoveAsync(string path);
     byte[] GetFile(string path);
 
     FileWebHost Get(string path);
 
     List<FileWebHost> GetAll();
 
-    void Clear();
+    Task ClearAsync();
 
     List<WebHostLog> GetLogs();
-    void ClearLogs();
+    Task ClearLogsAsync();
 
-    void Addlog(WebHostLog log);
+    Task AddlogAsync(WebHostLog log);
 
 }
 
@@ -40,28 +40,28 @@ public class WebHostService : IWebHostService
         this._dbService = dbService;
     }
 
-    public void Add(string path, FileWebHost file)
+    public async Task AddAsync(string path, FileWebHost file)
     {
         if (!this.files.ContainsKey(path))
         {
             files.Add(path, file);
-            this._dbService.Insert((WebHostFileDao)file).Wait();
+            await this._dbService.Insert((WebHostFileDao)file);
         }
         else
         {
             files[path] = file;
-            this._dbService.Update((WebHostFileDao)file).Wait();
+            await this._dbService.Update((WebHostFileDao)file);
         }
     }
 
 
-    public void Remove(string path)
+    public async Task RemoveAsync(string path)
     {
         if (this.files.ContainsKey(path))
         {
             var file = this.files[path];
             this.files.Remove(path);
-            this._dbService.Remove((WebHostFileDao)file).Wait();
+            await this._dbService.Remove((WebHostFileDao)file);
         }
 
     }
@@ -85,26 +85,26 @@ public class WebHostService : IWebHostService
         return this.files.Values.ToList();
     }
 
-    public void Clear()
+    public async Task ClearAsync()
     {
         this.files.Clear();
-        this._dbService.Clear<WebHostFileDao>().Wait();
+        await this._dbService.Clear<WebHostFileDao>();
     }
 
     public List<WebHostLog> GetLogs()
     {
         return logs;
     }
-    public void ClearLogs()
+    public async Task ClearLogsAsync()
     {
         this.logs.Clear();
-        this._dbService.Clear<WebHostLogDao>().Wait();
+        await this._dbService.Clear<WebHostLogDao>();
     }
 
-    public void Addlog(WebHostLog log)
+    public async Task AddlogAsync(WebHostLog log)
     {
         this.logs.Add(log);
-        this._dbService.Insert((WebHostLogDao)log).Wait();
+        await this._dbService.Insert((WebHostLogDao)log);
     }
 
     public async Task LoadFromDB()

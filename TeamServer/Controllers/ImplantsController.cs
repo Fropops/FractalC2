@@ -77,13 +77,13 @@ namespace TeamServer.Controllers
         }
 
         [HttpDelete("{implantId}")]
-        public ActionResult DeleteImplant(string implantId)
+        public async Task<ActionResult> DeleteImplant(string implantId)
         {
             var implant = this._implantService.GetImplant(implantId);
             if (implant is null)
                 return NotFound("Implant not found");
 
-            this._implantService.RemoveImplant(implant);
+            await this._implantService.RemoveImplantAsync(implant);
 
             this._changeService.TrackChange(ChangingElement.Implant, implantId);
 
@@ -91,10 +91,10 @@ namespace TeamServer.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateImplant()
+        public async Task<IActionResult> CreateImplant()
         {
             var body = this.Request.Body;
-            string val = Encoding.UTF8.GetString(body.ReadStream().Result);
+            string val = Encoding.UTF8.GetString(await body.ReadStream());
             var config = JsonConvert.DeserializeObject<ImplantConfig>(val);
             config.ImplantName = PayloadGenerator.GenerateImplantName();
             config.ServerKey = _cryptoService.ServerKey;
@@ -109,7 +109,7 @@ namespace TeamServer.Controllers
                 }
                 if (config.StoreImplant)
                 {
-                    _implantService.AddImplant(implant);
+                    await _implantService.AddImplantAsync(implant);
                     this._changeTrackingService.TrackChange(ChangingElement.Implant, implant.Id);
                 }
             }

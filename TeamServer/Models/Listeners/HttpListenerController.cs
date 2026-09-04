@@ -88,14 +88,14 @@ namespace TeamServer.Models
                     //logger.LogError($"NOT FOUND {fileName} from listener {listener.Name}");
                     //Logger.Log($"NOT FOUND {path}");
                     log.StatusCode = 404;
-                    this._webHostService.Addlog(log);
+                    await this._webHostService.AddlogAsync(log);
                     return this.NotFound();
                 }
 
                 //Logger.Log($"GET {path}");
 
                 log.StatusCode = 200;
-                this._webHostService.Addlog(log);
+                await this._webHostService.AddlogAsync(log);
                 return this.File(fileContent, "application/octet-stream");
             }
             catch (Exception ex)
@@ -132,14 +132,14 @@ namespace TeamServer.Models
                 var frames = await data.BinaryDeserializeAsync<List<NetFrame>>();
 
                 string agentId = Request.Headers[AuthorizationHeader];
-                var agent = this._agentService.GetOrCreateAgent(agentId);
+                var agent = await this._agentService.GetOrCreateAgentAsync(agentId);
 
 
-                this._agentService.Checkin(agent);
+                await this._agentService.CheckinAsync(agent);
                 this._changeTrackingService.TrackChange(ChangingElement.Agent, agent.Id);
                 if (!agent.CheckInrequested)
                 {
-                    this._frameService.CacheCheckInFrame(agent.Id);
+                    await this._frameService.CacheCheckInFrameAsync(agent.Id);
                     agent.CheckInrequested = true;
                     //Console.WriteLine($"Requires Checkin agent {agent.Id}");
                 }
@@ -152,11 +152,11 @@ namespace TeamServer.Models
                     {
                         if (!relayedAgent.CheckInrequested)
                         {
-                            this._frameService.CacheCheckInFrame(relayedAgent.Id);
+                            await this._frameService.CacheCheckInFrameAsync(relayedAgent.Id);
                             relayedAgent.CheckInrequested = true;
                             //Console.WriteLine($"Requires Checkin agent {relayedAgent.Id}");
                         }
-                        this._agentService.Checkin(relayedAgent);
+                        await this._agentService.CheckinAsync(relayedAgent);
                         this._changeTrackingService.TrackChange(ChangingElement.Agent, relayedAgent.Id);
                     }
                 }

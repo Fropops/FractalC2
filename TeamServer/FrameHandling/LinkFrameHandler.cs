@@ -16,8 +16,8 @@ public class LinksFrameHandler : FrameHandler
         var links = await this.ExtractFrameData<List<LinkInfo>>(frame);
         foreach (var link in links)
         {
-            var parent = this.Server.AgentService.GetOrCreateAgent(link.ParentId);
-            var child = this.Server.AgentService.GetOrCreateAgent(link.ChildId);
+            var parent = await this.Server.AgentService.GetOrCreateAgentAsync(link.ParentId);
+            var child = await this.Server.AgentService.GetOrCreateAgentAsync(link.ChildId);
             if (!parent.Links.ContainsKey(child.Id))
             {
                 parent.Links.Add(child.Id, link);
@@ -33,8 +33,8 @@ public class LinkFrameHandler : FrameHandler
     public override async Task ProcessFrame(NetFrame frame, string relay)
     {
         var link = await this.ExtractFrameData<LinkInfo>(frame);
-        var parent = this.Server.AgentService.GetOrCreateAgent(link.ParentId);
-        var child = this.Server.AgentService.GetOrCreateAgent(link.ChildId);
+        var parent = await this.Server.AgentService.GetOrCreateAgentAsync(link.ParentId);
+        var child = await this.Server.AgentService.GetOrCreateAgentAsync(link.ChildId);
         if (!parent.Links.ContainsKey(child.Id))
         {
             parent.Links.Add(child.Id, link);
@@ -49,8 +49,8 @@ public class UnlinkFrameHandler : FrameHandler
     public override async Task ProcessFrame(NetFrame frame, string relay)
     {
         var link = await this.ExtractFrameData<Shared.LinkInfo>(frame);
-        var parent = this.Server.AgentService.GetOrCreateAgent(link.ParentId);
-        var child = this.Server.AgentService.GetOrCreateAgent(link.ChildId);
+        var parent = await this.Server.AgentService.GetOrCreateAgentAsync(link.ParentId);
+        var child = await this.Server.AgentService.GetOrCreateAgentAsync(link.ChildId);
         if (parent.Links.ContainsKey(child.Id))
         {
             parent.Links.Remove(child.Id);
@@ -80,7 +80,7 @@ public class LinkRelayFrameHandler : FrameHandler
 
         foreach (var relayId in relayIds)
         {
-            var relayedAgent = this.Server.AgentService.GetOrCreateAgent(relayId);
+            var relayedAgent = await this.Server.AgentService.GetOrCreateAgentAsync(relayId);
             if (relayedAgent.RelayId != relay && relayedAgent.Id != relay)
             {
                 relayedAgent.RelayId = relay;

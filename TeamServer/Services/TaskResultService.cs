@@ -14,10 +14,10 @@ namespace TeamServer.Services
     [InjectableService]
     public interface ITaskResultService : IStorable
     {
-        void AddTaskResult(AgentTaskResult res);
+        Task AddTaskResultAsync(AgentTaskResult res);
         IEnumerable<AgentTaskResult> GetAgentTaskResults();
         AgentTaskResult GetAgentTaskResult(string id);
-        void Remove(AgentTaskResult result);
+        Task RemoveAsync(AgentTaskResult result);
     }
     [InjectableServiceImplementation(typeof(ITaskResultService))]
     public class TaskResultService : ITaskResultService
@@ -42,12 +42,12 @@ namespace TeamServer.Services
 
         }
 
-        public void AddTaskResult(AgentTaskResult res)
+        public async Task AddTaskResultAsync(AgentTaskResult res)
         {
             if (!_results.ContainsKey(res.Id))
             {
                 _results.Add(res.Id, res);
-                this._dbService.Insert((ResultDao)res).Wait();
+                await this._dbService.Insert((ResultDao)res);
             }
             else
             {
@@ -58,15 +58,15 @@ namespace TeamServer.Services
                 existing.Info = res.Info;
                 existing.Objects = res.Objects;
 
-                this._dbService.Update((ResultDao)res).Wait();
+                await this._dbService.Update((ResultDao)res);
             }
         }
 
-        public void Remove(AgentTaskResult result)
+        public async Task RemoveAsync(AgentTaskResult result)
         {
             var dao = (ResultDao)result;
             dao.IsDeleted = true;
-            this._dbService.Update(dao).Wait();
+            await this._dbService.Update(dao);
             _results.Remove(result.Id);
         }
 
