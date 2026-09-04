@@ -1,9 +1,10 @@
-﻿using Agent.Commands;
+using Agent.Commands;
 using Agent.Communication;
 using Agent.Service;
 using Shared;
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
 using System.Security.Principal;
@@ -91,12 +92,20 @@ namespace Agent
 
         public async void RunCommunicators()
         {
-            while (!this.TokenSource.IsCancellationRequested)
+            try
             {
-                await this.MasterCommunicator.Start();
-                await this.MasterCommunicator.Run();
+                while (!this.TokenSource.IsCancellationRequested)
+                {
+                    await this.MasterCommunicator.Start();
+                    await this.MasterCommunicator.Run();
+                }
             }
-            
+            catch (Exception ex)
+            {
+#if DEBUG
+                Debug.WriteLine(ex.ToString());
+#endif
+            }
         }
 
         public void Run()
@@ -442,7 +451,7 @@ namespace Agent
             await commModule.SendFrame(frame);
 
             // add to the dict using the task id
-            _childrenComm.Add(taskId, commModule);
+            _childrenComm.TryAdd(taskId, commModule);
             _ = commModule.Run();
 
             return true;
@@ -457,10 +466,10 @@ namespace Agent
             };
 
             var childId = _childrenComm.FirstOrDefault(kvp => kvp.Value == commModule).Key;
-            _childrenComm.Remove(childId);
+            if (childId != null) _childrenComm.TryRemove(childId, out _);
             List<string> relaysIds = _relaysComm.Where(kvp => kvp.Value == commModule).Select(kvp => kvp.Key).ToList();
             foreach (var relayId in relaysIds)
-                _relaysComm.Remove(relayId);
+                _relaysComm.TryRemove(relayId, out _);
 
             // send an unlink
             await SendFrame(this._frameService.CreateFrame(this.MetaData.Id, NetFrameType.Unlink, new LinkInfo() { ParentId = this.MetaData.Id, ChildId = childId }));
@@ -485,9 +494,9 @@ namespace Agent
                     // update key to the child metadata
                     if (_childrenComm.TryGetValue(link.TaskId, out var commModule))
                     {
-                        _childrenComm.Remove(link.TaskId);
-                        _childrenComm.Add(link.ChildId, commModule);
-                        _relaysComm.Add(link.ChildId, commModule);
+                        _childrenComm.TryRemove(link.TaskId, out _);
+                        _childrenComm.TryAdd(link.ChildId, commModule);
+                        _relaysComm.TryAdd(link.ChildId, commModule);
                     }
                 }
 
@@ -503,10 +512,10 @@ namespace Agent
                     var comm = _relaysComm[frame.Source];
                     //remove existing relays excpet child
                     foreach (var key in _relaysComm.Where(kvp => kvp.Value == comm && kvp.Key != frame.Source).Select(kvp => kvp.Key).ToList())
-                        _relaysComm.Remove(key);
+                        _relaysComm.TryRemove(key, out _);
                     //add relays
                     foreach (var relayId in relays)
-                        _relaysComm.Add(relayId, comm);
+                        _relaysComm.TryAdd(relayId, comm);
                 }
 
                 //Send relay update info
@@ -518,8 +527,8 @@ namespace Agent
             await SendFrame(frame);
         }
 
-        private readonly Dictionary<string, P2PCommunicator> _childrenComm = new Dictionary<string, P2PCommunicator>();
-        public Dictionary<string, P2PCommunicator> ChildrenCommModules
+        private readonly ConcurrentDictionary<string, P2PCommunicator> _childrenComm = new ConcurrentDictionary<string, P2PCommunicator>();
+        public ConcurrentDictionary<string, P2PCommunicator> ChildrenCommModules
         {
             get
             {
@@ -527,7 +536,7 @@ namespace Agent
             }
         }
 
-        private readonly Dictionary<string, P2PCommunicator> _relaysComm = new Dictionary<string, P2PCommunicator>();
+        private readonly ConcurrentDictionary<string, P2PCommunicator> _relaysComm = new ConcurrentDictionary<string, P2PCommunicator>();
 
         /*public Thread HandleTask(AgentTask task, AgentTaskResult res = null, AgentCommandContext parent = null)
         {

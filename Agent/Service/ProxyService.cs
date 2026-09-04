@@ -1,4 +1,4 @@
-﻿using Agent.Models;
+using Agent.Models;
 using Agent.Service;
 using System;
 using System.Collections.Concurrent;
@@ -106,7 +106,7 @@ namespace Agent.Service
             _frameService = frameService;
         }
 
-        private readonly Dictionary<string, SocksClient> _socksClients = new Dictionary<string, SocksClient>();
+        private readonly ConcurrentDictionary<string, SocksClient> _socksClients = new ConcurrentDictionary<string, SocksClient>();
         public async Task HandlePacket(Socks4Packet packet, Agent agent)
         {
             switch (packet.Type)
@@ -171,14 +171,13 @@ namespace Agent.Service
                 return;
             }
 
-            if (_socksClients.ContainsKey(request.Id))
+            if (_socksClients.TryRemove(request.Id, out var existingClient))
             {
-                _socksClients[request.Id].Disconnect();
-                _socksClients.Remove(request.Id);
+                existingClient.Disconnect();
             }
 
             var sockClient = new SocksClient(client, request.Id, agent);
-            _socksClients.Add(request.Id, sockClient);
+            _socksClients[request.Id] = sockClient;
 
             // send packet back in acknowledgement
             var packet = new Socks4Packet(request.Id, Socks4Packet.PacketType.CONNECT, true.BinarySerializeAsync().Result);
@@ -237,9 +236,13 @@ namespace Agent.Service
 #if DEBUG
             Debug.WriteLine($"SOCKS [{client.Id}] : Handling Socks Data => Disconnect");
 #endif
-            var p = new Socks4Packet(client.Id, Socks4Packet.PacketType.DISCONNECT);
-            var f = this._frameService.CreateFrame(client.Agent.MetaData.Id, NetFrameType.Socks, p);
-            await client.Agent.SendFrame(f);
+            try
+            {
+                var p = new Socks4Packet(client.Id, Socks4Packet.PacketType.DISCONNECT);
+                var f = this._frameService.CreateFrame(client.Agent.MetaData.Id, NetFrameType.Socks, p);
+                await client.Agent.SendFrame(f);
+            }
+            catch { }
         }
 
 
@@ -263,11 +266,10 @@ namespace Agent.Service
 
         private void DisconnectSocksClient(string id)
         {
-            if (!_socksClients.TryGetValue(id, out var client))
-                return;
-
-            client.Disconnect();
-            _socksClients.Remove(id);
+            if (_socksClients.TryRemove(id, out var client))
+            {
+                client.Disconnect();
+            }
         }
     }
 }

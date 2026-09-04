@@ -1,4 +1,4 @@
-﻿using Agent.Commands.Services;
+using Agent.Commands.Services;
 using Agent.Models;
 using Microsoft.Win32;
 using Shared;
@@ -79,7 +79,7 @@ namespace Agent.Commands
 
             path = path.Substring(5, path.Length - 5);
 
-            RegistryKey rk = Registry.CurrentUser.CreateSubKey(path);
+            RegistryKey rk = rootKey.CreateSubKey(path);
             rk.DeleteSubKeyTree(key);
             rk.Close();
 
@@ -109,7 +109,7 @@ namespace Agent.Commands
 
             path = path.Substring(5, path.Length - 5);
 
-            RegistryKey rk = Registry.CurrentUser.CreateSubKey(path);
+            RegistryKey rk = rootKey.CreateSubKey(path);
             var value = rk.GetValue(key).ToString();
             rk.Close();
 

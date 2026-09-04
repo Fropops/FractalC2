@@ -1,4 +1,4 @@
-﻿using Agent.Communication;
+using Agent.Communication;
 using Agent.Helpers;
 using System;
 using System.Collections.Concurrent;
@@ -10,7 +10,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Agent.Helpers;
 using System.IO;
 
 namespace Agent.Service

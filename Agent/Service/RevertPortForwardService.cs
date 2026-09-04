@@ -1,4 +1,4 @@
-﻿using Agent.Models;
+using Agent.Models;
 using Agent.Service;
 using System;
 using System.Collections.Concurrent;
@@ -147,8 +147,8 @@ namespace Agent.Service
             _frameService = frameService;
         }
 
-        private readonly Dictionary<string, ReversePortForwardClient> _clients = new Dictionary<string, ReversePortForwardClient>();
-        private readonly Dictionary<int, ReversePortForwardServer> _servers = new Dictionary<int, ReversePortForwardServer>();
+        private readonly ConcurrentDictionary<string, ReversePortForwardClient> _clients = new ConcurrentDictionary<string, ReversePortForwardClient>();
+        private readonly ConcurrentDictionary<int, ReversePortForwardServer> _servers = new ConcurrentDictionary<int, ReversePortForwardServer>();
 
         public List<ReversePortForwardServer> GetServers()
         {
@@ -161,21 +161,19 @@ namespace Agent.Service
             {
                 case ReversePortForwardPacket.PacketType.DATA:
                     {
-                        if (!_clients.ContainsKey(packet.Id))
+                        if (!_clients.TryGetValue(packet.Id, out var client))
                             return;
 
-                        var client = _clients[packet.Id];
                         client.Send(packet.Data);
                     }
                     break;
                 case ReversePortForwardPacket.PacketType.DISCONNECT:
                     {
-                        if (!_clients.ContainsKey(packet.Id))
+                        if (!_clients.TryGetValue(packet.Id, out var client))
                             return;
 
-                        var client = _clients[packet.Id];
                         client.Dispose();
-                        this._clients.Remove(packet.Id);
+                        this._clients.TryRemove(packet.Id, out _);
                     }
                     break;
                 default: break;
@@ -205,7 +203,7 @@ namespace Agent.Service
             listener.BeginAcceptSocket(ClientAcceptedCallback, server);
 
 
-            _servers.Add(port, server);
+            _servers[port] = server;
 
             return true;
         }
@@ -224,7 +222,7 @@ namespace Agent.Service
                 server.Listener.BeginAcceptSocket(ClientAcceptedCallback, server);
 
                 var client = new ReversePortForwardClient(socket, server.Agent, server.Destination);
-                this._clients.Add(client.Id, client);
+                this._clients[client.Id] = client;
 
                 //Connect
                 var packet = new ReversePortForwardPacket(client.Id, ReversePortForwardPacket.PacketType.CONNECT, await server.Destination.BinarySerializeAsync());
@@ -287,24 +285,25 @@ namespace Agent.Service
                     ClientReceiveCallback,
                     client);
             }
-            catch (ObjectDisposedException ex)
+            catch (Exception ex)
             {
 #if DEBUG
                 Debug.WriteLine($"RPORTForward Error : {ex}");
 #endif
-                var packet = new ReversePortForwardPacket() { Id = client.Id, Type = ReversePortForwardPacket.PacketType.DISCONNECT };
-                var f = this._frameService.CreateFrame(client.Agent.MetaData.Id, NetFrameType.ReversePortForward, packet);
-                await client.Agent.SendFrame(f);
+                try
+                {
+                    var packet = new ReversePortForwardPacket() { Id = client.Id, Type = ReversePortForwardPacket.PacketType.DISCONNECT };
+                    var f = this._frameService.CreateFrame(client.Agent.MetaData.Id, NetFrameType.ReversePortForward, packet);
+                    await client.Agent.SendFrame(f);
+                }
+                catch { }
             }
         }
 
         public async Task<bool> StopServer(int port)
         {
-            if (!this._servers.ContainsKey(port))
+            if (!this._servers.TryRemove(port, out var server))
                 return false;
-
-            var server = this._servers[port];
-            this._servers.Remove(port);
 
 
             try

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -66,7 +66,7 @@ namespace Agent.Service
             }
         }
 
-        public virtual async void Stop()
+        public virtual void Stop()
         {
             if (this.Status != RunningStatus.Running)
                 return;

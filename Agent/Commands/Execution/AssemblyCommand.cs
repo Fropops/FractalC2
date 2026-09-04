@@ -1,4 +1,4 @@
-﻿using Agent.Models;
+using Agent.Models;
 using Agent.Service;
 using Shared;
 using System;
@@ -88,7 +88,7 @@ namespace Agent.Commands
                         output = ReadStream(ms);
 
                         if (output.Length > 0)
-                            context.AppendResult(Encoding.UTF8.GetString(ReadStream(ms)));
+                            context.AppendResult(Encoding.UTF8.GetString(output));
 
                         if (stopwatch.ElapsedMilliseconds > context.ConfigService.JobResultDelay)
                         {
@@ -127,7 +127,7 @@ namespace Agent.Commands
             return output;
         }
 
-        async void RunAssembly(object tsk)
+        void RunAssembly(object tsk)
         {
             var task = tsk as AgentTask;
 
