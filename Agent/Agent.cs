@@ -304,45 +304,49 @@ namespace Agent
 #endif
                 {
 
-                    var thread = new Thread(async () =>
+                    var thread = new Thread(() =>
                     {
-                        //try
-                        //{
-                        // this blocks inside the thread
-                        var clone = Activator.CreateInstance(command.GetType()) as AgentCommand;
-                        var ctxt = specifiedContext ?? new AgentCommandContext()
+                        AgentCommandContext ctxt = null;
+                        try
                         {
-                            Agent = this,
-                            NetworkService = _networkService,
-                            FileService = _fileService,
-                            ConfigService = _configService,
-                            Result = new AgentTaskResult(),
-                            TokenSource = tokenSource,
-                        };
-                        await clone.Execute(task, ctxt, tokenSource.Token);
-
-                        //}
-                        //catch (TaskCanceledException)
-                        //{
-                        //    await SendTaskComplete(task.Id);
-                        //}
-                        //catch (ThreadAbortException)
-                        //{
-                        //    await SendTaskComplete(task.Id);
-                        //}
-                        //catch (OperationCanceledException)
-                        //{
-                        //    await SendTaskComplete(task.Id);
-                        //}
-                        //catch (Exception e)
-                        //{
-                        //    await SendTaskError(task.Id, e.Message);
-                        //}
-                        //finally
-                        //{
-                        // make sure the token is disposed and removed
-
-                        //}
+                            // this blocks inside the thread
+                            var clone = Activator.CreateInstance(command.GetType()) as AgentCommand;
+                            ctxt = specifiedContext ?? new AgentCommandContext()
+                            {
+                                Agent = this,
+                                NetworkService = _networkService,
+                                FileService = _fileService,
+                                ConfigService = _configService,
+                                Result = new AgentTaskResult(),
+                                TokenSource = tokenSource,
+                            };
+                            clone.Execute(task, ctxt, tokenSource.Token).Wait();
+                        }
+                        catch (ThreadAbortException)
+                        {
+                            // job killed
+                        }
+                        catch (Exception ex)
+                        {
+                            var realEx = ex is AggregateException aggr ? aggr.InnerException ?? ex : ex;
+#if DEBUG
+                            Debug.WriteLine($"ExecuteTaskThreaded error: {realEx}");
+#endif
+                            try
+                            {
+                                (ctxt?.Agent ?? this).SendTaskError(task.Id, realEx.Message).Wait();
+                            }
+                            catch { }
+                        }
+                        finally
+                        {
+                            // make sure the token is disposed and removed
+                            if (TaskTokens.ContainsKey(task.Id))
+                            {
+                                TaskTokens[task.Id].Dispose();
+                                TaskTokens.Remove(task.Id);
+                            }
+                        }
                     });
 
 

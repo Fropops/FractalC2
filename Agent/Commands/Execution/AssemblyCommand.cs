@@ -61,6 +61,12 @@ namespace Agent.Commands
 
                     Thread t = null;
                     t = new Thread(RunAssembly);
+
+                    lock (_assemblyExceptionLock)
+                    {
+                        _assemblyException = null;
+                    }
+
                     t.Start(task);
 
                     //register as Job
@@ -104,6 +110,18 @@ namespace Agent.Commands
                     // after task has finished, do a final read
                     context.AppendResult(Encoding.UTF8.GetString(ReadStream(ms)));
 
+                    lock (_assemblyExceptionLock)
+                    {
+                        if (_assemblyException != null)
+                        {
+#if DEBUG
+                            context.Error($"Assembly execution failed: {_assemblyException}");
+#else
+                            context.Error($"Assembly execution failed: {_assemblyException.Message}");
+#endif
+                        }
+                    }
+
 
                     // restore console
                     Console.SetOut(stdOut);
@@ -127,14 +145,31 @@ namespace Agent.Commands
             return output;
         }
 
+        private Exception _assemblyException;
+        private readonly object _assemblyExceptionLock = new object();
+
         void RunAssembly(object tsk)
         {
-            var task = tsk as AgentTask;
+            try
+            {
+                var task = tsk as AgentTask;
 
-            var args = task.GetParameter<string>(ParameterId.Parameters).GetArgs();
-            var bin = task.GetParameter(ParameterId.File);
-            var assembly = Assembly.Load(bin);
-            assembly.EntryPoint?.Invoke(null, new object[] { args });
+                var args = task.GetParameter<string>(ParameterId.Parameters).GetArgs();
+                var bin = task.GetParameter(ParameterId.File);
+                var assembly = Assembly.Load(bin);
+                assembly.EntryPoint?.Invoke(null, new object[] { args });
+            }
+            catch (ThreadAbortException)
+            {
+                // Le job a ete tue (job kill) : ne pas remonter d'erreur.
+            }
+            catch (Exception ex)
+            {
+                lock (_assemblyExceptionLock)
+                {
+                    _assemblyException = ex;
+                }
+            }
         }
 
 
