@@ -3,6 +3,8 @@
 @using WebCommander.Services
 @using WebCommander.Helpers
 @inject AgentService AgentService
+@inject NavigationManager NavigationManager
+@inject AgentSessionService SessionService
 @implements IDisposable
 
 <div class="topology-container">
@@ -190,9 +192,9 @@
                     <div class="list-group list-group-flush">
                         @if (selectedAgentIsAlive)
                         {
-                            <a href="/terminal/@selectedAgentId" class="list-group-item list-group-item-action py-2">
+                            <button type="button" class="list-group-item list-group-item-action py-2 text-start" @onclick='() => OpenSession(selectedAgentId, "terminal")'>
                                 <i class="bi bi-chat-dots me-2"></i>Interact
-                            </a>
+                            </button>
                         }
                         else
                         {
@@ -200,15 +202,15 @@
                                 <i class="bi bi-chat-dots me-2"></i>Interact (Offline)
                             </div>
                         }
-                        <a href="/agent-info/@selectedAgentId" class="list-group-item list-group-item-action py-2">
+                        <button type="button" class="list-group-item list-group-item-action py-2 text-start" @onclick='() => OpenSession(selectedAgentId, "info")'>
                             <i class="bi bi-info-circle me-2"></i>View Info
-                        </a>
-                        <a href="/agent-tasks/@selectedAgentId" class="list-group-item list-group-item-action py-2">
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action py-2 text-start" @onclick='() => OpenSession(selectedAgentId, "tasks")'>
                             <i class="bi bi-list-task me-2"></i>Tasks
-                        </a>
-                        <a href="/loots/@selectedAgentId" class="list-group-item list-group-item-action py-2">
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action py-2 text-start" @onclick='() => OpenSession(selectedAgentId, "loots")'>
                             <i class="bi bi-folder2-open me-2"></i>Loots
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -484,6 +486,13 @@
     {
         selectedAgentId = "";
         StateHasChanged();
+    }
+
+    private void OpenSession(string agentId, string view)
+    {
+        CloseAgentMenu();
+        SessionService.OpenSession(agentId, view);
+        NavigationManager.NavigateTo("/sessions");
     }
 
     public void Dispose()

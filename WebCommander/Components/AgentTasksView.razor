@@ -1,0 +1,402 @@
+@using Common.APIModels
+@using Common.Models
+@using Shared
+@using Shared.ResultObjects
+@using WebCommander.Models
+@using WebCommander.Services
+@using WebCommander.Helpers
+@inject AgentService AgentService
+@inject ToastService ToastService
+@inject TeamServerClient TeamServerClient
+@inject TaskResultFormatterService FormatterService
+@implements IDisposable
+
+<div class="agent-tasks-view">
+    @if (!string.IsNullOrEmpty(viewingTaskId))
+    {
+        var task = tasks.FirstOrDefault(t => t.Id == viewingTaskId);
+        var result = AgentService.GetTaskResult(viewingTaskId);
+
+        <!-- Task Result Inline Viewer -->
+        <div class="card bg-dark text-white border-secondary mb-3">
+            <div class="card-header bg-black d-flex justify-content-between align-items-center py-2">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-light me-3" @onclick="CloseTaskResult">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Tasks
+                    </button>
+                    <h6 class="mb-0">
+                        <i class="bi bi-terminal me-1"></i> Result: <strong>@(task?.Command ?? viewingTaskId)</strong>
+                        <span class="badge ms-2 @(result?.Status == AgentResultStatus.Completed ? "bg-success" : (result?.Status == AgentResultStatus.Error ? "bg-danger" : "bg-info"))">
+                            @(result?.Status.ToString() ?? "Unknown")
+                        </span>
+                    </h6>
+                </div>
+                <div>
+                    @if (result != null && (!string.IsNullOrEmpty(result.Output) || (result.Objects != null && result.Objects.Length > 0)))
+                    {
+                        <button class="btn btn-sm btn-warning" @onclick="() => AddToLoot(viewingTaskId)">
+                            <i class="bi bi-folder-plus me-1"></i> Add to Loot
+                        </button>
+                    }
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="task-result-output">
+                    @foreach (var line in outputLines)
+                    {
+                        <div class="terminal-line @GetLineClass(line.Type)">@line.Text</div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Tasks List View -->
+        <div class="card bg-dark text-white border-secondary">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-task me-2"></i> Task History
+                </h5>
+                <span class="badge bg-secondary">@tasks.Count task(s)</span>
+            </div>
+            <div class="card-body p-0">
+                @if (tasks.Count == 0)
+                {
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-inbox fs-2 mb-2 d-block"></i>
+                        <em>No tasks executed yet for this agent.</em>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover table-striped mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 140px;">Task ID</th>
+                                    <th style="width: 170px;">Date</th>
+                                    <th>Command</th>
+                                    <th style="width: 130px;">Status</th>
+                                    <th style="width: 220px;" class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var task in tasks)
+                                {
+                                    var result = AgentService.GetTaskResult(task.Id);
+                                    var status = result?.Status ?? AgentResultStatus.Queued;
+                                    <tr>
+                                        <td><code>@task.Id</code></td>
+                                        <td>@task.RequestDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                        <td><strong>@task.Command</strong></td>
+                                        <td>
+                                            @switch (status)
+                                            {
+                                                case AgentResultStatus.Queued:
+                                                    <span class="badge bg-secondary"><i class="bi bi-hourglass-split me-1"></i>Queued</span>
+                                                    break;
+                                                case AgentResultStatus.Running:
+                                                    <span class="badge bg-primary"><i class="bi bi-play-circle me-1"></i>Running</span>
+                                                    break;
+                                                case AgentResultStatus.Completed:
+                                                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Completed</span>
+                                                    break;
+                                                case AgentResultStatus.Error:
+                                                    <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Error</span>
+                                                    break;
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            @if (status == AgentResultStatus.Completed || status == AgentResultStatus.Error)
+                                            {
+                                                <button class="btn btn-sm btn-info me-1" @onclick="() => ViewTaskResult(task.Id)" title="View Result">
+                                                    <i class="bi bi-eye me-1"></i> Result
+                                                </button>
+                                                @if (result != null && (!string.IsNullOrEmpty(result.Output) || (result.Objects != null && result.Objects.Length > 0)))
+                                                {
+                                                    <button class="btn btn-sm btn-warning" @onclick="() => AddToLoot(task.Id)" title="Add to Loot">
+                                                        <i class="bi bi-folder-plus"></i>
+                                                    </button>
+                                                }
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .agent-tasks-view {
+        padding: 1rem;
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    .task-result-output {
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        font-family: 'Consolas', 'Courier New', monospace;
+        padding: 16px;
+        min-height: 400px;
+        max-height: calc(100vh - 270px);
+        overflow-y: auto;
+        font-size: 13px;
+        line-height: 1.5;
+        border-radius: 0 0 6px 6px;
+    }
+
+    .task-result-output .terminal-line {
+        margin-bottom: 4px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .task-result-output .terminal-line.error {
+        color: #f48771;
+    }
+
+    .task-result-output .terminal-line.warning {
+        color: #dcdcaa;
+    }
+
+    .task-result-output .terminal-line.info {
+        color: #4ec9b0;
+    }
+
+    .task-result-output .terminal-line.success {
+        color: #98c379;
+    }
+
+    .task-result-output .terminal-line.normal {
+        color: #d4d4d4;
+    }
+
+    .task-result-output::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .task-result-output::-webkit-scrollbar-track {
+        background: #1e1e1e;
+    }
+
+    .task-result-output::-webkit-scrollbar-thumb {
+        background: #3e3e42;
+        border-radius: 5px;
+    }
+
+    .task-result-output::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired]
+    public string AgentId { get; set; } = string.Empty;
+
+    private Agent? agent;
+    private List<TeamServerAgentTask> tasks = new();
+    private string? viewingTaskId = null;
+    private List<TerminalLine> outputLines = new();
+
+    protected override void OnInitialized()
+    {
+        agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
+        LoadTasks();
+        AgentService.OnTasksUpdated += OnTasksUpdated;
+        AgentService.OnAgentsUpdated += RefreshAgent;
+    }
+
+    protected override void OnParametersSet()
+    {
+        agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
+        LoadTasks();
+    }
+
+    private void RefreshAgent()
+    {
+        var updatedAgent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
+        if (updatedAgent != null)
+        {
+            agent = updatedAgent;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void LoadTasks()
+    {
+        tasks = AgentService.GetTasksForAgent(AgentId).OrderByDescending(t => t.RequestDate).ToList();
+    }
+
+    private void OnTasksUpdated()
+    {
+        LoadTasks();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ViewTaskResult(string taskId)
+    {
+        viewingTaskId = taskId;
+        outputLines.Clear();
+
+        var task = tasks.FirstOrDefault(t => t.Id == taskId);
+        var result = AgentService.GetTaskResult(taskId);
+
+        if (task != null && result != null)
+        {
+            AddInfo($"Task: {task.Command}");
+            AddInfo($"Status: {result.Status}");
+            AddInfo($"Date: {task.RequestDate.ToLocalTime():yyyy-MM-dd HH:mm:ss}");
+            AddInfo("-------------------------------------------");
+            AddNormal("");
+
+            if (result.Objects != null && result.Objects.Length > 0)
+            {
+                try
+                {
+                    var lines = await FormatterService.FormatResultObjectsLinesAsync(task.Command, result.Objects);
+                    if (lines != null && lines.Count > 0)
+                    {
+                        outputLines.AddRange(lines);
+                    }
+                    else if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[AgentTasksView] Error formatting result objects: {ex.Message}");
+                    if (!string.IsNullOrEmpty(result.Output))
+                    {
+                        AddNormal(result.Output);
+                    }
+                }
+            }
+            else if (!string.IsNullOrEmpty(result.Output))
+            {
+                AddNormal(result.Output);
+            }
+
+            if (!string.IsNullOrEmpty(result.Error))
+            {
+                AddError(result.Error);
+            }
+            if (!string.IsNullOrEmpty(result.Info))
+            {
+                AddInfo(result.Info);
+            }
+        }
+    }
+
+    private void CloseTaskResult()
+    {
+        viewingTaskId = null;
+        outputLines.Clear();
+    }
+
+    private void AddNormal(string text) => outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Normal });
+    private void AddError(string text) => outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Error });
+    private void AddWarning(string text) => outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Warning });
+    private void AddInfo(string text) => outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Info });
+
+    private string GetLineClass(TerminalLineType type)
+    {
+        return type switch
+        {
+            TerminalLineType.Error => "error",
+            TerminalLineType.Warning => "warning",
+            TerminalLineType.Info => "info",
+            TerminalLineType.Success => "success",
+            _ => "normal"
+        };
+    }
+
+    private async Task AddToLoot(string taskId)
+    {
+        var task = tasks.FirstOrDefault(t => t.Id == taskId);
+        var result = AgentService.GetTaskResult(taskId);
+        if (result == null || task == null) return;
+
+        var header = new System.Text.StringBuilder();
+        header.AppendLine("=".PadRight(80, '='));
+        header.AppendLine("TASK OUTPUT");
+        header.AppendLine("=".PadRight(80, '='));
+        header.AppendLine();
+        header.AppendLine($"Agent Name:      {agent?.Metadata?.Name ?? "Unknown"}");
+        header.AppendLine($"Hostname:        {agent?.Metadata?.Hostname ?? "Unknown"}");
+        header.AppendLine($"User:            {agent?.Metadata?.UserName ?? "Unknown"}");
+        header.AppendLine($"IP Address:      {AgentHelper.IpAsString(agent?.Metadata?.Address)}");
+        header.AppendLine($"Process:         {agent?.Metadata?.ProcessName ?? "Unknown"} (PID: {agent?.Metadata?.ProcessId})");
+        header.AppendLine();
+        header.AppendLine($"Task ID:         {taskId}");
+        header.AppendLine($"Command:         {task.Command}");
+        header.AppendLine($"Execution Date:  {task.RequestDate.ToLocalTime():yyyy-MM-dd HH:mm:ss}");
+        header.AppendLine($"Status:          {result.Status}");
+        header.AppendLine();
+        header.AppendLine("=".PadRight(80, '='));
+        header.AppendLine("OUTPUT");
+        header.AppendLine("=".PadRight(80, '='));
+        header.AppendLine();
+
+        string outputContent = result.Output;
+        if (string.IsNullOrEmpty(outputContent) && result.Objects != null && result.Objects.Length > 0)
+        {
+            try
+            {
+                var formatted = await FormatterService.FormatResultObjectsTextAsync(task.Command, result.Objects);
+                if (!string.IsNullOrEmpty(formatted))
+                {
+                    outputContent = formatted;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AgentTasksView] Error formatting result objects for loot: {ex.Message}");
+            }
+        }
+
+        header.Append(outputContent);
+
+        var fileName = $"task_{taskId}.txt";
+        var fileContent = System.Text.Encoding.UTF8.GetBytes(header.ToString());
+        var base64Data = Convert.ToBase64String(fileContent);
+
+        var loot = new Loot
+        {
+            AgentId = AgentId,
+            FileName = fileName,
+            Data = base64Data,
+            IsImage = false
+        };
+
+        try
+        {
+            var success = await TeamServerClient.CreateLootAsync(AgentId, loot);
+            if (success)
+            {
+                ToastService.ShowSuccess($"Task output saved as {fileName}", "Loot Added");
+            }
+            else
+            {
+                ToastService.ShowError("Failed to add loot", "Error");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error adding loot: {ex.Message}", "Error");
+        }
+    }
+
+    public void Dispose()
+    {
+        AgentService.OnTasksUpdated -= OnTasksUpdated;
+        AgentService.OnAgentsUpdated -= RefreshAgent;
+    }
+}

@@ -5,6 +5,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject AgentService AgentService
+@inject AgentSessionService SessionService
 @implements IDisposable
 
 <div class="card mb-3">
@@ -90,22 +91,26 @@
 
     private void ShowInfo()
     {
-        NavigationManager.NavigateTo($"/agent-info/{Agent.Id}");
+        SessionService.OpenSession(Agent.Id, "info");
+        NavigationManager.NavigateTo("/sessions");
     }
 
     private void ShowTasks()
     {
-        NavigationManager.NavigateTo($"/agent-tasks/{Agent.Id}");
+        SessionService.OpenSession(Agent.Id, "tasks");
+        NavigationManager.NavigateTo("/sessions");
     }
 
     private void ShowLoots()
     {
-        NavigationManager.NavigateTo($"/loots/{Agent.Id}");
+        SessionService.OpenSession(Agent.Id, "loots");
+        NavigationManager.NavigateTo("/sessions");
     }
 
     private void InteractWithAgent()
     {
-        NavigationManager.NavigateTo($"/terminal/{Agent.Id}");
+        SessionService.OpenSession(Agent.Id, "terminal");
+        NavigationManager.NavigateTo("/sessions");
     }
 
     private async Task DeleteAgent()

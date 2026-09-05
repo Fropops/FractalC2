@@ -1,0 +1,865 @@
+@implements IDisposable
+@using System.Collections.Generic
+@using Common.AgentCommands
+@using Common.CommandLine.Execution
+@using Common.Models
+@using Shared
+@using Shared.ResultObjects
+@using System.Reflection
+@using WebCommander.Commands
+@using WebCommander.Components
+@using WebCommander.Helpers
+@using WebCommander.Models
+@using WebCommander.Services
+@inject AgentService AgentService
+@inject NavigationManager NavigationManager
+@inject CommandService CommandService
+@inject IJSRuntime JSRuntime
+@inject TerminalHistoryService TerminalHistoryService
+@inject TaskResultFormatterService FormatterService
+@inject TerminalCompletionService CompletionService
+@inject AgentSessionService SessionService
+
+<div class="agent-terminal-session">
+	@if (agent == null)
+	{
+		<div class="alert alert-warning m-3">
+			<i class="bi bi-exclamation-triangle me-2"></i> Agent (@AgentId) introuvable ou déconnecté.
+		</div>
+	}
+	else
+	{
+		<div class="terminal-container">
+			<TerminalOutput @ref="terminalOutputComponent"
+							Lines="@outputLines"
+							OnDownloadFile="DownloadFile"
+							OnDeleteFile="DeleteFile"
+							OnDeleteDirectory="DeleteDirectory"
+							OnListDirectory="ListDirectory"
+							OnEnterDirectory="EnterDirectory"
+							OnMigrateProcess="MigrateProcess"
+							OnKillJob="KillJob"
+							OnUnlinkAgent="UnlinkAgent"
+							AgentOsType="@(agent?.Metadata?.OsType ?? OsType.Windows)" />
+
+			<div class="terminal-input-container">
+				<span class="terminal-prompt">@(agent.Metadata?.Name ?? "Unknown") &gt;</span>
+				<input type="text"
+					   class="terminal-input"
+					   @bind="currentCommand"
+					   @bind:event="oninput"
+					   @onkeydown="HandleKeyDown"
+					   @ref="inputElement"
+					   placeholder="Type a command (Tab for completion)..." />
+			</div>
+		</div>
+	}
+</div>
+
+<FileUploadModal @ref="fileUploadModal" />
+
+<style>
+	.agent-terminal-session {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		flex: 1;
+	}
+
+	.agent-terminal-session .terminal-container {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		background-color: #1e1e1e;
+		color: #d4d4d4;
+		font-family: 'Consolas', 'Courier New', monospace;
+		margin: 0;
+		border-radius: 6px;
+		overflow: hidden;
+		min-height: 0;
+		height: calc(100vh - 215px);
+		min-width: 0;
+		border: 1px solid #2d2d30;
+	}
+
+	.agent-terminal-session .terminal-output {
+		flex: 1;
+		overflow-y: auto;
+		overflow-x: hidden;
+		padding: 16px;
+		font-size: 14px;
+		line-height: 1.5;
+		min-height: 0;
+	}
+
+	.agent-terminal-session .terminal-line {
+		margin-bottom: 4px;
+		white-space: pre-wrap;
+		word-wrap: break-word;
+		word-break: break-all;
+		overflow-wrap: anywhere;
+	}
+
+	.agent-terminal-session .terminal-line.error {
+		color: #f48771;
+	}
+
+	.agent-terminal-session .terminal-line.warning {
+		color: #dcdcaa;
+	}
+
+	.agent-terminal-session .terminal-line.info {
+		color: #4ec9b0;
+	}
+
+	.agent-terminal-session .terminal-line.success {
+		color: #98c379;
+	}
+
+	.agent-terminal-session .terminal-line.normal {
+		color: #d4d4d4;
+	}
+
+	.agent-terminal-session .terminal-line.command {
+		color: #569cd6;
+	}
+
+	.agent-terminal-session .terminal-input-container {
+		background-color: #252526;
+		padding: 10px 16px;
+		border-top: 1px solid #333337;
+		display: flex;
+		align-items: center;
+	}
+
+	.agent-terminal-session .terminal-prompt {
+		color: #4ec9b0;
+		margin-right: 10px;
+		font-weight: bold;
+		white-space: nowrap;
+	}
+
+	.agent-terminal-session .terminal-input {
+		flex: 1;
+		background-color: transparent;
+		border: none;
+		color: #d4d4d4;
+		font-family: inherit;
+		font-size: 14px;
+		outline: none;
+		padding: 0;
+	}
+
+	.agent-terminal-session .terminal-input::placeholder {
+		color: #6a737d;
+	}
+
+	.agent-terminal-session .terminal-output::-webkit-scrollbar {
+		width: 10px;
+	}
+
+	.agent-terminal-session .terminal-output::-webkit-scrollbar-track {
+		background: #1e1e1e;
+	}
+
+	.agent-terminal-session .terminal-output::-webkit-scrollbar-thumb {
+		background: #3e3e42;
+		border-radius: 5px;
+	}
+
+	.agent-terminal-session .terminal-output::-webkit-scrollbar-thumb:hover {
+		background: #555;
+	}
+</style>
+
+@code {
+	[Parameter, EditorRequired]
+	public string AgentId { get; set; } = string.Empty;
+
+	[Parameter]
+	public bool IsActive { get; set; } = true;
+
+	[Parameter]
+	public string? InitialCommand { get; set; }
+
+	private const int MAX_OUTPUT_LINES = 1000;
+	private CancellationTokenSource? _saveHistoryCts;
+
+	private Agent? agent;
+	private string currentCommand = string.Empty;
+	private List<TerminalLine> outputLines = new();
+	private Dictionary<string, string> taskCommands = new();
+	private TerminalOutput? terminalOutputComponent;
+	private ElementReference inputElement;
+	private FileUploadModal? fileUploadModal;
+
+	// Command history
+	private List<string> commandHistory = new();
+	private int historyIndex = -1;
+	private bool shouldExecuteCommand = false;
+	private string? commandToExecute = null;
+	private bool shouldSetCursorToEnd = false;
+	private bool shouldFocusInput = false;
+	private bool shouldScrollToBottom = false;
+	private bool wasActive = false;
+
+	protected override async Task OnInitializedAsync()
+	{
+		agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
+
+		if (agent != null)
+		{
+			var history = await TerminalHistoryService.LoadHistoryAsync(AgentId);
+			if (history != null && history.OutputLines.Any())
+			{
+				outputLines = history.OutputLines;
+				TrimOutputLines();
+				commandHistory = history.CommandHistory;
+				taskCommands = history.TaskCommands;
+				CompletionService.UpdateDirectoryCacheFromHistory(AgentId, outputLines);
+				shouldScrollToBottom = true;
+			}
+			else
+			{
+				AddInfo($"Connected to agent {agent.Metadata?.Name ?? "Unknown"}");
+				AddInfo($"User: {agent.Metadata?.Desc}");
+				AddInfo($"Architecture: {agent.Metadata?.Architecture}");
+				AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
+				AddNormal("");
+			}
+		}
+
+		AgentService.OnAgentsUpdated += RefreshAgent;
+		AgentService.OnAgentResult += HandleAgentResult;
+
+		if (!string.IsNullOrWhiteSpace(InitialCommand))
+		{
+			shouldExecuteCommand = true;
+			commandToExecute = InitialCommand;
+		}
+		else if (NavigationManager.HistoryEntryState is string command && !string.IsNullOrWhiteSpace(command))
+		{
+			shouldExecuteCommand = true;
+			commandToExecute = command;
+		}
+
+		wasActive = IsActive;
+	}
+
+	protected override async Task OnParametersSetAsync()
+	{
+		if (IsActive && !wasActive)
+		{
+			shouldFocusInput = true;
+			shouldScrollToBottom = true;
+			SessionService.MarkRead(AgentId);
+		}
+		wasActive = IsActive;
+	}
+
+	private void RefreshAgent()
+	{
+		var updatedAgent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
+		if (updatedAgent != null)
+		{
+			agent = updatedAgent;
+			InvokeAsync(StateHasChanged);
+		}
+	}
+
+	public void Dispose()
+	{
+		_saveHistoryCts?.Cancel();
+		_saveHistoryCts?.Dispose();
+		_saveHistoryCts = null;
+
+		_ = SaveHistory();
+
+		AgentService.OnAgentsUpdated -= RefreshAgent;
+		AgentService.OnAgentResult -= HandleAgentResult;
+	}
+
+	private void TrimOutputLines()
+	{
+		if (outputLines.Count > MAX_OUTPUT_LINES)
+		{
+			outputLines.RemoveRange(0, outputLines.Count - MAX_OUTPUT_LINES);
+		}
+	}
+
+	private void ScheduleSaveHistory()
+	{
+		_saveHistoryCts?.Cancel();
+		_saveHistoryCts?.Dispose();
+		_saveHistoryCts = new CancellationTokenSource();
+		var token = _saveHistoryCts.Token;
+
+		_ = Task.Delay(500, token).ContinueWith(async t =>
+		{
+			if (!t.IsCanceled)
+			{
+				await InvokeAsync(async () =>
+				{
+					await SaveHistory();
+				});
+			}
+		}, TaskScheduler.Default);
+	}
+
+	private void AddNormal(string text)
+	{
+		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Normal });
+		TrimOutputLines();
+		ScheduleSaveHistory();
+		if (IsActive) _ = ScrollToBottom();
+	}
+
+	private void AddError(string text)
+	{
+		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Error });
+		TrimOutputLines();
+		ScheduleSaveHistory();
+		if (IsActive) _ = ScrollToBottom();
+	}
+
+	private void AddWarning(string text)
+	{
+		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Warning });
+		TrimOutputLines();
+		ScheduleSaveHistory();
+		if (IsActive) _ = ScrollToBottom();
+	}
+
+	private void AddSuccess(string text)
+	{
+		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Success });
+		TrimOutputLines();
+		ScheduleSaveHistory();
+		if (IsActive) _ = ScrollToBottom();
+	}
+
+	private void AddInfo(string text)
+	{
+		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Info });
+		TrimOutputLines();
+		ScheduleSaveHistory();
+		if (IsActive) _ = ScrollToBottom();
+	}
+
+	private void AddCommand(string text)
+	{
+		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Command });
+		TrimOutputLines();
+		ScheduleSaveHistory();
+		if (IsActive) _ = ScrollToBottom();
+	}
+
+	private async void HandleAgentResult(AgentTaskResult result, TeamServerAgentTask task)
+	{
+		if (task.AgentId != AgentId)
+			return;
+
+		if (!IsActive)
+		{
+			SessionService.MarkUnread(AgentId);
+		}
+
+		if (result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error)
+		{
+			var commandName = task.Command;
+			var commandId = task.CommandId;
+
+			if (result.Status == AgentResultStatus.Error)
+			{
+				AddError($"Task {commandName} failed with status: {result.Status}");
+				AddError("-------------------------------------------");
+			}
+			else
+			{
+				AddInfo($"Task {commandName} is {result.Status}");
+				AddInfo("-------------------------------------------");
+			}
+
+			if (commandId == CommandId.Ls && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
+					if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+					var listResult = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
+					if (listResult != null && listResult.Lines.Count > 0)
+					{
+						CompletionService.UpdateDirectoryCache(AgentId, listResult);
+						AddLsTable(listResult);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"[Terminal] Error deserializing ls results: {ex.Message}");
+				}
+			}
+			else if (commandId == CommandId.ListProcess && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
+					if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+					var processResults = await ResultObjectHelper.DeserializeListProcessResults(result.Objects);
+					if (processResults.Count > 0)
+					{
+						AddPsTable(processResults);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"[Terminal] Error deserializing ps results: {ex.Message}");
+				}
+			}
+			else if (commandId == CommandId.Job && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
+					if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+					var jobResults = await ResultObjectHelper.DeserializeJobResults(result.Objects);
+					if (jobResults.Count > 0)
+					{
+						AddJobTable(jobResults);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"[Terminal] Error deserializing job results: {ex.Message}");
+				}
+			}
+			else if (commandId == CommandId.Link && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
+					if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+					var linkResults = await ResultObjectHelper.DeserializeLinkInfoResults(result.Objects);
+					if (linkResults.Count > 0)
+					{
+						AddLinkTable(linkResults);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"[Terminal] Error deserializing link results: {ex.Message}");
+				}
+			}
+			else if (commandId == CommandId.RportFwd && result.Objects != null && result.Objects.Length > 0)
+			{
+				try
+				{
+					var rportfwdResults = await ResultObjectHelper.DeserializeReversePortForwardResults(result.Objects);
+					if (rportfwdResults.Count > 0)
+					{
+						AddRportFwdTable(rportfwdResults);
+					}
+					else if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"[Terminal] Error deserializing rportfwd results: {ex.Message}");
+					if (!string.IsNullOrEmpty(result.Output))
+					{
+						AddNormal(result.Output);
+					}
+				}
+			}
+			else if (!string.IsNullOrEmpty(result.Output))
+			{
+				AddNormal(result.Output);
+			}
+
+			if (!string.IsNullOrEmpty(result.Error))
+			{
+				AddError(result.Error);
+			}
+			AddNormal("");
+			await InvokeAsync(StateHasChanged);
+			if (IsActive)
+			{
+				_ = ScrollToBottom();
+			}
+		}
+	}
+
+	private void AddLsTable(ListDirectoryResult result)
+	{
+		var lines = FormatterService.FormatDirectoryListLines(result, agent?.Metadata?.OsType ?? OsType.Windows);
+		outputLines.AddRange(lines);
+		TrimOutputLines();
+		ScheduleSaveHistory();
+		if (IsActive) _ = ScrollToBottom();
+	}
+
+	private void AddPsTable(List<ListProcessResult> processes)
+	{
+		var lines = FormatterService.FormatProcessTreeLines(processes, agent?.Metadata?.ProcessId);
+		outputLines.AddRange(lines);
+		TrimOutputLines();
+		ScheduleSaveHistory();
+		if (IsActive) _ = ScrollToBottom();
+	}
+
+	private void AddJobTable(List<Job> jobs)
+	{
+		var lines = FormatterService.FormatJobListLines(jobs);
+		outputLines.AddRange(lines);
+		TrimOutputLines();
+		ScheduleSaveHistory();
+		if (IsActive) _ = ScrollToBottom();
+	}
+
+	private void AddLinkTable(List<LinkInfo> links)
+	{
+		var lines = FormatterService.FormatLinkListLines(links);
+		outputLines.AddRange(lines);
+		TrimOutputLines();
+		ScheduleSaveHistory();
+		if (IsActive) _ = ScrollToBottom();
+	}
+
+	private void AddRportFwdTable(List<ReversePortForwarResult> results)
+	{
+		var lines = FormatterService.FormatReversePortForwardLines(results);
+		outputLines.AddRange(lines);
+		TrimOutputLines();
+		ScheduleSaveHistory();
+		if (IsActive) _ = ScrollToBottom();
+	}
+
+	private async Task DownloadFile(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("Name", out var fileName))
+			return;
+
+		var command = $"download \"{fileName}\"";
+		await ExecuteCommand(command);
+	}
+
+	private async Task DeleteFile(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("Name", out var fileName))
+			return;
+
+		var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the file '{fileName}'?");
+		if (!confirmed)
+			return;
+
+		var command = $"del \"{fileName}\"";
+		await ExecuteCommand(command);
+	}
+
+	private async Task DeleteDirectory(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("Name", out var dirName))
+			return;
+
+		var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete the directory '{dirName}'?");
+		if (!confirmed)
+			return;
+
+		var command = $"rmdir \"{dirName}\"";
+		await ExecuteCommand(command);
+	}
+
+	private async Task ListDirectory(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("Name", out var dirName))
+			return;
+
+		var command = $"ls \"{dirName}\"";
+		await ExecuteCommand(command);
+	}
+
+	private async Task EnterDirectory(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("Name", out var dirName))
+			return;
+
+		var command = $"cd \"{dirName}\"";
+		await ExecuteCommand(command);
+	}
+
+	private async Task MigrateProcess(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("ProcessId", out var processId))
+			return;
+
+		var command = $"migrate {processId}";
+		await ExecuteCommand(command);
+	}
+
+	private async Task KillJob(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("JobId", out var jobId))
+			return;
+
+		var command = $"job kill -i {jobId}";
+		await ExecuteCommand(command);
+	}
+
+	private async Task UnlinkAgent(Dictionary<string, string> metadata)
+	{
+		if (metadata == null || !metadata.TryGetValue("Binding", out var binding))
+			return;
+
+		var command = $"link stop -b {binding}";
+		await ExecuteCommand(command);
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			if (IsActive)
+			{
+				try
+				{
+					await inputElement.FocusAsync();
+				}
+				catch { }
+			}
+
+			try
+			{
+				await JSRuntime.InvokeVoidAsync("setupTerminalInput", inputElement);
+			}
+			catch { }
+
+			if (shouldExecuteCommand && !string.IsNullOrWhiteSpace(commandToExecute))
+			{
+				shouldExecuteCommand = false;
+				await ExecuteCommand(commandToExecute);
+				commandToExecute = null;
+			}
+		}
+
+		if (shouldFocusInput && IsActive)
+		{
+			shouldFocusInput = false;
+			try
+			{
+				await inputElement.FocusAsync();
+			}
+			catch { }
+		}
+
+		if (shouldScrollToBottom && IsActive)
+		{
+			shouldScrollToBottom = false;
+			await ScrollToBottom();
+		}
+
+		if (shouldSetCursorToEnd && IsActive)
+		{
+			shouldSetCursorToEnd = false;
+			try
+			{
+				await JSRuntime.InvokeVoidAsync("setCursorToEnd", inputElement);
+			}
+			catch { }
+		}
+	}
+
+	private async Task HandleKeyDown(KeyboardEventArgs e)
+	{
+		if (e.Key == "Tab")
+		{
+			var completion = CompletionService.GetNextCompletion(currentCommand, agent, e.ShiftKey);
+			if (completion != null)
+			{
+				currentCommand = completion;
+				shouldSetCursorToEnd = true;
+				StateHasChanged();
+			}
+			return;
+		}
+
+		if (e.Key != "Shift" && e.Key != "Control" && e.Key != "Alt" && e.Key != "Meta")
+		{
+			CompletionService.Reset();
+		}
+
+		if (e.Key == "ArrowUp")
+		{
+			if (commandHistory.Count > 0 && historyIndex < commandHistory.Count - 1)
+			{
+				historyIndex++;
+				currentCommand = commandHistory[historyIndex];
+				shouldSetCursorToEnd = true;
+				StateHasChanged();
+			}
+			return;
+		}
+		else if (e.Key == "ArrowDown")
+		{
+			if (historyIndex > 0)
+			{
+				historyIndex--;
+				currentCommand = commandHistory[historyIndex];
+				shouldSetCursorToEnd = true;
+				StateHasChanged();
+			}
+			else if (historyIndex == 0)
+			{
+				historyIndex = -1;
+				currentCommand = string.Empty;
+				StateHasChanged();
+			}
+			return;
+		}
+
+		if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(currentCommand))
+		{
+			var commandToSend = currentCommand;
+
+			if (commandToSend.Trim().ToLower() == "clear" || commandToSend.Trim().ToLower() == "cls")
+			{
+				currentCommand = string.Empty;
+				await ClearTerminal();
+				StateHasChanged();
+				return;
+			}
+
+			await ExecuteCommand(commandToSend);
+		}
+	}
+
+	private async Task ClearTerminal()
+	{
+		outputLines.Clear();
+
+		if (agent != null)
+		{
+			AddInfo($"Connected to agent {agent.Metadata?.Name ?? "Unknown"}");
+			AddInfo($"User: {agent.Metadata?.Desc}");
+			AddInfo($"Architecture: {agent.Metadata?.Architecture}");
+			AddInfo($"Process: {agent.Metadata?.ProcessName} (PID: {agent.Metadata?.ProcessId})");
+			AddNormal("");
+		}
+
+		await SaveHistory();
+	}
+
+	private async Task SaveHistory()
+	{
+		if (agent == null) return;
+
+		var history = new TerminalHistory
+		{
+			OutputLines = outputLines.TakeLast(MAX_OUTPUT_LINES).ToList(),
+			CommandHistory = commandHistory.ToList(),
+			TaskCommands = new Dictionary<string, string>(taskCommands)
+		};
+
+		await TerminalHistoryService.SaveHistoryAsync(AgentId, history);
+	}
+
+	private async Task ScrollToBottom()
+	{
+		if (terminalOutputComponent != null)
+		{
+			await terminalOutputComponent.ScrollToBottom(JSRuntime);
+		}
+	}
+
+	public async Task ExecuteCommand(string commandToSend)
+	{
+		if (string.IsNullOrWhiteSpace(commandToSend) || agent == null)
+			return;
+
+		currentCommand = string.Empty;
+
+		commandHistory.Insert(0, commandToSend);
+		historyIndex = -1;
+
+		AddCommand($"{agent.Metadata?.Name ?? "Unknown"} > {commandToSend}");
+
+		var result = await ProcessCommandAndSend(commandToSend);
+
+		if (result.Context != null)
+		{
+			var context = result.Context as AgentCommandContext;
+			if (context != null)
+			{
+				var adapter = context.Adapter as WebAgentCommandAdapter;
+				if (adapter != null)
+				{
+					foreach (var line in adapter.Outputs)
+					{
+						if (line.Item1 == WebAgentCommandAdapter.OutputType.Info)
+							this.AddInfo(line.Item2);
+						if (line.Item1 == WebAgentCommandAdapter.OutputType.Success)
+							this.AddSuccess(line.Item2);
+						if (line.Item1 == WebAgentCommandAdapter.OutputType.Normal)
+							this.AddNormal(line.Item2);
+						if (line.Item1 == WebAgentCommandAdapter.OutputType.Error)
+							this.AddError(line.Item2);
+					}
+				}
+			}
+		}
+
+		if (!string.IsNullOrEmpty(result.Message))
+		{
+			if (result.Succeed)
+				AddNormal(result.Message);
+			else
+				AddError(result.Message);
+		}
+
+		StateHasChanged();
+		if (IsActive)
+		{
+			await ScrollToBottom();
+		}
+		await SaveHistory();
+	}
+
+	private async Task<CommandResult> ProcessCommandAndSend(string commandToSend)
+	{
+		var tokens = commandToSend.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+		if (tokens.Length > 0 && tokens[0].Equals("upload", StringComparison.OrdinalIgnoreCase) && !tokens.Any(t => t.Equals("-h", StringComparison.InvariantCultureIgnoreCase) || t.Equals("--h", StringComparison.InvariantCultureIgnoreCase)))
+		{
+			return await HandleUploadAsync(commandToSend);
+		}
+
+		return await CommandService.ParseAndSendAsync(commandToSend, agent);
+	}
+
+	private async Task<CommandResult> HandleUploadAsync(string commandLine)
+	{
+		if (fileUploadModal == null)
+			return CommandResult.Failure("Upload modal not available.");
+
+		var result = await fileUploadModal.ShowAsync();
+		if (result == null)
+			return CommandResult.Failure("Upload cancelled by operator.");
+
+		var (fileBytes, localName) = result.Value;
+		var fileInfo = new UploadCommandComplement()
+		{
+			FileBytes = fileBytes,
+			FileName = localName
+		};
+
+		return await CommandService.ParseAndSendAsync(commandLine, agent, fileInfo);
+	}
+}

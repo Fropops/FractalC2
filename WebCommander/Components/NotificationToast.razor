@@ -3,6 +3,7 @@
 @inject AgentService AgentService
 @inject ToastService ToastService
 @inject NavigationManager NavigationManager
+@inject AgentSessionService SessionService
 @implements IDisposable
 
 @foreach (var toast in toasts)
@@ -162,7 +163,8 @@
     {
         if (toast.Agent != null)
         {
-            NavigationManager.NavigateTo($"/terminal/{toast.Agent.Id}");
+            SessionService.OpenSession(toast.Agent.Id, "terminal");
+            NavigationManager.NavigateTo("/sessions");
             RemoveToast(toast);
         }
     }

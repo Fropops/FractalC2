@@ -1,0 +1,190 @@
+@using Shared
+@using WebCommander.Models
+@using WebCommander.Services
+@using WebCommander.Helpers
+@inject AgentService AgentService
+@implements IDisposable
+
+<div class="agent-info-view">
+    @if (agent == null)
+    {
+        <div class="alert alert-warning m-3">
+            <i class="bi bi-exclamation-triangle me-2"></i> Agent (@AgentId) introuvable.
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i> Detailed Information - @(agent.Metadata?.Name ?? "Unknown")
+                </h5>
+                <span class="badge @(AgentHelper.IsAgentAlive(agent, AgentService.GetAgents()) ?? false ? "bg-success" : "bg-secondary")">
+                    @(AgentHelper.IsAgentAlive(agent, AgentService.GetAgents()) ?? false ? "Active" : "Inactive")
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6 class="text-primary border-bottom pb-2 mb-3">
+                            <i class="bi bi-laptop me-1"></i> Agent Information
+                        </h6>
+                        <table class="table table-sm table-borderless">
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold text-muted" style="width: 150px;">Agent ID:</td>
+                                    <td><code>@agent.Id</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Name:</td>
+                                    <td>@agent.Metadata?.Name</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Description:</td>
+                                    <td>@agent.Metadata?.Desc</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Version:</td>
+                                    <td>@agent.Metadata?.Version</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6 class="text-primary border-bottom pb-2 mb-3">
+                            <i class="bi bi-hdd-network me-1"></i> System Information
+                        </h6>
+                        <table class="table table-sm table-borderless">
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold text-muted" style="width: 150px;">Hostname:</td>
+                                    <td>@agent.Metadata?.Hostname</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">IP Address:</td>
+                                    <td>@AgentHelper.IpAsString(agent.Metadata?.Address)</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Architecture:</td>
+                                    <td>@agent.Metadata?.Architecture - @agent.Metadata?.OsType</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6 class="text-primary border-bottom pb-2 mb-3">
+                            <i class="bi bi-gear me-1"></i> Process Information
+                        </h6>
+                        <table class="table table-sm table-borderless">
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold text-muted" style="width: 150px;">Process Name:</td>
+                                    <td>@agent.Metadata?.ProcessName</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Process ID:</td>
+                                    <td>@agent.Metadata?.ProcessId</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">User:</td>
+                                    <td>@agent.Metadata?.UserName</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Integrity:</td>
+                                    <td>
+                                        <span class="badge bg-dark">@agent.Metadata?.Integrity</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6 class="text-primary border-bottom pb-2 mb-3">
+                            <i class="bi bi-broadcast me-1"></i> Connection Information
+                        </h6>
+                        <table class="table table-sm table-borderless">
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold text-muted" style="width: 150px;">Endpoint:</td>
+                                    <td>
+                                        @{
+                                            var endpoint = agent.Metadata?.EndPoint ?? "";
+                                            var connexion = ConnexionUrl.FromString(endpoint);
+                                            var modeIcon = connexion.IsValid && connexion.Mode == ConnexionMode.Listener 
+                                                ? "bi-arrow-left-circle text-success" 
+                                                : "bi-arrow-right-circle text-primary";
+                                            var modeTitle = connexion.IsValid && connexion.Mode == ConnexionMode.Listener 
+                                                ? "Listener" 
+                                                : "Client";
+                                        }
+                                        <i class="bi @modeIcon me-1" title="@modeTitle"></i>@endpoint
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Sleep Interval:</td>
+                                    <td>@agent.Metadata?.SleepInterval seconds</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Last Seen:</td>
+                                    <td>@agent.LastSeen.ToString("yyyy-MM-dd HH:mm:ss") UTC (@AgentHelper.FormatElapsedTime((DateTime.UtcNow - agent.LastSeen).TotalSeconds) ago)</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Status:</td>
+                                    <td>
+                                        @if (AgentHelper.IsAgentAlive(agent, AgentService.GetAgents()) ?? false)
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        }
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string AgentId { get; set; } = string.Empty;
+
+    private Agent? agent;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        RefreshAgent();
+        AgentService.OnAgentsUpdated += RefreshAgent;
+        
+        _timer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(StateHasChanged);
+        }, null, 0, 1000);
+    }
+
+    protected override void OnParametersSet()
+    {
+        RefreshAgent();
+    }
+
+    private void RefreshAgent()
+    {
+        agent = AgentService.GetAgents().FirstOrDefault(a => a.Id == AgentId);
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AgentService.OnAgentsUpdated -= RefreshAgent;
+        _timer?.Dispose();
+    }
+}

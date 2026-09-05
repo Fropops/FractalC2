@@ -15,6 +15,7 @@ builder.Services.AddSingleton<TerminalHistoryService>();
 builder.Services.AddSingleton<ToastService>();
 builder.Services.AddSingleton<TaskResultFormatterService>();
 builder.Services.AddSingleton<TerminalCompletionService>();
+builder.Services.AddSingleton<AgentSessionService>();
 
 builder.Services.AddHttpClient<TeamServerClient>();
 

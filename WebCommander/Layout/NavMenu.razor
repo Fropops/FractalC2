@@ -1,4 +1,8 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+@using WebCommander.Services
+@inject AgentSessionService SessionService
+@implements IDisposable
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">
             <img src="icon-192.png" alt="Fractal C2" style="height: 32px; width: 32px; margin-right: 8px;" />
@@ -20,6 +24,17 @@
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="agents">
                 <span class="bi bi-laptop" aria-hidden="true"></span> Agents
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="sessions">
+                <span class="bi bi-window-stack" aria-hidden="true"></span> Sessions
+                @if (SessionService.OpenAgentIds.Count > 0)
+                {
+                    <span class="badge @(SessionService.UnreadAgents.Count > 0 ? "bg-warning text-dark" : "bg-primary") ms-auto rounded-pill" style="font-size: 0.75rem;">
+                        @SessionService.OpenAgentIds.Count
+                    </span>
+                }
             </NavLink>
         </div>
         <div class="nav-item px-3">
@@ -55,8 +70,23 @@
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
+    protected override void OnInitialized()
+    {
+        SessionService.OnSessionsChanged += OnSessionsUpdated;
+    }
+
+    private void OnSessionsUpdated()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    public void Dispose()
+    {
+        SessionService.OnSessionsChanged -= OnSessionsUpdated;
     }
 }

@@ -1,0 +1,593 @@
+@page "/sessions"
+@page "/sessions/{InitialAgentId}"
+@using Shared
+@using WebCommander.Models
+@using WebCommander.Services
+@using WebCommander.Components
+@using WebCommander.Helpers
+@inject AgentService AgentService
+@inject AgentSessionService SessionService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<PageTitle>Sessions @(ActiveAgent != null ? $"- {ActiveAgent.Metadata?.Name}" : "")</PageTitle>
+
+<div class="sessions-container">
+    <!-- Top Persistent Tab Bar (Windows Terminal Style) -->
+    <div class="terminal-tab-bar">
+        <div class="tabs-scroll-container">
+            @foreach (var agentId in SessionService.OpenAgentIds)
+            {
+                var curAgent = AgentService.GetAgents().FirstOrDefault(a => a.Id == agentId);
+                var isCurActive = SessionService.ActiveAgentId == agentId;
+                var isAlive = curAgent != null && (AgentHelper.IsAgentAlive(curAgent, AgentService.GetAgents()) ?? false);
+                var hasUnread = SessionService.UnreadAgents.Contains(agentId);
+                var name = curAgent?.Metadata?.Name ?? (agentId.Length > 8 ? agentId[..8] : agentId);
+                var osType = curAgent?.Metadata?.OsType ?? OsType.Windows;
+
+                <div class="terminal-tab @(isCurActive ? "active" : "") @(hasUnread ? "has-unread" : "")"
+                     @onclick="() => SelectTab(agentId)"
+                     @onmouseup="e => HandleTabMouseUp(e, agentId)"
+                     title="@($"{name} ({agentId}) - {curAgent?.Metadata?.UserName}@{curAgent?.Metadata?.Hostname}")">
+                    <span class="tab-status-dot @(isAlive ? "alive" : "offline")"></span>
+                    <i class="bi @(osType == OsType.Linux ? "bi-terminal-fill" : "bi-windows") tab-os-icon"></i>
+                    <span class="tab-title">@name</span>
+                    @if (hasUnread)
+                    {
+                        <span class="tab-unread-indicator" title="New output received"></span>
+                    }
+                    <button type="button" class="tab-close-btn" @onclick:stopPropagation="true" @onclick="() => CloseTab(agentId)" title="Close tab">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            }
+        </div>
+
+        <div class="tab-bar-actions position-relative">
+            <!-- Add New Tab Dropdown -->
+            <button class="btn btn-sm tab-action-btn" type="button" @onclick="ToggleAddDropdown" title="Open new agent session">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            @if (isAddDropdownOpen)
+            {
+                <div class="dropdown-backdrop" @onclick="CloseAddDropdown"></div>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark shadow show" style="position: absolute; right: 0; top: 100%; z-index: 1050; min-width: 250px;">
+                    <li class="dropdown-header">Open Agent Session</li>
+                    @{
+                        var allAgents = AgentService.GetAgents();
+                        var unopenedAgents = allAgents.Where(a => !SessionService.OpenAgentIds.Contains(a.Id)).ToList();
+                    }
+                    @if (allAgents.Count == 0)
+                    {
+                        <li><span class="dropdown-item text-muted">No agents registered</span></li>
+                    }
+                    else if (unopenedAgents.Count == 0)
+                    {
+                        <li><span class="dropdown-item text-muted">All agents already open</span></li>
+                    }
+                    else
+                    {
+                        @foreach (var ag in unopenedAgents)
+                        {
+                            var alive = AgentHelper.IsAgentAlive(ag, allAgents) ?? false;
+                            <li>
+                                <button class="dropdown-item d-flex align-items-center justify-content-between" @onclick='() => OpenSession(ag.Id, "terminal")'>
+                                    <span>
+                                        <i class="bi @(ag.Metadata?.OsType == OsType.Linux ? "bi-terminal-fill" : "bi-windows") me-2"></i>
+                                        <strong>@(ag.Metadata?.Name ?? "Unknown")</strong>
+                                        <small class="text-muted ms-1">(@ag.Metadata?.UserName)</small>
+                                    </span>
+                                    <span class="badge @(alive ? "bg-success" : "bg-secondary") ms-2">
+                                        @(alive ? "Online" : "Offline")
+                                    </span>
+                                </button>
+                            </li>
+                        }
+                    }
+                    @if (SessionService.OpenAgentIds.Count > 0)
+                    {
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <button class="dropdown-item text-warning" @onclick="CloseOtherTabs">
+                                <i class="bi bi-x-circle me-2"></i>Close Other Tabs
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item text-danger" @onclick="CloseAllTabs">
+                                <i class="bi bi-trash me-2"></i>Close All Tabs
+                            </button>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="sessions-content-area">
+        @if (SessionService.OpenAgentIds.Count == 0)
+        {
+            <!-- Empty State -->
+            <div class="empty-sessions-state">
+                <div class="empty-state-card text-center p-5">
+                    <div class="empty-state-icon mb-3">
+                        <i class="bi bi-window-stack text-muted" style="font-size: 3.5rem;"></i>
+                    </div>
+                    <h3 class="fw-bold mb-2">No Open Sessions</h3>
+                    <p class="text-muted mb-4">Select an agent below or open one from the <a href="/agents">Agents list</a> or <a href="/">Topology Graph</a>.</p>
+
+                    <div class="agent-quick-select-grid">
+                        @{
+                            var availableAgents = AgentService.GetAgents();
+                        }
+                        @if (availableAgents.Count == 0)
+                        {
+                            <div class="alert alert-secondary d-inline-block">
+                                <i class="bi bi-info-circle me-2"></i> No agents currently registered in Fractal C2.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row g-3 justify-content-center">
+                                @foreach (var ag in availableAgents)
+                                {
+                                    var alive = AgentHelper.IsAgentAlive(ag, availableAgents) ?? false;
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="card h-100 bg-dark text-white border-secondary shadow-sm agent-card">
+                                            <div class="card-body text-start">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h5 class="card-title mb-0">
+                                                        <i class="bi @(ag.Metadata?.OsType == OsType.Linux ? "bi-terminal-fill text-warning" : "bi-windows text-primary") me-1"></i>
+                                                        @(ag.Metadata?.Name ?? "Unknown")
+                                                    </h5>
+                                                    <span class="badge @(alive ? "bg-success" : "bg-secondary")">
+                                                        @(alive ? "Online" : "Offline")
+                                                    </span>
+                                                </div>
+                                                <p class="card-text small text-muted mb-1">
+                                                    <i class="bi bi-person me-1"></i> @ag.Metadata?.UserName<br />
+                                                    <i class="bi bi-hdd-network me-1"></i> @AgentHelper.IpAsString(ag.Metadata?.Address)<br />
+                                                    <i class="bi bi-gear me-1"></i> @ag.Metadata?.ProcessName (@ag.Metadata?.ProcessId)
+                                                </p>
+                                            </div>
+                                            <div class="card-footer bg-transparent border-top-0 pt-0 pb-3 d-flex gap-2">
+                                                <button class="btn btn-sm btn-primary flex-fill" @onclick='() => OpenSession(ag.Id, "terminal")'>
+                                                    <i class="bi bi-terminal me-1"></i> Terminal
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info" @onclick='() => OpenSession(ag.Id, "info")' title="Agent Info">
+                                                    <i class="bi bi-info-circle"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-success" @onclick='() => OpenSession(ag.Id, "tasks")' title="Tasks & Results">
+                                                    <i class="bi bi-list-task"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary" @onclick='() => OpenSession(ag.Id, "loots")' title="Loots">
+                                                    <i class="bi bi-folder2-open"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        else if (ActiveAgent != null)
+        {
+            var activeId = ActiveAgent.Id;
+            var currentView = SessionService.GetActiveView(activeId);
+            var isAlive = AgentHelper.IsAgentAlive(ActiveAgent, AgentService.GetAgents()) ?? false;
+
+            <!-- Agent Sub-Header with Navigation Pills -->
+            <div class="agent-session-subbar d-flex justify-content-between align-items-center px-3 py-2">
+                <div class="agent-summary-badge d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center">
+                        <span class="tab-status-dot @(isAlive ? "alive" : "offline") me-2"></span>
+                        <strong class="fs-6 text-white me-2">@(ActiveAgent.Metadata?.Name ?? "Unknown")</strong>
+                        <span class="badge bg-secondary me-2">@ActiveAgent.Metadata?.OsType</span>
+                    </div>
+                    <div class="agent-meta-snippet text-muted small d-none d-md-flex align-items-center gap-3">
+                        <span><i class="bi bi-person me-1"></i>@ActiveAgent.Metadata?.UserName</span>
+                        <span><i class="bi bi-hdd-network me-1"></i>@AgentHelper.IpAsString(ActiveAgent.Metadata?.Address)</span>
+                        <span><i class="bi bi-gear me-1"></i>@ActiveAgent.Metadata?.ProcessName (@ActiveAgent.Metadata?.ProcessId)</span>
+                        <span><i class="bi bi-clock-history me-1"></i>@AgentHelper.FormatElapsedTime((DateTime.UtcNow - ActiveAgent.LastSeen).TotalSeconds)</span>
+                    </div>
+                </div>
+
+                <!-- Sub-Navigation Pills: Terminal, Info, Tasks, Loots -->
+                <div class="sub-nav-pills btn-group" role="group">
+                    <button type="button"
+                            class="btn btn-sm @(currentView == "terminal" ? "btn-primary active" : "btn-outline-secondary text-white")"
+                            @onclick='() => SessionService.SetSessionView(activeId, "terminal")'>
+                        <i class="bi bi-terminal me-1"></i> Terminal
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm @(currentView == "info" ? "btn-info active text-dark" : "btn-outline-secondary text-white")"
+                            @onclick='() => SessionService.SetSessionView(activeId, "info")'>
+                        <i class="bi bi-info-circle me-1"></i> Infos
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm @(currentView == "tasks" ? "btn-success active text-white" : "btn-outline-secondary text-white")"
+                            @onclick='() => SessionService.SetSessionView(activeId, "tasks")'>
+                        <i class="bi bi-list-task me-1"></i> Tasks
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm @(currentView == "loots" ? "btn-secondary active" : "btn-outline-secondary text-white")"
+                            @onclick='() => SessionService.SetSessionView(activeId, "loots")'>
+                        <i class="bi bi-folder2-open me-1"></i> Loots
+                    </button>
+                </div>
+            </div>
+
+            <!-- View Bodies -->
+            <div class="session-views-viewport">
+                <!-- Persistent Terminals (Preserved in DOM with display toggle) -->
+                @foreach (var agentId in SessionService.OpenAgentIds)
+                {
+                    var isVisible = SessionService.ActiveAgentId == agentId && SessionService.GetActiveView(agentId) == "terminal";
+                    <div class="terminal-tab-pane" style="display: @(isVisible ? "flex" : "none"); height: 100%; flex-direction: column;">
+                        <AgentTerminalSession AgentId="@agentId" IsActive="@isVisible" />
+                    </div>
+                }
+
+                <!-- Info View -->
+                @if (currentView == "info")
+                {
+                    <div class="info-tab-pane p-3">
+                        <AgentInfoView AgentId="@activeId" />
+                    </div>
+                }
+
+                <!-- Tasks View -->
+                @if (currentView == "tasks")
+                {
+                    <div class="tasks-tab-pane">
+                        <AgentTasksView AgentId="@activeId" />
+                    </div>
+                }
+
+                <!-- Loots View -->
+                @if (currentView == "loots")
+                {
+                    <div class="loots-tab-pane p-3">
+                        <AgentLootsView AgentId="@activeId" />
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .sessions-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 60px);
+        margin: -1.5rem -1.5rem 0 -2rem; /* Stretch full-width of content area */
+        background-color: #121212;
+        color: #e0e0e0;
+        overflow: hidden;
+    }
+
+    /* Tab Bar Styling (Windows Terminal / VS Code style) */
+    .terminal-tab-bar {
+        background-color: #181818;
+        border-bottom: 1px solid #282828;
+        display: flex;
+        align-items: stretch;
+        height: 38px;
+        user-select: none;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .tabs-scroll-container {
+        display: flex;
+        align-items: stretch;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex: 1;
+        scrollbar-width: thin;
+    }
+
+    .tabs-scroll-container::-webkit-scrollbar {
+        height: 3px;
+    }
+
+    .tabs-scroll-container::-webkit-scrollbar-thumb {
+        background: #333;
+    }
+
+    .terminal-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 14px;
+        background-color: #1f1f1f;
+        color: #9d9d9d;
+        border-right: 1px solid #282828;
+        border-top: 2px solid transparent;
+        cursor: pointer;
+        font-size: 13px;
+        white-space: nowrap;
+        position: relative;
+        transition: background-color 0.15s, color 0.15s;
+        max-width: 220px;
+    }
+
+    .terminal-tab:hover {
+        background-color: #262626;
+        color: #e0e0e0;
+    }
+
+    .terminal-tab.active {
+        background-color: #121212;
+        color: #ffffff;
+        border-top: 2px solid #0d6efd;
+        font-weight: 500;
+    }
+
+    .tab-status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+
+    .tab-status-dot.alive {
+        background-color: #28a745;
+        box-shadow: 0 0 5px rgba(40, 167, 69, 0.7);
+    }
+
+    .tab-status-dot.offline {
+        background-color: #6c757d;
+    }
+
+    .tab-os-icon {
+        font-size: 12px;
+        flex-shrink: 0;
+    }
+
+    .tab-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .tab-unread-indicator {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #f59e0b;
+        animation: pulse-unread 1.5s infinite;
+        flex-shrink: 0;
+    }
+
+    @@keyframes pulse-unread {
+        0% { transform: scale(0.9); opacity: 0.7; }
+        50% { transform: scale(1.3); opacity: 1; }
+        100% { transform: scale(0.9); opacity: 0.7; }
+    }
+
+    .tab-close-btn {
+        background: none;
+        border: none;
+        color: #888;
+        padding: 0;
+        margin-left: 4px;
+        border-radius: 3px;
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+        opacity: 0.7;
+    }
+
+    .tab-close-btn:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+        color: #ff6b6b;
+        opacity: 1;
+    }
+
+    .tab-bar-actions {
+        display: flex;
+        align-items: center;
+        padding-left: 6px;
+    }
+
+    .tab-action-btn {
+        color: #aaa;
+        background: transparent;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .tab-action-btn:hover {
+        background-color: #2a2a2a;
+        color: #fff;
+    }
+
+    /* Sub-bar Styling */
+    .agent-session-subbar {
+        background-color: #1a1a1a;
+        border-bottom: 1px solid #2a2a2a;
+    }
+
+    .sub-nav-pills .btn {
+        font-size: 12px;
+        padding: 4px 12px;
+    }
+
+    /* Content Area */
+    .sessions-content-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .session-views-viewport {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    .terminal-tab-pane {
+        flex: 1;
+        min-height: 0;
+    }
+
+    .info-tab-pane, .loots-tab-pane {
+        overflow-y: auto;
+    }
+
+    /* Empty State */
+    .empty-sessions-state {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        overflow-y: auto;
+    }
+
+    .empty-state-card {
+        max-width: 900px;
+        width: 100%;
+    }
+
+    .agent-card {
+        transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .agent-card:hover {
+        transform: translateY(-2px);
+        border-color: #0d6efd !important;
+    }
+
+    .dropdown-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1040;
+        background: transparent;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string? InitialAgentId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "agent")]
+    public string? QueryAgentId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "view")]
+    public string? QueryView { get; set; }
+
+    private bool isAddDropdownOpen = false;
+
+    private Agent? ActiveAgent => AgentService.GetAgents().FirstOrDefault(a => a.Id == SessionService.ActiveAgentId);
+
+    protected override void OnInitialized()
+    {
+        SessionService.OnSessionsChanged += OnSessionsChangedHandler;
+        AgentService.OnAgentsUpdated += OnAgentsUpdatedHandler;
+        ProcessParameters();
+    }
+
+    protected override void OnParametersSet()
+    {
+        ProcessParameters();
+    }
+
+    private void ProcessParameters()
+    {
+        var targetAgent = !string.IsNullOrWhiteSpace(InitialAgentId) ? InitialAgentId : QueryAgentId;
+        if (!string.IsNullOrWhiteSpace(targetAgent))
+        {
+            var targetView = !string.IsNullOrWhiteSpace(QueryView) ? QueryView : "terminal";
+            SessionService.OpenSession(targetAgent, targetView);
+        }
+    }
+
+    private void OnSessionsChangedHandler()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnAgentsUpdatedHandler()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleAddDropdown()
+    {
+        isAddDropdownOpen = !isAddDropdownOpen;
+    }
+
+    private void CloseAddDropdown()
+    {
+        isAddDropdownOpen = false;
+    }
+
+    private void OpenSession(string agentId, string view = "terminal")
+    {
+        isAddDropdownOpen = false;
+        SessionService.OpenSession(agentId, view);
+    }
+
+    private void SelectTab(string agentId)
+    {
+        SessionService.SelectSession(agentId);
+    }
+
+    private void CloseTab(string agentId)
+    {
+        SessionService.CloseSession(agentId);
+    }
+
+    private void CloseOtherTabs()
+    {
+        isAddDropdownOpen = false;
+        if (SessionService.ActiveAgentId != null)
+        {
+            SessionService.CloseOtherSessions(SessionService.ActiveAgentId);
+        }
+    }
+
+    private void CloseAllTabs()
+    {
+        isAddDropdownOpen = false;
+        SessionService.CloseAllSessions();
+    }
+
+    private void HandleTabMouseUp(MouseEventArgs e, string agentId)
+    {
+        // Middle-click (button 1) to close tab
+        if (e.Button == 1)
+        {
+            CloseTab(agentId);
+        }
+    }
+
+    public void Dispose()
+    {
+        SessionService.OnSessionsChanged -= OnSessionsChangedHandler;
+        AgentService.OnAgentsUpdated -= OnAgentsUpdatedHandler;
+    }
+}

@@ -4,6 +4,7 @@
 @using WebCommander.Services
 @using WebCommander.Helpers
 @inject AgentService AgentService
+@inject AgentSessionService SessionService
 @implements IDisposable
 
 @inject IJSRuntime JSRuntime
@@ -124,22 +125,26 @@ else
 
     private void ShowInfo(Agent agent)
     {
-        NavigationManager.NavigateTo($"/agent-info/{agent.Id}");
+        SessionService.OpenSession(agent.Id, "info");
+        NavigationManager.NavigateTo("/sessions");
     }
 
     private void ShowTasks(Agent agent)
     {
-        NavigationManager.NavigateTo($"/agent-tasks/{agent.Id}");
+        SessionService.OpenSession(agent.Id, "tasks");
+        NavigationManager.NavigateTo("/sessions");
     }
 
     private void ShowLoots(Agent agent)
     {
-        NavigationManager.NavigateTo($"/loots/{agent.Id}");
+        SessionService.OpenSession(agent.Id, "loots");
+        NavigationManager.NavigateTo("/sessions");
     }
 
     private void InteractWithAgent(Agent agent)
     {
-        NavigationManager.NavigateTo($"/terminal/{agent.Id}");
+        SessionService.OpenSession(agent.Id, "terminal");
+        NavigationManager.NavigateTo("/sessions");
     }
 
     private async Task DeleteAgent(Agent agent)

@@ -1,0 +1,150 @@
+@using Common.APIModels
+@using WebCommander.Models
+@using WebCommander.Services
+@using WebCommander.Components
+@using System.IO
+@inject TeamServerClient TeamServerClient
+@inject AgentService AgentService
+@inject ToastService ToastService
+@implements IDisposable
+
+<div class="agent-loots-view">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+            <i class="bi bi-folder2-open me-2"></i> Loots
+        </h5>
+        <div class="btn btn-success position-relative btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> Add Loot
+            <InputFile OnChange="UploadFile" class="position-absolute top-0 start-0 opacity-0 w-100 h-100" style="cursor: pointer;" />
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link @(activeTab == "images" ? "active" : "")" @onclick="@(() => activeTab = "images")" style="cursor: pointer;">
+                <i class="bi bi-image me-1"></i> Images (@ImageLoots.Count)
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(activeTab == "files" ? "active" : "")" @onclick="@(() => activeTab = "files")" style="cursor: pointer;">
+                <i class="bi bi-file-earmark me-1"></i> Files (@FileLoots.Count)
+            </a>
+        </li>
+    </ul>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading loots...</p>
+        </div>
+    }
+    else
+    {
+        @if (activeTab == "images")
+        {
+            <LootImageGallery Loots="ImageLoots" AgentId="@AgentId" />
+        }
+        else
+        {
+            <LootFileList Loots="FileLoots" AgentId="@AgentId" OnLootDeleted="LoadLoots" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string AgentId { get; set; } = string.Empty;
+
+    private List<Loot> loots = new();
+    private string activeTab = "images";
+    private bool isLoading = true;
+
+    private List<Loot> ImageLoots => loots.Where(l => l.IsImage).ToList();
+    private List<Loot> FileLoots => loots.Where(l => !l.IsImage).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLoots();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadLoots();
+    }
+
+    private async Task LoadLoots()
+    {
+        isLoading = true;
+        try
+        {
+            loots = await TeamServerClient.GetLootsAsync(AgentId, includeThumbnail: true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading loots: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task UploadFile(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        isLoading = true;
+        try
+        {
+            // 100MB limit
+            using var stream = file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            var fileBytes = memoryStream.ToArray();
+            var base64Data = Convert.ToBase64String(fileBytes);
+
+            var loot = new Loot
+            {
+                AgentId = AgentId,
+                FileName = file.Name,
+                Data = base64Data,
+                IsImage = IsImageFile(file.Name)
+            };
+
+            var success = await TeamServerClient.CreateLootAsync(AgentId, loot);
+            if (success)
+            {
+                await LoadLoots();
+                ToastService.ShowSuccess($"Uploaded {file.Name}", "Loot Added");
+            }
+            else
+            {
+                Console.WriteLine("Upload failed");
+                ToastService.ShowError("Upload failed", "Error");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading file: {ex.Message}");
+            ToastService.ShowError($"Error uploading file: {ex.Message}", "Error");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private bool IsImageFile(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLower();
+        return new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" }.Contains(ext);
+    }
+
+    public void Dispose()
+    {
+    }
+}
