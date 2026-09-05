@@ -1,4 +1,5 @@
 @page "/proxies"
+@implements IDisposable
 @using Common.APIModels
 @using WebCommander.Models
 @using WebCommander.Services
@@ -81,7 +82,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        AgentService.OnAgentsUpdated += OnAgentsUpdated;
         await LoadProxies();
+    }
+
+    private void OnAgentsUpdated()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await LoadProxies();
+            StateHasChanged();
+        });
     }
 
     private async Task LoadProxies()
@@ -125,5 +136,10 @@ else
         {
             ToastService.ShowError($"Error stopping proxy: {ex.Message}", "Error");
         }
+    }
+
+    public void Dispose()
+    {
+        AgentService.OnAgentsUpdated -= OnAgentsUpdated;
     }
 }

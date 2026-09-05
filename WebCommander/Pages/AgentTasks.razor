@@ -11,6 +11,7 @@
 @inject ToastService ToastService
 @inject TeamServerClient TeamServerClient
 @inject NavigationManager NavigationManager
+@inject TaskResultFormatterService FormatterService
 @implements IDisposable
 
 <PageTitle>Tasks - @(agent?.Metadata?.Name ?? "Unknown")</PageTitle>
@@ -169,136 +170,17 @@ else
         
         if (string.IsNullOrEmpty(outputContent) && result.Objects != null && result.Objects.Length > 0)
         {
-            // Try to deserialize as ps command
-            if (task.Command.StartsWith("ps"))
+            try
             {
-                try
+                var formatted = await FormatterService.FormatResultObjectsTextAsync(task.Command, result.Objects);
+                if (!string.IsNullOrEmpty(formatted))
                 {
-                    var processResults = await ResultObjectHelper.DeserializeListProcessResults(result.Objects);
-                    if (processResults.Count > 0)
-                    {
-                        var sb = new System.Text.StringBuilder();
-                        sb.AppendLine(string.Format("{0,-6} {1,-6} {2,-30} {3,-10} {4,-20} {5}", "PID", "PPID", "Name", "Arch", "Owner", "Session"));
-                        sb.AppendLine(new string('-', 100));
-                        
-                        var processDict = processResults.ToDictionary(p => p.Id, p => p);
-                        var rootProcesses = processResults.Where(p => !processDict.ContainsKey(p.ParentId)).OrderBy(p => p.Id).ToList();
-                        
-                        foreach (var rootProcess in rootProcesses)
-                        {
-                            AppendProcessTreeToLoot(sb, rootProcess, processDict, 0);
-                        }
-                        
-                        outputContent = sb.ToString();
-                    }
+                    outputContent = formatted;
                 }
-                catch { }
             }
-            // Try to deserialize as ls command
-            else if (task.Command.StartsWith("ls") || task.Command.StartsWith("dir"))
+            catch (Exception ex)
             {
-                try
-                {
-                    var listResult = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
-                    if (listResult != null && listResult.Lines.Count > 0)
-                    {
-                        var sb = new System.Text.StringBuilder();
-                        sb.AppendLine($"Directory: {listResult.Directory}");
-                        sb.AppendLine();
-                        sb.AppendLine(string.Format("{0,-10} {1,-15} {2}", "Type", "Size", "Name"));
-                        sb.AppendLine(new string('-', 80));
-                        
-                        foreach (var item in listResult.Lines)
-                        {
-                            var type = item.IsFile ? "[FILE]" : "[DIR] ";
-                            var size = item.IsFile ? ResultObjectHelper.FormatFileSize(item.Length) : "";
-                            sb.AppendLine(string.Format("{0,-10} {1,-15} {2}", type, size, item.Name));
-                        }
-                        
-                        outputContent = sb.ToString();
-                    }
-                }
-                catch { }
-            }
-            // Try to deserialize as job command
-            else if (task.Command.StartsWith("job"))
-            {
-                try
-                {
-                    var jobResults = await ResultObjectHelper.DeserializeJobResults(result.Objects);
-                    if (jobResults.Count > 0)
-                    {
-                        var sb = new System.Text.StringBuilder();
-                        sb.AppendLine(string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}", "ID", "Type", "Name", "PID", "TaskID"));
-                        sb.AppendLine(new string('-', 80));
-                        
-                        foreach (var job in jobResults)
-                        {
-                            var jobTypeStr = job.JobType.ToString().Length > 15 ? job.JobType.ToString().Substring(0, 15) : job.JobType.ToString();
-                            var pidStr = job.ProcessId.HasValue ? job.ProcessId.Value.ToString() : "-";
-                            sb.AppendLine(string.Format("{0,-6} {1,-15} {2,-20} {3,-10} {4}", 
-                                job.Id, 
-                                jobTypeStr, 
-                                job.Name.Length > 20 ? job.Name.Substring(0, 17) + "..." : job.Name,
-                                pidStr,
-                                job.TaskId));
-                        }
-                        
-                        outputContent = sb.ToString();
-                    }
-                }
-                catch { }
-            }
-            // Try to deserialize as link command
-            else if (task.Command.StartsWith("link"))
-            {
-                try
-                {
-                    var linkResults = await ResultObjectHelper.DeserializeLinkInfoResults(result.Objects);
-                    if (linkResults.Count > 0)
-                    {
-                        var sb = new System.Text.StringBuilder();
-                        sb.AppendLine(string.Format("{0,-20} {1,-20} {2,-20} {3}", "TaskID", "ParentID", "ChildID", "Binding"));
-                        sb.AppendLine(new string('-', 100));
-                        
-                        foreach (var link in linkResults)
-                        {
-                            sb.AppendLine(string.Format("{0,-20} {1,-20} {2,-20} {3}", 
-                                link.TaskId, 
-                                link.ParentId, 
-                                link.ChildId,
-                                link.Binding));
-                        }
-                        
-                        outputContent = sb.ToString();
-                    }
-                }
-                catch { }
-            }
-            // Try to deserialize as rportfwd command
-            else if (task.Command.StartsWith("rportfwd"))
-            {
-                try
-                {
-                    var rportfwdResults = await ResultObjectHelper.DeserializeReversePortForwardResults(result.Objects);
-                    if (rportfwdResults.Count > 0)
-                    {
-                        var sb = new System.Text.StringBuilder();
-                        sb.AppendLine(string.Format("{0,-10} {1,-30} {2}", "Port", "DestHost", "DestPort"));
-                        sb.AppendLine(new string('-', 60));
-                        
-                        foreach (var res in rportfwdResults)
-                        {
-                            sb.AppendLine(string.Format("{0,-10} {1,-30} {2}", 
-                                res.Port, 
-                                res.DestHost,
-                                res.DestPort));
-                        }
-                        
-                        outputContent = sb.ToString();
-                    }
-                }
-                catch { }
+                Console.WriteLine($"[AgentTasks] Error formatting result objects for loot: {ex.Message}");
             }
         }
 
@@ -331,33 +213,6 @@ else
         catch (Exception ex)
         {
             ToastService.ShowError($"Error adding loot: {ex.Message}", "Error");
-        }
-    }
-
-    private void AppendProcessTreeToLoot(System.Text.StringBuilder sb, ListProcessResult process, Dictionary<int, ListProcessResult> processDict, int depth)
-    {
-        var indent = new string(' ', depth * 2);
-        var maxNameLength = 30;
-        var indentedName = indent + process.Name;
-        
-        if (indentedName.Length > maxNameLength)
-        {
-            indentedName = indentedName.Substring(0, maxNameLength);
-        }
-
-        sb.AppendLine(string.Format("{0,-6} {1,-6} {2,-30} {3,-10} {4,-20} {5}", 
-            process.Id, 
-            process.ParentId, 
-            indentedName,
-            process.Arch ?? "",
-            process.Owner ?? "",
-            process.SessionId));
-
-        // Add children
-        var children = processDict.Values.Where(p => p.ParentId == process.Id).OrderBy(p => p.Id).ToList();
-        foreach (var child in children)
-        {
-            AppendProcessTreeToLoot(sb, child, processDict, depth + 1);
         }
     }
 

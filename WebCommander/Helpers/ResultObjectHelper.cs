@@ -9,80 +9,35 @@ namespace WebCommander.Helpers
 {
     public static class ResultObjectHelper
     {
-        public static async Task<ListDirectoryResult?> DeserializeListDirectoryResults(byte[] data)
+        public static async Task<T?> DeserializeResult<T>(byte[]? data, T? defaultValue = default)
         {
             if (data == null || data.Length == 0)
-                return null;
+                return defaultValue;
 
             try 
             {
-                return await data.BinaryDeserializeAsync<ListDirectoryResult>();
+                return await data.BinaryDeserializeAsync<T>();
             }
             catch
             {
-                return null;
+                return defaultValue;
             }
         }
 
-        public static async Task<List<ListProcessResult>> DeserializeListProcessResults(byte[] data)
-        {
-            if (data == null || data.Length == 0)
-                return new List<ListProcessResult>();
+        public static Task<ListDirectoryResult?> DeserializeListDirectoryResults(byte[]? data)
+            => DeserializeResult<ListDirectoryResult?>(data, null);
 
-            try 
-            {
-                return await data.BinaryDeserializeAsync<List<ListProcessResult>>();
-            }
-            catch
-            {
-                return new List<ListProcessResult>();
-            }
-        }
+        public static Task<List<ListProcessResult>> DeserializeListProcessResults(byte[]? data)
+            => DeserializeResult(data, new List<ListProcessResult>())!;
 
-        public static async Task<List<Job>> DeserializeJobResults(byte[] data)
-        {
-            if (data == null || data.Length == 0)
-                return new List<Job>();
+        public static Task<List<Job>> DeserializeJobResults(byte[]? data)
+            => DeserializeResult(data, new List<Job>())!;
 
-            try 
-            {
-                return await data.BinaryDeserializeAsync<List<Job>>();
-            }
-            catch
-            {
-                return new List<Job>();
-            }
-        }
+        public static Task<List<LinkInfo>> DeserializeLinkInfoResults(byte[]? data)
+            => DeserializeResult(data, new List<LinkInfo>())!;
 
-        public static async Task<List<LinkInfo>> DeserializeLinkInfoResults(byte[] data)
-        {
-            if (data == null || data.Length == 0)
-                return new List<LinkInfo>();
-
-            try 
-            {
-                return await data.BinaryDeserializeAsync<List<LinkInfo>>();
-            }
-            catch
-            {
-                return new List<LinkInfo>();
-            }
-        }
-
-        public static async Task<List<ReversePortForwarResult>> DeserializeReversePortForwardResults(byte[] data)
-        {
-            if (data == null || data.Length == 0)
-                return new List<ReversePortForwarResult>();
-
-            try 
-            {
-                return await data.BinaryDeserializeAsync<List<ReversePortForwarResult>>();
-            }
-            catch
-            {
-                return new List<ReversePortForwarResult>();
-            }
-        }
+        public static Task<List<ReversePortForwarResult>> DeserializeReversePortForwardResults(byte[]? data)
+            => DeserializeResult(data, new List<ReversePortForwarResult>())!;
 
         public static string FormatFileSize(long bytes)
         {

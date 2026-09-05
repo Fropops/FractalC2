@@ -70,7 +70,8 @@ namespace WebCommander.Services
             }
             catch (Exception ex)
             {
-                return null;
+                Console.WriteLine($"Command execution error: {ex}");
+                return CommandResult.Failure(ex.Message);
             }
             finally
             {
