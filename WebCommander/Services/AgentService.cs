@@ -15,7 +15,11 @@ namespace WebCommander.Services
         private readonly Dictionary<string, APIImplant> _implants = new();
         private readonly Dictionary<string, AgentTaskResult> _taskResults = new();
         private readonly Dictionary<string, TeamServerAgentTask> _tasks = new();
-        private System.Threading.Timer? _timer;
+        private readonly object _cacheLock = new();
+        private readonly SemaphoreSlim _pollLock = new(1, 1);
+        private const int MAX_CONCURRENT_REQUESTS = 5;
+
+        private CancellationTokenSource? _pollingCts;
         private bool _firstCall = true;
         private bool _isInitialLoading = false;
         private int _totalChanges = 0;
@@ -50,6 +54,7 @@ namespace WebCommander.Services
             _isInitialLoading = true;
             OnLoadingStateChanged?.Invoke();
 
+            await _pollLock.WaitAsync();
             try
             {
                 // Perform initial fetch
@@ -57,6 +62,7 @@ namespace WebCommander.Services
             }
             finally
             {
+                _pollLock.Release();
                 _isInitialLoading = false;
                 OnLoadingStateChanged?.Invoke();
             }
@@ -67,21 +73,58 @@ namespace WebCommander.Services
             if (_isPolling) return;
             
             _isPolling = true;
-            _timer = new System.Threading.Timer(async _ =>
-            {
-                if (_isPolling)
-                {
-                    await PollForChanges();
-                }
-            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
+            _pollingCts = new CancellationTokenSource();
+            _ = PollingLoop(_pollingCts.Token);
         }
 
         public void StopPolling()
         {
             _isPolling = false;
-            _timer?.Change(Timeout.Infinite, Timeout.Infinite);
-            _timer?.Dispose();
-            _timer = null;
+            if (_pollingCts != null)
+            {
+                try
+                {
+                    _pollingCts.Cancel();
+                    _pollingCts.Dispose();
+                }
+                catch (ObjectDisposedException) { }
+                finally
+                {
+                    _pollingCts = null;
+                }
+            }
+        }
+
+        private async Task PollingLoop(CancellationToken cancellationToken)
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+            try
+            {
+                while (!cancellationToken.IsCancellationRequested && await timer.WaitForNextTickAsync(cancellationToken))
+                {
+                    if (!_isPolling) break;
+
+                    if (await _pollLock.WaitAsync(0, cancellationToken))
+                    {
+                        try
+                        {
+                            await PollForChanges();
+                        }
+                        finally
+                        {
+                            _pollLock.Release();
+                        }
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Graceful cancellation on StopPolling or Dispose
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Polling loop terminated: {ex.Message}");
+            }
         }
 
         private async Task PollForChanges()
@@ -117,122 +160,182 @@ namespace WebCommander.Services
                 bool implantsUpdated = false;
                 bool tasksUpdated = false;
 
-                foreach (var change in changes)
+                using var throttle = new SemaphoreSlim(MAX_CONCURRENT_REQUESTS, MAX_CONCURRENT_REQUESTS);
+
+                var tasks = changes.Select(async change =>
                 {
-                    Console.WriteLine($"Processing change: {change.Element} for ID {change.Id}");
-                    
-                    if (change.Element == ChangingElement.Agent)
+                    await throttle.WaitAsync();
+                    try
                     {
-                        var agent = await _client.GetAgentAsync(change.Id);
-                        if (agent != null)
+                        Console.WriteLine($"Processing change: {change.Element} for ID {change.Id}");
+                        
+                        if (change.Element == ChangingElement.Agent)
                         {
-                            bool isNewAgent = !_agents.ContainsKey(agent.Id);
-                            
-                            // Fetch metadata if this is the first time we see this agent
-                            if (isNewAgent)
+                            var agent = await _client.GetAgentAsync(change.Id);
+                            if (agent != null)
                             {
-                                agent.Metadata = await _client.GetAgentMetadataAsync(agent.Id);
-                                
-                                // Notify about new agent only if not in initial loading
-                                if (!_isInitialLoading)
+                                bool isNewAgent;
+                                lock (_cacheLock)
                                 {
-                                    OnNewAgent?.Invoke(agent);
+                                    isNewAgent = !_agents.ContainsKey(agent.Id);
+                                }
+                                
+                                // Fetch metadata if this is the first time we see this agent
+                                if (isNewAgent)
+                                {
+                                    agent.Metadata = await _client.GetAgentMetadataAsync(agent.Id);
+                                    
+                                    // Notify about new agent only if not in initial loading
+                                    if (!_isInitialLoading)
+                                    {
+                                        OnNewAgent?.Invoke(agent);
+                                    }
+                                }
+                                else
+                                {
+                                    // Preserve existing metadata when updating
+                                    lock (_cacheLock)
+                                    {
+                                        if (_agents.TryGetValue(agent.Id, out var existing))
+                                        {
+                                            agent.Metadata = existing.Metadata;
+                                        }
+                                    }
+                                }
+                                
+                                lock (_cacheLock)
+                                {
+                                    _agents[agent.Id] = agent;
+                                    agentsUpdated = true;
                                 }
                             }
                             else
                             {
-                                // Preserve existing metadata when updating
-                                agent.Metadata = _agents[agent.Id].Metadata;
-                            }
-                            
-                            _agents[agent.Id] = agent;
-                            agentsUpdated = true;
-                        }
-                        else
-                        {
-                            if (_agents.Remove(change.Id))
-                            {
-                                agentsUpdated = true;
-                            }
-                        }
-                    }
-                    else if (change.Element == ChangingElement.Listener)
-                    {
-                        var listener = await _client.GetListenerAsync(change.Id);
-                        if (listener != null)
-                        {
-                            _listeners[listener.Id] = listener;
-                            listenersUpdated = true;
-                        }
-                        else
-                        {
-                            if (_listeners.Remove(change.Id))
-                            {
-                                listenersUpdated = true;
-                            }
-                        }
-                    }
-                    else if (change.Element == ChangingElement.Result)
-                    {
-                        var result = await _client.GetTaskResultAsync(change.Id);
-                        if (result != null)
-                        {
-                            _taskResults[result.Id] = result;
-                            
-                            if ((result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error) && !_isInitialLoading)
-                            {
-                                if(this._tasks.ContainsKey(result.Id))
+                                lock (_cacheLock)
                                 {
-                                    var task = this._tasks[result.Id];
-                                    OnAgentResult?.Invoke(result, task);
+                                    if (_agents.Remove(change.Id))
+                                    {
+                                        agentsUpdated = true;
+                                    }
                                 }
                             }
                         }
-                        else
+                        else if (change.Element == ChangingElement.Listener)
                         {
-                             _taskResults.Remove(change.Id);
-                        }
-                    }
-                    else if (change.Element == ChangingElement.Task)
-                    {
-                        var task = await _client.GetTaskAsync(change.Id);
-                        if (task != null)
-                        {
-                            _tasks[task.Id] = task;
-                            tasksUpdated = true;
-                        }
-                        else
-                        {
-                            if (_tasks.Remove(change.Id))
+                            var listener = await _client.GetListenerAsync(change.Id);
+                            lock (_cacheLock)
                             {
-                                tasksUpdated = true;
+                                if (listener != null)
+                                {
+                                    _listeners[listener.Id] = listener;
+                                    listenersUpdated = true;
+                                }
+                                else
+                                {
+                                    if (_listeners.Remove(change.Id))
+                                    {
+                                        listenersUpdated = true;
+                                    }
+                                }
                             }
                         }
-                    }
-                    else if (change.Element == ChangingElement.Implant)
-                    {
-                        var implant = await _client.GetImplantAsync(change.Id);
-                        if (implant != null)
+                        else if (change.Element == ChangingElement.Result)
                         {
-                            _implants[implant.Id] = implant;
-                            implantsUpdated = true;
-                        }
-                        else
-                        {
-                            if (_implants.Remove(change.Id))
+                            var result = await _client.GetTaskResultAsync(change.Id);
+                            if (result != null)
                             {
-                                implantsUpdated = true;
-                            }
-                        }
-                    }
+                                lock (_cacheLock)
+                                {
+                                    _taskResults[result.Id] = result;
+                                }
+                                
+                                if ((result.Status == AgentResultStatus.Completed || result.Status == AgentResultStatus.Error) && !_isInitialLoading)
+                                {
+                                    TeamServerAgentTask? task = null;
+                                    lock (_cacheLock)
+                                    {
+                                        _tasks.TryGetValue(result.Id, out task);
+                                    }
 
-                    // Update progress during initial loading
-                    if (_isInitialLoading)
-                    {
-                        _processedChanges++;
-                        OnProgressUpdated?.Invoke();
+                                    if (task == null)
+                                    {
+                                        task = await _client.GetTaskAsync(result.Id);
+                                        if (task != null)
+                                        {
+                                            lock (_cacheLock)
+                                            {
+                                                _tasks[task.Id] = task;
+                                            }
+                                        }
+                                    }
+
+                                    if (task != null)
+                                    {
+                                        OnAgentResult?.Invoke(result, task);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                lock (_cacheLock)
+                                {
+                                    _taskResults.Remove(change.Id);
+                                }
+                            }
+                        }
+                        else if (change.Element == ChangingElement.Task)
+                        {
+                            var task = await _client.GetTaskAsync(change.Id);
+                            lock (_cacheLock)
+                            {
+                                if (task != null)
+                                {
+                                    _tasks[task.Id] = task;
+                                    tasksUpdated = true;
+                                }
+                                else
+                                {
+                                    if (_tasks.Remove(change.Id))
+                                    {
+                                        tasksUpdated = true;
+                                    }
+                                }
+                            }
+                        }
+                        else if (change.Element == ChangingElement.Implant)
+                        {
+                            var implant = await _client.GetImplantAsync(change.Id);
+                            lock (_cacheLock)
+                            {
+                                if (implant != null)
+                                {
+                                    _implants[implant.Id] = implant;
+                                    implantsUpdated = true;
+                                }
+                                else
+                                {
+                                    if (_implants.Remove(change.Id))
+                                    {
+                                        implantsUpdated = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Update progress during initial loading
+                        if (_isInitialLoading)
+                        {
+                            Interlocked.Increment(ref _processedChanges);
+                            OnProgressUpdated?.Invoke();
+                        }
                     }
-                }
+                    finally
+                    {
+                        throttle.Release();
+                    }
+                });
+
+                await Task.WhenAll(tasks);
 
                 // Notify subscribers
                 if (agentsUpdated) OnAgentsUpdated?.Invoke();
@@ -303,31 +406,46 @@ namespace WebCommander.Services
 
         public List<Agent> GetAgents()
         {
-            return _agents.Values.ToList();
+            lock (_cacheLock)
+            {
+                return _agents.Values.ToList();
+            }
         }
 
         public Agent? GetAgent(string id)
         {
-            return _agents.TryGetValue(id, out var agent) ? agent : null;
+            lock (_cacheLock)
+            {
+                return _agents.TryGetValue(id, out var agent) ? agent : null;
+            }
         }
 
         public List<Listener> GetListeners()
         {
-            return _listeners.Values.ToList();
+            lock (_cacheLock)
+            {
+                return _listeners.Values.ToList();
+            }
         }
 
         public List<APIImplant> GetImplants()
         {
-            return _implants.Values.ToList();
+            lock (_cacheLock)
+            {
+                return _implants.Values.ToList();
+            }
         }
 
         public void ClearCache()
         {
-            _agents.Clear();
-            _listeners.Clear();
-            _implants.Clear();
-            _taskResults.Clear();
-            _tasks.Clear();
+            lock (_cacheLock)
+            {
+                _agents.Clear();
+                _listeners.Clear();
+                _implants.Clear();
+                _taskResults.Clear();
+                _tasks.Clear();
+            }
             _firstCall = true;
             _isInitialLoading = true;
             _totalChanges = 0;
@@ -349,17 +467,26 @@ namespace WebCommander.Services
 
         public List<TeamServerAgentTask> GetTasks()
         {
-            return _tasks.Values.ToList();
+            lock (_cacheLock)
+            {
+                return _tasks.Values.ToList();
+            }
         }
 
         public List<TeamServerAgentTask> GetTasksForAgent(string agentId)
         {
-            return _tasks.Values.Where(t => t.AgentId == agentId).OrderByDescending(t => t.RequestDate).ToList();
+            lock (_cacheLock)
+            {
+                return _tasks.Values.Where(t => t.AgentId == agentId).OrderByDescending(t => t.RequestDate).ToList();
+            }
         }
 
         public AgentTaskResult? GetTaskResult(string taskId)
         {
-            return _taskResults.TryGetValue(taskId, out var result) ? result : null;
+            lock (_cacheLock)
+            {
+                return _taskResults.TryGetValue(taskId, out var result) ? result : null;
+            }
         }
 
         public async Task<bool> StopListenerAsync(string listenerId)
@@ -375,7 +502,8 @@ namespace WebCommander.Services
 
         public void Dispose()
         {
-            _timer?.Dispose();
+            StopPolling();
+            _pollLock.Dispose();
         }
     }
 }

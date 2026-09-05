@@ -14,12 +14,38 @@ namespace WebCommander.Services
             _jsRuntime = jsRuntime;
         }
 
+        private const int MAX_STORED_LINES = 1000;
+        private const int FALLBACK_STORED_LINES = 500;
+
         public async Task SaveHistoryAsync(string agentId, TerminalHistory history)
         {
             try
             {
+                if (history.OutputLines.Count > MAX_STORED_LINES)
+                {
+                    history.OutputLines = history.OutputLines.TakeLast(MAX_STORED_LINES).ToList();
+                }
+
                 var json = JsonSerializer.Serialize(history);
                 await _jsRuntime.InvokeVoidAsync("localStorage.setItem", $"{HISTORY_PREFIX}{agentId}", json);
+            }
+            catch (JSException jsEx) when (jsEx.Message.Contains("QuotaExceededError", StringComparison.OrdinalIgnoreCase) || 
+                                           jsEx.Message.Contains("quota", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine($"LocalStorage quota exceeded for agent {agentId}, trimming history to {FALLBACK_STORED_LINES} lines...");
+                try
+                {
+                    if (history.OutputLines.Count > FALLBACK_STORED_LINES)
+                    {
+                        history.OutputLines = history.OutputLines.TakeLast(FALLBACK_STORED_LINES).ToList();
+                    }
+                    var fallbackJson = JsonSerializer.Serialize(history);
+                    await _jsRuntime.InvokeVoidAsync("localStorage.setItem", $"{HISTORY_PREFIX}{agentId}", fallbackJson);
+                }
+                catch (Exception retryEx)
+                {
+                    Console.WriteLine($"Failed to save trimmed terminal history for agent {agentId}: {retryEx.Message}");
+                }
             }
             catch (Exception ex)
             {

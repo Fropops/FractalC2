@@ -1,4 +1,5 @@
 @page "/terminal/{AgentId}"
+@implements IDisposable
 @using System.Collections.Generic
 @using Common.AgentCommands
 @using Common.CommandLine.Execution
@@ -179,6 +180,9 @@
 	[Parameter]
 	public string AgentId { get; set; } = string.Empty;
 
+	private const int MAX_OUTPUT_LINES = 1000;
+	private CancellationTokenSource? _saveHistoryCts;
+
 	private Agent? agent;
 	private string currentCommand = string.Empty;
 	private List<TerminalLine> outputLines = new();
@@ -204,6 +208,7 @@
 			if (history != null && history.OutputLines.Any())
 			{
 				outputLines = history.OutputLines;
+				TrimOutputLines();
 				commandHistory = history.CommandHistory;
 				taskCommands = history.TaskCommands;
 				// Scroll to bottom after loading
@@ -253,6 +258,7 @@
 				if (history != null && history.OutputLines.Any())
 				{
 					outputLines = history.OutputLines;
+					TrimOutputLines();
 					commandHistory = history.CommandHistory;
 					taskCommands = history.TaskCommands;
 					shouldScrollToBottom = true;
@@ -286,49 +292,88 @@
 
 	public void Dispose()
 	{
+		_saveHistoryCts?.Cancel();
+		_saveHistoryCts?.Dispose();
+		_saveHistoryCts = null;
+
+		_ = SaveHistory();
+
 		AgentService.OnAgentsUpdated -= RefreshAgent;
 		AgentService.OnAgentResult -= HandleAgentResult;
+	}
+
+	private void TrimOutputLines()
+	{
+		if (outputLines.Count > MAX_OUTPUT_LINES)
+		{
+			outputLines.RemoveRange(0, outputLines.Count - MAX_OUTPUT_LINES);
+		}
+	}
+
+	private void ScheduleSaveHistory()
+	{
+		_saveHistoryCts?.Cancel();
+		_saveHistoryCts?.Dispose();
+		_saveHistoryCts = new CancellationTokenSource();
+		var token = _saveHistoryCts.Token;
+
+		_ = Task.Delay(500, token).ContinueWith(async t =>
+		{
+			if (!t.IsCanceled)
+			{
+				await InvokeAsync(async () =>
+				{
+					await SaveHistory();
+				});
+			}
+		}, TaskScheduler.Default);
 	}
 
 	private void AddNormal(string text)
 	{
 		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Normal });
-		_ = SaveHistory();
+		TrimOutputLines();
+		ScheduleSaveHistory();
 		_ = ScrollToBottom();
 	}
 
 	private void AddError(string text)
 	{
 		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Error });
-		_ = SaveHistory();
+		TrimOutputLines();
+		ScheduleSaveHistory();
 		_ = ScrollToBottom();
 	}
 
 	private void AddWarning(string text)
 	{
 		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Warning });
-		_ = SaveHistory();
+		TrimOutputLines();
+		ScheduleSaveHistory();
 		_ = ScrollToBottom();
 	}
 
 	private void AddSuccess(string text)
 	{
 		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Success });
-		_ = SaveHistory();
+		TrimOutputLines();
+		ScheduleSaveHistory();
 		_ = ScrollToBottom();
 	}
 
 	private void AddInfo(string text)
 	{
 		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Info });
-		_ = SaveHistory();
+		TrimOutputLines();
+		ScheduleSaveHistory();
 		_ = ScrollToBottom();
 	}
 
 	private void AddCommand(string text)
 	{
 		outputLines.Add(new TerminalLine { Text = text, Type = TerminalLineType.Command });
-		_ = SaveHistory();
+		TrimOutputLines();
+		ScheduleSaveHistory();
 		_ = ScrollToBottom();
 	}
 
@@ -532,6 +577,9 @@
 			};
 			outputLines.Add(line);
 		}
+		TrimOutputLines();
+		ScheduleSaveHistory();
+		_ = ScrollToBottom();
 	}
 
 	private void AddPsTable(List<ListProcessResult> processes)
@@ -569,7 +617,8 @@
 			AddProcessTreeNode(rootProcess, processDict, 0);
 		}
 
-		_ = SaveHistory();
+		TrimOutputLines();
+		ScheduleSaveHistory();
 		_ = ScrollToBottom();
 	}
 
@@ -670,7 +719,8 @@
 			outputLines.Add(line);
 		}
 
-		_ = SaveHistory();
+		TrimOutputLines();
+		ScheduleSaveHistory();
 		_ = ScrollToBottom();
 	}
 
@@ -721,7 +771,8 @@
 			outputLines.Add(line);
 		}
 
-		_ = SaveHistory();
+		TrimOutputLines();
+		ScheduleSaveHistory();
 		_ = ScrollToBottom();
 	}
 
@@ -773,7 +824,8 @@
 			outputLines.Add(line);
 		}
 
-		_ = SaveHistory();
+		TrimOutputLines();
+		ScheduleSaveHistory();
 		_ = ScrollToBottom();
 	}
 
@@ -961,9 +1013,9 @@
 
 		var history = new TerminalHistory
 		{
-			OutputLines = outputLines,
-			CommandHistory = commandHistory,
-			TaskCommands = taskCommands
+			OutputLines = outputLines.TakeLast(MAX_OUTPUT_LINES).ToList(),
+			CommandHistory = commandHistory.ToList(),
+			TaskCommands = new Dictionary<string, string>(taskCommands)
 		};
 
 		await TerminalHistoryService.SaveHistoryAsync(AgentId, history);

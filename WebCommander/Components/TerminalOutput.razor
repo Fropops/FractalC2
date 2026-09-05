@@ -77,8 +77,7 @@
 </style>
 
 <div class="terminal-output" @ref="terminalOutput">
-    @foreach (var line in Lines)
-    {
+    <Virtualize Items="@Lines" Context="line" ItemSize="26" OverscanCount="20">
         <div class="terminal-line @GetLineClass(line.Type)">
             @if (line.Metadata != null && line.Metadata.ContainsKey("IsLsHeader") && line.Metadata["IsLsHeader"] == "true")
             {
@@ -212,7 +211,7 @@
                 @line.Text
             }
         </div>
-    }
+    </Virtualize>
 </div>
 
 @code {
