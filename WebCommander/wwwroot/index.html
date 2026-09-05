@@ -66,6 +66,17 @@
                 }, 10);
             }
         }
+
+        window.setupTerminalInput = function (element) {
+            if (element && !element._hasTabHandler) {
+                element._hasTabHandler = true;
+                element.addEventListener('keydown', function (e) {
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                    }
+                });
+            }
+        }
     </script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>

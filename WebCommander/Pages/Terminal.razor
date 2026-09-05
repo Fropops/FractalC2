@@ -19,6 +19,7 @@
 @inject IJSRuntime JSRuntime
 @inject TerminalHistoryService TerminalHistoryService
 @inject TaskResultFormatterService FormatterService
+@inject TerminalCompletionService CompletionService
 
 <PageTitle>Terminal - @(agent?.Metadata?.Name ?? "Unknown")</PageTitle>
 
@@ -212,6 +213,7 @@
 				TrimOutputLines();
 				commandHistory = history.CommandHistory;
 				taskCommands = history.TaskCommands;
+				CompletionService.UpdateDirectoryCacheFromHistory(AgentId, outputLines);
 				// Scroll to bottom after loading
 				shouldScrollToBottom = true;
 			}
@@ -262,6 +264,7 @@
 					TrimOutputLines();
 					commandHistory = history.CommandHistory;
 					taskCommands = history.TaskCommands;
+					CompletionService.UpdateDirectoryCacheFromHistory(AgentId, outputLines);
 					shouldScrollToBottom = true;
 				}
 				else
@@ -420,6 +423,7 @@
 					var listResult = await ResultObjectHelper.DeserializeListDirectoryResults(result.Objects);
 					if (listResult != null && listResult.Lines.Count > 0)
 					{
+						CompletionService.UpdateDirectoryCache(AgentId, listResult);
 						// Add table output
 						AddLsTable(listResult);
 					}
@@ -671,6 +675,11 @@
 		if (firstRender)
 		{
 			await inputElement.FocusAsync();
+			try
+			{
+				await JSRuntime.InvokeVoidAsync("setupTerminalInput", inputElement);
+			}
+			catch { }
 
 			// Execute command from navigation state if provided
 			if (shouldExecuteCommand && !string.IsNullOrWhiteSpace(commandToExecute))
@@ -696,6 +705,25 @@
 
 	private async Task HandleKeyDown(KeyboardEventArgs e)
 	{
+		// Handle tab autocompletion
+		if (e.Key == "Tab")
+		{
+			var completion = CompletionService.GetNextCompletion(currentCommand, agent, e.ShiftKey);
+			if (completion != null)
+			{
+				currentCommand = completion;
+				shouldSetCursorToEnd = true;
+				StateHasChanged();
+			}
+			return;
+		}
+
+		// Reset completion cycle on other keys (ignore modifiers)
+		if (e.Key != "Shift" && e.Key != "Control" && e.Key != "Alt" && e.Key != "Meta")
+		{
+			CompletionService.Reset();
+		}
+
 		// Handle history navigation
 		if (e.Key == "ArrowUp")
 		{
