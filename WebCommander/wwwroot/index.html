@@ -77,6 +77,152 @@
                 });
             }
         }
+
+        window.topologyZoomPan = {
+            instances: {},
+
+            init: function (containerId, svgId, initialVb) {
+                const container = document.getElementById(containerId);
+                const svg = document.getElementById(svgId);
+                if (!container || !svg) return;
+
+                let vb = { 
+                    x: initialVb ? initialVb.x : 0, 
+                    y: initialVb ? initialVb.y : 0, 
+                    w: initialVb ? initialVb.w : 1400, 
+                    h: initialVb ? initialVb.h : 800 
+                };
+                let isPanning = false;
+                let startX = 0, startY = 0;
+                let startVbX = 0, startVbY = 0;
+
+                function updateSvgViewBox() {
+                    svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+                }
+
+                updateSvgViewBox();
+
+                function handleWheel(e) {
+                    e.preventDefault();
+                    const rect = container.getBoundingClientRect();
+                    if (rect.width === 0 || rect.height === 0) return;
+
+                    const cursorX = e.clientX - rect.left;
+                    const cursorY = e.clientY - rect.top;
+                    const rx = Math.max(0, Math.min(1, cursorX / rect.width));
+                    const ry = Math.max(0, Math.min(1, cursorY / rect.height));
+
+                    const factor = e.deltaY < 0 ? 0.85 : 1.18;
+                    const minW = 250;
+                    const maxW = 15000;
+                    const newW = Math.max(minW, Math.min(maxW, vb.w * factor));
+                    const newH = newW * (rect.height / rect.width);
+
+                    vb.x = vb.x + (vb.w - newW) * rx;
+                    vb.y = vb.y + (vb.h - newH) * ry;
+                    vb.w = newW;
+                    vb.h = newH;
+
+                    updateSvgViewBox();
+                }
+
+                function handlePointerDown(e) {
+                    const isBg = e.target === svg || 
+                                 e.target.classList.contains('topology-bg') || 
+                                 e.target.tagName === 'svg';
+                    if (e.button === 1 || (e.button === 0 && isBg)) {
+                        isPanning = true;
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        startVbX = vb.x;
+                        startVbY = vb.y;
+                        container.classList.add('is-panning');
+                        try { container.setPointerCapture(e.pointerId); } catch (_) {}
+                    }
+                }
+
+                function handlePointerMove(e) {
+                    if (!isPanning) return;
+                    const rect = container.getBoundingClientRect();
+                    if (rect.width === 0 || rect.height === 0) return;
+
+                    const dx = (e.clientX - startX) * (vb.w / rect.width);
+                    const dy = (e.clientY - startY) * (vb.h / rect.height);
+
+                    vb.x = startVbX - dx;
+                    vb.y = startVbY - dy;
+
+                    updateSvgViewBox();
+                }
+
+                function handlePointerUp(e) {
+                    if (isPanning) {
+                        isPanning = false;
+                        container.classList.remove('is-panning');
+                        try { container.releasePointerCapture(e.pointerId); } catch (_) {}
+                    }
+                }
+
+                container.addEventListener('wheel', handleWheel, { passive: false });
+                container.addEventListener('pointerdown', handlePointerDown);
+                container.addEventListener('pointermove', handlePointerMove);
+                container.addEventListener('pointerup', handlePointerUp);
+                container.addEventListener('pointercancel', handlePointerUp);
+
+                window.topologyZoomPan.instances[containerId] = {
+                    container,
+                    svg,
+                    getVb: () => ({ ...vb }),
+                    setVb: (newVb) => {
+                        vb = { ...newVb };
+                        updateSvgViewBox();
+                    },
+                    zoomBy: (factor) => {
+                        const rect = container.getBoundingClientRect();
+                        const newW = Math.max(250, Math.min(15000, vb.w * factor));
+                        const newH = newW * (rect.height / (rect.width || 1));
+                        vb.x = vb.x + (vb.w - newW) * 0.5;
+                        vb.y = vb.y + (vb.h - newH) * 0.5;
+                        vb.w = newW;
+                        vb.h = newH;
+                        updateSvgViewBox();
+                    },
+                    centerOn: (targetX, targetY) => {
+                        vb.x = targetX - vb.w / 2;
+                        vb.y = targetY - vb.h / 2;
+                        updateSvgViewBox();
+                    },
+                    cleanup: () => {
+                        container.removeEventListener('wheel', handleWheel);
+                        container.removeEventListener('pointerdown', handlePointerDown);
+                        container.removeEventListener('pointermove', handlePointerMove);
+                        container.removeEventListener('pointerup', handlePointerUp);
+                        container.removeEventListener('pointercancel', handlePointerUp);
+                        delete window.topologyZoomPan.instances[containerId];
+                    }
+                };
+            },
+
+            zoomBy: function (containerId, factor) {
+                const inst = this.instances[containerId];
+                if (inst) inst.zoomBy(factor);
+            },
+
+            setVb: function (containerId, x, y, w, h) {
+                const inst = this.instances[containerId];
+                if (inst) inst.setVb({ x, y, w, h });
+            },
+
+            centerOn: function (containerId, x, y) {
+                const inst = this.instances[containerId];
+                if (inst) inst.centerOn(x, y);
+            },
+
+            destroy: function (containerId) {
+                const inst = this.instances[containerId];
+                if (inst) inst.cleanup();
+            }
+        };
     </script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>

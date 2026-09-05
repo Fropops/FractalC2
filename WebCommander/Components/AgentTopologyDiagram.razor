@@ -5,181 +5,235 @@
 @inject AgentService AgentService
 @inject NavigationManager NavigationManager
 @inject AgentSessionService SessionService
+@inject IJSRuntime JSRuntime
 @implements IDisposable
+@implements IAsyncDisposable
 
-<div class="topology-container">
-    <svg width="@svgWidth" height="@svgHeight" viewBox="0 0 @svgWidth @svgHeight" style="min-width: @(svgWidth)px; display: block; margin: 0 auto;">
-        <!-- TeamServer Node -->
-        <g transform="translate(@(svgWidth / 2), 50)">
-            <!-- Server Rack Icon -->
-            <rect x="-20" y="-20" width="40" height="40" rx="4" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
-            <line x1="-15" y1="-8" x2="15" y2="-8" stroke="#334155" stroke-width="2"/>
-            <line x1="-15" y1="2" x2="15" y2="2" stroke="#334155" stroke-width="2"/>
-            <line x1="-15" y1="12" x2="15" y2="12" stroke="#334155" stroke-width="2"/>
-            <!-- Status Lights -->
-            <circle cx="12" cy="-8" r="1.5" fill="#10b981"/>
-            <circle cx="12" cy="2" r="1.5" fill="#10b981"/>
-            <circle cx="12" cy="12" r="1.5" fill="#10b981"/>
-            
-            <text x="0" y="35" text-anchor="middle" fill="#e5e7eb" font-size="12">TeamServer</text>
-        </g>
+<div class="topology-container" id="@containerId">
+    <!-- Floating HUD Toolbar -->
+    <div class="topology-toolbar">
+        <!-- Search Bar -->
+        <div class="input-group input-group-sm toolbar-search">
+            <span class="input-group-text bg-dark border-secondary text-muted">
+                <i class="bi bi-search"></i>
+            </span>
+            <input type="text" class="form-control bg-dark border-secondary text-light form-control-sm"
+                   placeholder="Search agent, host, user..."
+                   @bind="searchQuery" @bind:event="oninput" @onkeydown="HandleSearchKeyDown" />
+            @if (!string.IsNullOrEmpty(searchQuery))
+            {
+                <button class="btn btn-outline-secondary btn-sm" @onclick="ClearSearch" title="Clear search">
+                    <i class="bi bi-x"></i>
+                </button>
+            }
+        </div>
 
-        @foreach (var host in hosts)
+        @if (!string.IsNullOrEmpty(searchQuery) && matchingHostCount > 0)
         {
-            var hostX = host.X;
-            var hostY = host.Y;
-            
-            <!-- Host Box -->
-            <g transform="translate(@hostX, @hostY)">
-                <rect x="@(-(host.Width / 2))" y="-60" width="@host.Width" height="@(60 + host.Agents.Count * 35)" 
-                      rx="8" fill="#1f2937" stroke="#374151" stroke-width="2"/>
-                
-                <!-- Host Icon and Name -->
-                <!-- Host Icon and Name -->
-                <foreignObject x="-12" y="-50" width="24" height="24">
-                     <div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; justify-content: center; align-items: center; height: 100%;">
-                        <i class="bi @(host.OsType == OsType.Linux ? "bi-terminal-fill" : "bi-windows")" style="font-size: 20px; color: #9ca3af;"></i>
-                    </div>
-                </foreignObject>
-                <text x="0" y="-15" text-anchor="middle" fill="#e5e7eb" font-size="11" font-weight="bold">@host.Hostname</text>
-                
-                <!-- Agents in this host -->
-                @for (int i = 0; i < host.Agents.Count; i++)
-                {
-                    var agent = host.Agents[i];
-                    var agentY = i * 35 + 10;
-                    var agentColor = agent.IsAlive ? "#10b981" : "#6b7280";
-                    var badgeColor = agent.IsAlive ? "#10b981" : "#ef4444";
-                    var agentId = $"agent-{agent.Id}";
-                    var agentLabel = string.IsNullOrEmpty(agent.UserName) 
-                        ? $"{agent.Name}"
-                    : $"{agent.Name} ({agent.UserName})";
-                    var agentIcon = "⚙️";
-                    
-                    <g transform="translate(@host.AgentStartX, @agentY)" class="agent-node" data-agent-id="@agent.Id" @onclick="@((MouseEventArgs e) => ShowAgentMenu(agent.Id, e))" @onclick:stopPropagation="true">
-                        <!-- Tooltip -->
-                        <title>@($"ID: {agent.Id}\nName: {agent.Name}\nUser: {agent.UserName}\nProcess: {agent.ProcessName} ({agent.ProcessId})\nIntegrity: {agent.Integrity}\nArch: {agent.Architecture}\nEndPoint: {agent.EndPoint}\nLast Seen: {agent.LastSeen:yyyy-MM-dd HH:mm:ss}")</title>
-                        
-                        <!-- Status badge (left of icon) -->
-                        <circle cx="-6" cy="0" r="6" fill="@badgeColor" stroke="#1f2937" stroke-width="1.5"/>
-                        
-                        <!-- Agent icon (gear) -->
-                        <text x="0" y="5" font-size="16" fill="@agentColor">@agentIcon</text>
-                        
-                        <!-- Agent Label and Integrity Icon -->
-                        <text x="20" y="4" fill="#e5e7eb" font-size="10">
-                            @agentLabel
-                            @if (agent.Integrity == IntegrityLevel.High || agent.Integrity == IntegrityLevel.System)
-                            {
-                                <tspan dx="5" font-size="12">🛡️</tspan>
-                            }
-                        </text>
-                    </g>
-                }
-            </g>
-            
+            <button class="btn btn-sm btn-outline-primary" @onclick="FocusFirstMatch" title="Center view on matching host">
+                <i class="bi bi-crosshair me-1"></i>Focus
+            </button>
+        }
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Filter Inactive / Active Toggle -->
+        <button class="btn btn-sm @(hideOffline ? "btn-warning" : "btn-outline-secondary")"
+                title="@(hideOffline ? "Showing active agents only (click to show all)" : "Click to hide offline agents")"
+                @onclick="ToggleHideOffline">
+            <i class="bi @(hideOffline ? "bi-eye-slash-fill" : "bi-eye") me-1"></i>
+            @(hideOffline ? "Active Only" : "All Agents")
+        </button>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Zoom Controls -->
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" title="Zoom Out" @onclick="ZoomOut">
+                <i class="bi bi-dash-lg"></i>
+            </button>
+            <button class="btn btn-outline-secondary px-2" title="Fit All to Screen" @onclick="FitToContent">
+                <i class="bi bi-aspect-ratio me-1"></i>Fit
+            </button>
+            <button class="btn btn-outline-secondary" title="Zoom In" @onclick="ZoomIn">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+
+        <!-- Stats Chip -->
+        <span class="badge bg-dark border border-secondary text-muted p-2 ms-auto d-none d-md-inline-flex align-items-center">
+            <span class="text-success me-1"><i class="bi bi-circle-fill" style="font-size: 8px;"></i></span>
+            <span class="text-light me-1">@activeCount</span> Active
+            <span class="mx-2 opacity-50">|</span>
+            <span class="text-light me-1">@totalCount</span> Total
+        </span>
+    </div>
+
+    <!-- SVG Canvas -->
+    <svg id="@svgId" class="topology-svg" width="100%" height="100%" viewBox="@viewBoxString" preserveAspectRatio="xMidYMid meet">
+        <defs>
+            <!-- Direct TeamServer connection arrow -->
+            <marker id="arrow-ts" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#60a5fa" />
+            </marker>
+            <!-- Relay connection arrow -->
+            <marker id="arrow-relay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#f59e0b" />
+            </marker>
+        </defs>
+
+        <!-- Background rect for click-and-drag panning -->
+        <rect class="topology-bg" x="-10000" y="-10000" width="30000" height="30000" fill="transparent" />
+
+        <!-- Layer 1: TeamServer Direct Connections -->
+        @foreach (var host in visibleHosts)
+        {
+            var isHostDimmed = !string.IsNullOrEmpty(searchQuery) && !MatchesHost(host);
+
             @for (int i = 0; i < host.Agents.Count; i++)
             {
                 var agent = host.Agents[i];
-                
-                // Only draw TeamServer connection if agent is active, has no RelayId (direct connection)
                 if (agent.IsAlive && string.IsNullOrEmpty(agent.RelayId))
                 {
-                    var agentY = hostY + i * 35 + 10;
-                    
                     var conn = ConnexionUrl.FromString(agent.EndPoint);
                     var isListener = conn.IsValid && conn.Mode == ConnexionMode.Listener;
-                    
-                    // Target position (TeamServer)
-                    var targetX = (double)(svgWidth / 2);
+
+                    var targetX = (double)teamServerX;
                     var targetY = 72.0;
-                    
-                    // Agent position
-                    var agentX = (double)(hostX + host.AgentStartX + 8);
-                    var agentYDouble = (double)agentY;
-                    
-                    // Calculate vector and length
-                    var dx = agentX - targetX;
-                    var dy = agentYDouble - targetY;
-                    var length = Math.Sqrt(dx * dx + dy * dy);
-                    var arrowLen = 8.0;
-                    
-                    // Calculate offset for arrowhead
-                    var offsetX = (dx / length) * arrowLen;
-                    var offsetY = (dy / length) * arrowLen;
-                    
+                    var agentAnchorX = (double)(host.X - host.Width / 2 + 20);
+                    var agentAnchorY = (double)(host.Y - 60 + 40 + i * 32 + 16);
+
                     double startX, startY, endX, endY;
-                    
                     if (isListener)
                     {
-                        // Listener: Arrow at Agent. Line starts at TS, ends short of Agent.
+                        // TeamServer -> Agent (arrow at agent)
                         startX = targetX;
                         startY = targetY;
-                        endX = agentX - offsetX;
-                        endY = agentYDouble - offsetY;
+                        endX = agentAnchorX;
+                        endY = agentAnchorY;
                     }
                     else
                     {
-                        // Client: Arrow at TS. Line starts short of TS, ends at Agent.
-                        startX = targetX + offsetX;
-                        startY = targetY + offsetY;
-                        endX = agentX;
-                        endY = agentYDouble;
+                        // Agent -> TeamServer (arrow at TeamServer)
+                        startX = agentAnchorX;
+                        startY = agentAnchorY;
+                        endX = targetX;
+                        endY = targetY;
                     }
-                    
-                    <line x1="@startX" y1="@startY" x2="@endX" y2="@endY" 
-                          stroke="#60a5fa" stroke-width="2" opacity="0.6"/>
-                    
-                    // Calculate arrow angle
-                    var angle = Math.Atan2(dy, dx) * 180 / Math.PI;
-                    
-                    if (isListener)
-                    {
-                        // Arrow points to agent (Listener mode)
-                        <polygon points="0,-4 8,0 0,4" fill="#60a5fa" opacity="0.8" 
-                                 transform="translate(@endX, @endY) rotate(@angle)"/>
-                    }
-                    else
-                    {
-                        // Arrow points to TeamServer (Client mode)
-                        <polygon points="0,-4 8,0 0,4" fill="#60a5fa" opacity="0.8" 
-                                 transform="translate(@startX, @startY) rotate(@(angle + 180))"/>
-                    }
-                    
+
                     var midX = (startX + endX) / 2;
                     var midY = (startY + endY) / 2;
-                    @:<text x="@midX" y="@midY" text-anchor="middle" fill="#60a5fa" font-size="9">@conn.ProtocolString</text>
+
+                    <g opacity="@(isHostDimmed ? "0.2" : "0.75")" class="link-group">
+                        <line x1="@startX" y1="@startY" x2="@endX" y2="@endY"
+                              stroke="#60a5fa" stroke-width="2" marker-end="url(#arrow-ts)" />
+                        @if (conn.IsValid && !string.IsNullOrEmpty(conn.ProtocolString))
+                        {
+                            <g transform="translate(@midX, @midY)">
+                                <rect x="-24" y="-8" width="48" height="16" rx="4" fill="#0f172a" stroke="#1e3a8a" stroke-width="1" />
+                                <text x="0" y="3.5" text-anchor="middle" fill="#93c5fd" font-size="9" font-family="monospace">@conn.ProtocolString</text>
+                            </g>
+                        }
+                    </g>
                 }
             }
         }
-        
-        @foreach (var link in agentLinks)
+
+        <!-- Layer 2: Agent-to-Agent Relay Pivots -->
+        @foreach (var link in visibleLinks)
         {
-            var startX = link.ParentX;
-            var startY = link.ParentY;
-            var endX = link.ChildX;
-            var endY = link.ChildY;
-            
-            <line x1="@startX" y1="@startY" x2="@endX" y2="@endY" 
-                  stroke="#f59e0b" stroke-width="2" opacity="0.6" stroke-dasharray="5,5"/>
-            
-            // Calculate arrow angle
-            var dx = endX - startX;
-            var dy = endY - startY;
-            var angle = Math.Atan2(dy, dx) * 180 / Math.PI;
-            
-            @if (link.IsListener)
-            {
-                <polygon points="0,-4 8,0 0,4" fill="#f59e0b" opacity="0.8" 
-                         transform="translate(@endX, @endY) rotate(@angle)"/>
-            }
-            else
-            {
-                <polygon points="0,-4 8,0 0,4" fill="#f59e0b" opacity="0.8" 
-                         transform="translate(@startX, @startY) rotate(@(angle + 180))"/>
-            }
-            
-            @:<text x="@((startX + endX) / 2)" y="@((startY + endY) / 2)" text-anchor="middle" fill="#f59e0b" font-size="9">@link.Protocol</text>
+            var midX = (link.ParentX + link.ChildX) / 2;
+            var midY = (link.ParentY + link.ChildY) / 2;
+
+            <g opacity="0.85" class="link-group">
+                <line x1="@link.ParentX" y1="@link.ParentY" x2="@link.ChildX" y2="@link.ChildY"
+                      stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-relay)" />
+                @if (!string.IsNullOrEmpty(link.Protocol))
+                {
+                    <g transform="translate(@midX, @midY)">
+                        <rect x="-22" y="-8" width="44" height="16" rx="4" fill="#0f172a" stroke="#78350f" stroke-width="1" />
+                        <text x="0" y="3.5" text-anchor="middle" fill="#fde68a" font-size="9" font-family="monospace">@link.Protocol</text>
+                    </g>
+                }
+            </g>
+        }
+
+        <!-- Layer 3: TeamServer Node -->
+        <g transform="translate(@teamServerX, 50)" class="teamserver-node">
+            <!-- Server Rack Icon -->
+            <rect x="-24" y="-24" width="48" height="48" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="2.5" />
+            <line x1="-18" y1="-10" x2="18" y2="-10" stroke="#334155" stroke-width="2" />
+            <line x1="-18" y1="2" x2="18" y2="2" stroke="#334155" stroke-width="2" />
+            <line x1="-18" y1="14" x2="18" y2="14" stroke="#334155" stroke-width="2" />
+            <!-- Status Lights -->
+            <circle cx="14" cy="-10" r="2" fill="#10b981" />
+            <circle cx="14" cy="2" r="2" fill="#10b981" />
+            <circle cx="14" cy="14" r="2" fill="#10b981" />
+
+            <text x="0" y="42" text-anchor="middle" fill="#f8fafc" font-size="12" font-weight="600" font-family="system-ui, sans-serif">TeamServer</text>
+        </g>
+
+        <!-- Layer 4: Host Cards (HTML/Flexbox via foreignObject for pixel-perfect typography) -->
+        @foreach (var host in visibleHosts)
+        {
+            var hostX = host.X;
+            var hostY = host.Y;
+            var isHighlighted = !string.IsNullOrEmpty(searchQuery) && MatchesHost(host);
+            var isDimmed = !string.IsNullOrEmpty(searchQuery) && !isHighlighted;
+
+            <g transform="translate(@(hostX - host.Width / 2), @(hostY - 60))" class="host-group">
+                <foreignObject width="@host.Width" height="@host.Height" style="overflow: visible;">
+                    <div xmlns="http://www.w3.org/1999/xhtml"
+                         class="topology-host-card @(isHighlighted ? "highlighted" : "") @(isDimmed ? "dimmed" : "")">
+                        <!-- Host Header -->
+                        <div class="host-header" title="@host.Hostname">
+                            <span class="host-icon">
+                                <i class="bi @(host.OsType == OsType.Linux ? "bi-terminal-fill" : "bi-windows")"></i>
+                            </span>
+                            <span class="host-title">@host.Hostname</span>
+                            <span class="badge bg-secondary host-badge">@host.Agents.Count</span>
+                        </div>
+
+                        <!-- Agent List -->
+                        <div class="host-agents">
+                            @for (int i = 0; i < host.Agents.Count; i++)
+                            {
+                                var agent = host.Agents[i];
+                                var isAlive = agent.IsAlive;
+                                var agentMatches = MatchesSearch(agent);
+
+                                <div class="agent-row @(isAlive ? "agent-alive" : "agent-dead") @(agentMatches ? "agent-match" : "")"
+                                     @onclick="@((MouseEventArgs e) => ShowAgentMenu(agent.Id, e))"
+                                     @onclick:stopPropagation="true"
+                                     title="@GetAgentTooltip(agent)">
+                                    <!-- Status Dot -->
+                                    <span class="agent-status-dot @(isAlive ? "dot-alive" : "dot-dead")"></span>
+
+                                    <!-- Agent Icon -->
+                                    <span class="agent-icon @(isAlive ? "text-success" : "text-muted")">
+                                        <i class="bi bi-gear-fill"></i>
+                                    </span>
+
+                                    <!-- Label & Username with text-overflow: ellipsis -->
+                                    <span class="agent-label-container">
+                                        <span class="agent-name">@agent.Name</span>
+                                        @if (!string.IsNullOrEmpty(agent.UserName))
+                                        {
+                                            <span class="agent-user">(@agent.UserName)</span>
+                                        }
+                                    </span>
+
+                                    <!-- Integrity Shield -->
+                                    @if (agent.Integrity == IntegrityLevel.High || agent.Integrity == IntegrityLevel.System)
+                                    {
+                                        <span class="agent-shield" title="Integrity: @agent.Integrity">🛡️</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </foreignObject>
+            </g>
         }
     </svg>
 
@@ -187,29 +241,29 @@
     @if (!string.IsNullOrEmpty(selectedAgentId))
     {
         <div class="agent-menu" style="position: fixed; left: @menuX; top: @menuY; z-index: 1000;">
-            <div class="card shadow-lg" style="min-width: 200px;">
+            <div class="card shadow-lg" style="min-width: 200px; background: #1e293b; border: 1px solid #334155;">
                 <div class="card-body p-2">
                     <div class="list-group list-group-flush">
                         @if (selectedAgentIsAlive)
                         {
-                            <button type="button" class="list-group-item list-group-item-action py-2 text-start" @onclick='() => OpenSession(selectedAgentId, "terminal")'>
-                                <i class="bi bi-chat-dots me-2"></i>Interact
+                            <button type="button" class="list-group-item list-group-item-action bg-transparent text-light border-secondary py-2 text-start" @onclick='() => OpenSession(selectedAgentId, "terminal")'>
+                                <i class="bi bi-terminal me-2 text-primary"></i>Interact
                             </button>
                         }
                         else
                         {
-                            <div class="list-group-item list-group-item-action py-2 disabled text-muted">
-                                <i class="bi bi-chat-dots me-2"></i>Interact (Offline)
+                            <div class="list-group-item list-group-item-action bg-transparent text-muted border-secondary py-2 disabled">
+                                <i class="bi bi-terminal me-2"></i>Interact (Offline)
                             </div>
                         }
-                        <button type="button" class="list-group-item list-group-item-action py-2 text-start" @onclick='() => OpenSession(selectedAgentId, "info")'>
-                            <i class="bi bi-info-circle me-2"></i>View Info
+                        <button type="button" class="list-group-item list-group-item-action bg-transparent text-light border-secondary py-2 text-start" @onclick='() => OpenSession(selectedAgentId, "info")'>
+                            <i class="bi bi-info-circle me-2 text-info"></i>View Info
                         </button>
-                        <button type="button" class="list-group-item list-group-item-action py-2 text-start" @onclick='() => OpenSession(selectedAgentId, "tasks")'>
-                            <i class="bi bi-list-task me-2"></i>Tasks
+                        <button type="button" class="list-group-item list-group-item-action bg-transparent text-light border-secondary py-2 text-start" @onclick='() => OpenSession(selectedAgentId, "tasks")'>
+                            <i class="bi bi-list-task me-2 text-warning"></i>Tasks
                         </button>
-                        <button type="button" class="list-group-item list-group-item-action py-2 text-start" @onclick='() => OpenSession(selectedAgentId, "loots")'>
-                            <i class="bi bi-folder2-open me-2"></i>Loots
+                        <button type="button" class="list-group-item list-group-item-action bg-transparent text-light border-secondary py-2 text-start" @onclick='() => OpenSession(selectedAgentId, "loots")'>
+                            <i class="bi bi-folder2-open me-2 text-success"></i>Loots
                         </button>
                     </div>
                 </div>
@@ -218,7 +272,7 @@
     }
 </div>
 
-<!-- Overlay to close menu when clicking outside -->
+<!-- Overlay to close context menu on outside click -->
 @if (!string.IsNullOrEmpty(selectedAgentId))
 {
     <div class="menu-overlay" @onclick="CloseAgentMenu" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999;"></div>
@@ -226,37 +280,194 @@
 
 <style>
     .topology-container {
-        background: #111827;
-        border-radius: 12px;
-        padding: 1rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        background: #0f172a;
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        overflow: auto;
+        overflow: hidden;
+        user-select: none;
         box-sizing: border-box;
     }
 
-    .agent-node {
+    .topology-container.is-panning {
+        cursor: grabbing !important;
+    }
+
+    .topology-svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+        cursor: grab;
+    }
+
+    .topology-container.is-panning .topology-svg {
+        cursor: grabbing !important;
+    }
+
+    /* Floating Toolbar */
+    .topology-toolbar {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        z-index: 20;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .topology-toolbar > * {
+        pointer-events: auto;
+    }
+
+    .toolbar-search {
+        max-width: 260px;
+    }
+
+    .toolbar-divider {
+        width: 1px;
+        height: 24px;
+        background: rgba(255, 255, 255, 0.15);
+        margin: 0 2px;
+    }
+
+    /* Host Card (inside foreignObject) */
+    .topology-host-card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+        box-sizing: border-box;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .topology-host-card.highlighted {
+        border-color: #3b82f6;
+        box-shadow: 0 0 16px rgba(59, 130, 246, 0.7);
+    }
+
+    .topology-host-card.dimmed {
+        opacity: 0.25;
+    }
+
+    .host-header {
+        background: #0b132b;
+        padding: 6px 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid #334155;
+        font-size: 11px;
+        font-weight: 600;
+        color: #e2e8f0;
+    }
+
+    .host-icon {
+        font-size: 14px;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+    }
+
+    .host-title {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .host-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 10px;
+    }
+
+    .host-agents {
+        display: flex;
+        flex-direction: column;
+        padding: 4px;
+        gap: 2px;
+    }
+
+    /* Agent Row */
+    .agent-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px;
+        border-radius: 4px;
         cursor: pointer;
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.02);
+        transition: background 0.15s;
+        height: 28px;
+        box-sizing: border-box;
     }
 
-    .agent-node:hover {
-        opacity: 0.8;
+    .agent-row:hover {
+        background: rgba(59, 130, 246, 0.2);
     }
 
-    .agent-active .agent-icon {
-        fill: #10b981;
+    .agent-row.agent-match {
+        background: rgba(59, 130, 246, 0.25);
+        border: 1px solid rgba(59, 130, 246, 0.5);
     }
 
-    .agent-inactive .agent-icon {
-        fill: #6b7280;
+    .agent-status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .dot-alive {
+        background: #10b981;
+        box-shadow: 0 0 6px #10b981;
+    }
+
+    .dot-dead {
+        background: #ef4444;
+    }
+
+    .agent-icon {
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .agent-label-container {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #cbd5e1;
+    }
+
+    .agent-name {
+        font-weight: 500;
+    }
+
+    .agent-user {
+        color: #94a3b8;
+        font-size: 10px;
+        margin-left: 3px;
+    }
+
+    .agent-shield {
+        font-size: 12px;
+        flex-shrink: 0;
     }
 
     .agent-menu {
-        animation: fadeIn 0.2s ease-in-out;
+        animation: fadeIn 0.15s ease-in-out;
     }
 
     @@keyframes fadeIn {
@@ -272,6 +483,8 @@
 </style>
 
 @code {
+    private string containerId = $"topo-cont-{Guid.NewGuid():N}";
+    private string svgId = $"topo-svg-{Guid.NewGuid():N}";
     private List<HostNode> hosts = new();
     private List<AgentLink> agentLinks = new();
     private System.Threading.Timer? _timer;
@@ -279,54 +492,125 @@
     private bool selectedAgentIsAlive = false;
     private string menuX = "0px";
     private string menuY = "0px";
-    private int svgWidth = 1200;
-    private int svgHeight = 600;
 
-    [Inject]
-    private NavigationManager Navigation { get; set; } = default!;
+    // ViewBox state
+    private double vbX = 0;
+    private double vbY = 0;
+    private double vbW = 1400;
+    private double vbH = 800;
+    private string viewBoxString => $"{vbX} {vbY} {vbW} {vbH}";
+
+    private int teamServerX = 700;
+    private bool hideOffline = false;
+    private string searchQuery = "";
+    private int activeCount = 0;
+    private int totalCount = 0;
+    private bool jsInitialized = false;
+
+    private IEnumerable<HostNode> visibleHosts =>
+        hosts.Where(h => !hideOffline || h.Agents.Any(a => a.IsAlive));
+
+    private IEnumerable<AgentLink> visibleLinks =>
+        agentLinks.Where(l => !hideOffline || (l.ParentIsAlive && l.ChildIsAlive));
+
+    private int matchingHostCount =>
+        string.IsNullOrEmpty(searchQuery) ? 0 : visibleHosts.Count(MatchesHost);
 
     protected override void OnInitialized()
     {
-        AgentService.OnAgentsUpdated += UpdateTopology;
+        AgentService.OnAgentsUpdated += HandleAgentsUpdated;
         UpdateTopology();
-        
-        _timer = new System.Threading.Timer(async _ =>
+
+        // Optimized periodic heartbeat check (only re-renders if agent alive status toggled)
+        _timer = new System.Threading.Timer(_ => CheckAgentAliveTransitions(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !jsInitialized)
         {
-            await InvokeAsync(StateHasChanged);
-        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+            jsInitialized = true;
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("topologyZoomPan.init", containerId, svgId, new { x = vbX, y = vbY, w = vbW, h = vbH });
+            }
+            catch
+            {
+                // Fallback if JS helper is not yet loaded
+            }
+        }
+    }
+
+    private void HandleAgentsUpdated()
+    {
+        InvokeAsync(() =>
+        {
+            UpdateTopology();
+            StateHasChanged();
+        });
+    }
+
+    private void CheckAgentAliveTransitions()
+    {
+        var currentAgents = AgentService.GetAgents();
+        bool anyChanged = false;
+
+        foreach (var host in hosts)
+        {
+            foreach (var agentNode in host.Agents)
+            {
+                var match = currentAgents.FirstOrDefault(a => a.Id == agentNode.Id);
+                if (match != null)
+                {
+                    bool aliveNow = AgentHelper.IsAgentAlive(match, currentAgents) ?? false;
+                    if (aliveNow != agentNode.IsAlive)
+                    {
+                        agentNode.IsAlive = aliveNow;
+                        anyChanged = true;
+                    }
+                }
+            }
+        }
+
+        if (anyChanged)
+        {
+            InvokeAsync(() =>
+            {
+                RecomputeCounts();
+                StateHasChanged();
+            });
+        }
+    }
+
+    private void RecomputeCounts()
+    {
+        totalCount = hosts.Sum(h => h.Agents.Count);
+        activeCount = hosts.Sum(h => h.Agents.Count(a => a.IsAlive));
     }
 
     private void UpdateTopology()
     {
         var agents = AgentService.GetAgents();
-        
-        // Group agents by hostname
         var hostGroups = agents.GroupBy(a => a.Metadata?.Hostname ?? "Unknown").ToList();
-        
+
         hosts.Clear();
         agentLinks.Clear();
-        
-        // First pass: Create hosts and calculate their required widths
-        int maxHostWidth = 200;
-        
+
+        const int hostCardWidth = 260;
+
         for (int i = 0; i < hostGroups.Count; i++)
         {
             var group = hostGroups[i];
-            
             var hostNode = new HostNode
             {
                 Hostname = group.Key,
-                Agents = new List<AgentNode>(),
-                OsType = group.FirstOrDefault()?.Metadata?.OsType ?? OsType.Windows
+                Width = hostCardWidth,
+                OsType = group.FirstOrDefault()?.Metadata?.OsType ?? OsType.Windows,
+                Agents = new List<AgentNode>()
             };
-            
-            // Calculate width based on Hostname
-            int nameWidth = (int)(hostNode.Hostname.Length * 8); // Approx 8px per char
-            int maxLabelWidth = 0;
 
-            // Sort agents: direct TeamServer connections first, then relayed agents
             var sortedAgents = group.OrderBy(a => string.IsNullOrEmpty(a.RelayId) ? 0 : 1).ToList();
-            
+
             foreach (var agent in sortedAgents)
             {
                 var agentNode = new AgentNode
@@ -346,82 +630,58 @@
                     Links = agent.Links ?? new List<string>()
                 };
                 hostNode.Agents.Add(agentNode);
-                
-                // Calculate width based on Agent Name + ShortId + Shield
-                string label = string.IsNullOrEmpty(agentNode.UserName) 
-                    ? $"{agentNode.Name} ({agentNode.ShortId})"
-                    : $"{agentNode.UserName} - {agentNode.Name} ({agentNode.ShortId})";
-                int labelWidth = (int)(label.Length * 4.5); // Approx 4.5px per char for 10px font
-                if (agentNode.Integrity == IntegrityLevel.High || agentNode.Integrity == IntegrityLevel.System)
-                {
-                    labelWidth += 25; // Space for shield
-                }
-                
-                if (labelWidth > maxLabelWidth)
-                {
-                    maxLabelWidth = labelWidth;
-                }
             }
-            
-            // Calculate AgentStartX to center the longest agent line
-            // Line structure: [Badge(-6)] [Icon(0)] [Text(20)]
-            // Left edge (Badge left): AgentStartX - 12
-            // Right edge (Text right): AgentStartX + 20 + maxLabelWidth
-            // Centering: AgentStartX = -4 - maxLabelWidth/2
-            hostNode.AgentStartX = -4 - (maxLabelWidth / 2);
-            
-            int contentWidth = Math.Max(nameWidth, 32 + maxLabelWidth);
-            hostNode.Width = contentWidth + 30; // Reduced to 15px padding on each side
-            maxHostWidth = Math.Max(maxHostWidth, hostNode.Width);
-            
+
+            // Fixed header: 38px + 4px padding + (N * 30px) + 8px bottom
+            hostNode.Height = 38 + 4 + (hostNode.Agents.Count * 30) + 8;
             hosts.Add(hostNode);
         }
 
-        // Calculate positions for hosts in a grid
-        int hostsPerRow = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(hostGroups.Count)));
-        // Ensure minimum width per host based on calculated max width
-        int minSpacing = maxHostWidth + 20; // Reduced gap between hosts
-        // Use a smaller base width for calculation to allow for more compact layout
-        int spacing = Math.Max(minSpacing, 600 / (hostsPerRow + 1));
-        
-        // Calculate dynamic width
-        svgWidth = Math.Max(600, (hostsPerRow + 1) * spacing);
-        
-        // Calculate dynamic height based on max agents in a host
-        int maxAgents = hostGroups.Any() ? hostGroups.Max(g => g.Count()) : 0;
-        int rows = (int)Math.Ceiling((double)hostGroups.Count / hostsPerRow);
-        svgHeight = Math.Max(600, 200 + rows * (60 + maxAgents * 35 + 100)); // Add padding between rows
+        RecomputeCounts();
 
-        // Recalculate spacing based on actual width if needed
-        spacing = svgWidth / (hostsPerRow + 1);
-
-        for (int i = 0; i < hosts.Count; i++)
+        // Arrange hosts in centered grid rows
+        int count = hosts.Count;
+        int hostsPerRow = Math.Max(2, (int)Math.Ceiling(Math.Sqrt(count * 1.5)));
+        int colSpacing = hostCardWidth + 50;
+        int rowHeight = 220;
+        int maxAgents = hosts.Any() ? hosts.Max(h => h.Agents.Count) : 1;
+        if (maxAgents > 3)
         {
-            var hostNode = hosts[i];
+            rowHeight += (maxAgents - 3) * 32;
+        }
+
+        int totalCols = Math.Min(count, hostsPerRow);
+        int gridWidth = Math.Max(1000, (totalCols + 1) * colSpacing);
+        teamServerX = gridWidth / 2;
+
+        int totalRows = (int)Math.Ceiling((double)count / hostsPerRow);
+
+        for (int i = 0; i < count; i++)
+        {
             int row = i / hostsPerRow;
             int col = i % hostsPerRow;
-            
-            hostNode.X = (col + 1) * spacing;
-            hostNode.Y = 200 + row * (200 + (maxAgents > 5 ? (maxAgents - 5) * 35 : 0));
+            int itemsInThisRow = Math.Min(hostsPerRow, count - row * hostsPerRow);
+
+            // Center each row under the TeamServer
+            int rowStartX = teamServerX - ((itemsInThisRow - 1) * colSpacing) / 2;
+            hosts[i].X = rowStartX + col * colSpacing;
+            hosts[i].Y = 220 + row * rowHeight;
         }
-        
-        // Build agent-to-agent links using Links
-        foreach (var host in hosts)
+
+        // Build agent-to-agent relay links
+        foreach (var parentHost in hosts)
         {
-            for (int i = 0; i < host.Agents.Count; i++)
+            for (int i = 0; i < parentHost.Agents.Count; i++)
             {
-                var parentAgent = host.Agents[i];
-                
-                // Only create links if parent is active and has links
-                if (parentAgent.IsAlive && parentAgent.Links != null)
+                var parentAgent = parentHost.Agents[i];
+                if (parentAgent.Links != null && parentAgent.Links.Any())
                 {
                     foreach (var childId in parentAgent.Links)
                     {
-                        // Find the child agent
                         AgentNode? childAgent = null;
                         HostNode? childHost = null;
                         int childIndex = -1;
-                        
+
                         foreach (var h in hosts)
                         {
                             for (int j = 0; j < h.Agents.Count; j++)
@@ -436,36 +696,151 @@
                             }
                             if (childAgent != null) break;
                         }
-                        
-                        // Only draw link if child agent is also active
-                        if (childAgent != null && childHost != null && childAgent.IsAlive)
+
+                        if (childAgent != null && childHost != null)
                         {
                             var conn = ConnexionUrl.FromString(childAgent.EndPoint);
-                            
+                            var parentY = parentHost.Y - 60 + 40 + i * 32 + 15;
+                            var childY = childHost.Y - 60 + 40 + childIndex * 32 + 15;
+
                             agentLinks.Add(new AgentLink
                             {
-                                ParentX = host.X + host.AgentStartX + 8,
-                                ParentY = host.Y + i * 35 + 10,
-                                ChildX = childHost.X + childHost.AgentStartX + 8,
-                                ChildY = childHost.Y + childIndex * 35 + 10,
+                                ParentX = parentHost.X + (parentHost.X < childHost.X ? parentHost.Width / 2 : -parentHost.Width / 2),
+                                ParentY = parentY,
+                                ChildX = childHost.X + (parentHost.X < childHost.X ? -childHost.Width / 2 : childHost.Width / 2),
+                                ChildY = childY,
                                 Protocol = conn.ProtocolString,
-                                IsListener = conn.IsValid && conn.Mode == ConnexionMode.Listener
+                                IsListener = conn.IsValid && conn.Mode == ConnexionMode.Listener,
+                                ParentIsAlive = parentAgent.IsAlive,
+                                ChildIsAlive = childAgent.IsAlive
                             });
                         }
                     }
                 }
             }
         }
-        
-        InvokeAsync(StateHasChanged);
+
+        ComputeInitialViewBox(gridWidth, totalRows, rowHeight);
+    }
+
+    private void ComputeInitialViewBox(int gridWidth, int totalRows, int rowHeight)
+    {
+        double minX = 0;
+        double maxX = gridWidth;
+        double minY = 0;
+        double maxY = Math.Max(700, 240 + totalRows * rowHeight + 100);
+
+        if (hosts.Any())
+        {
+            minX = Math.Min(minX, hosts.Min(h => h.X - h.Width / 2) - 60);
+            maxX = Math.Max(maxX, hosts.Max(h => h.X + h.Width / 2) + 60);
+            maxY = Math.Max(maxY, hosts.Max(h => h.Y + h.Height) + 60);
+        }
+
+        vbX = minX;
+        vbY = minY;
+        vbW = Math.Max(1000, maxX - minX);
+        vbH = Math.Max(650, maxY - minY);
+    }
+
+    private async Task ZoomIn()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("topologyZoomPan.zoomBy", containerId, 0.8);
+        }
+        catch { }
+    }
+
+    private async Task ZoomOut()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("topologyZoomPan.zoomBy", containerId, 1.25);
+        }
+        catch { }
+    }
+
+    private async Task FitToContent()
+    {
+        try
+        {
+            ComputeInitialViewBox(teamServerX * 2, (int)Math.Ceiling((double)hosts.Count / 3), 240);
+            await JSRuntime.InvokeVoidAsync("topologyZoomPan.setVb", containerId, vbX, vbY, vbW, vbH);
+        }
+        catch { }
+    }
+
+    private void ToggleHideOffline()
+    {
+        hideOffline = !hideOffline;
+    }
+
+    private void ClearSearch()
+    {
+        searchQuery = "";
+    }
+
+    private void HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            _ = FocusFirstMatch();
+        }
+    }
+
+    private async Task FocusFirstMatch()
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery)) return;
+
+        var matched = visibleHosts.FirstOrDefault(MatchesHost);
+        if (matched != null)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("topologyZoomPan.centerOn", containerId, matched.X, matched.Y);
+            }
+            catch { }
+        }
+    }
+
+    private bool MatchesHost(HostNode host)
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery)) return false;
+        var q = searchQuery.Trim();
+        if (host.Hostname.Contains(q, StringComparison.OrdinalIgnoreCase)) return true;
+        return host.Agents.Any(MatchesSearch);
+    }
+
+    private bool MatchesSearch(AgentNode agent)
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery)) return false;
+        var q = searchQuery.Trim();
+        return agent.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+               agent.UserName.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+               agent.ShortId.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+               agent.ProcessName.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+               agent.EndPoint.Contains(q, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string GetAgentTooltip(AgentNode agent)
+    {
+        return $"ID: {agent.Id}\n" +
+               $"Name: {agent.Name}\n" +
+               $"User: {agent.UserName}\n" +
+               $"Process: {agent.ProcessName} ({agent.ProcessId})\n" +
+               $"Integrity: {agent.Integrity}\n" +
+               $"Arch: {agent.Architecture}\n" +
+               $"EndPoint: {agent.EndPoint}\n" +
+               $"Last Seen: {agent.LastSeen:yyyy-MM-dd HH:mm:ss}\n" +
+               $"Status: {(agent.IsAlive ? "Active" : "Offline")}";
     }
 
     private void ShowAgentMenu(string agentId, MouseEventArgs e)
     {
         selectedAgentId = agentId;
-        
-        // Find agent status
         selectedAgentIsAlive = false;
+
         foreach (var host in hosts)
         {
             var agent = host.Agents.FirstOrDefault(a => a.Id == agentId);
@@ -475,8 +850,7 @@
                 break;
             }
         }
-        
-        // Position menu at mouse cursor
+
         menuX = $"{e.ClientX}px";
         menuY = $"{e.ClientY}px";
         StateHasChanged();
@@ -497,8 +871,17 @@
 
     public void Dispose()
     {
-        AgentService.OnAgentsUpdated -= UpdateTopology;
+        AgentService.OnAgentsUpdated -= HandleAgentsUpdated;
         _timer?.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("topologyZoomPan.destroy", containerId);
+        }
+        catch { }
     }
 
     private class HostNode
@@ -507,8 +890,8 @@
         public OsType OsType { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
-        public int Width { get; set; } = 200;
-        public int AgentStartX { get; set; }
+        public int Width { get; set; } = 260;
+        public int Height { get; set; } = 100;
         public List<AgentNode> Agents { get; set; } = new();
     }
 
@@ -537,5 +920,7 @@
         public int ChildY { get; set; }
         public string Protocol { get; set; } = "";
         public bool IsListener { get; set; }
+        public bool ParentIsAlive { get; set; }
+        public bool ChildIsAlive { get; set; }
     }
 }
