@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # Usage: ./install.sh [All|TeamServer|WebCommander|Commander]
-INSTALL_PART=${1:-All}  # Par défaut tout installer
-NO_RUN=${2:-""}   # Si "noRun", ne pas lancer le TeamServer à la fin
+INSTALL_PART=${1:-All}  # Par defaut tout installer
+NO_RUN=${2:-""}   # Si "noRun", ne pas lancer le TeamServer a la fin
 
 BASE_DIR="$PWD/FractalC2"
 mkdir -p "$BASE_DIR" && cd "$BASE_DIR"
 
-# Génération d'une clé API aléatoire de 64 caractères
+# Generation d'une cle API aleatoire de 64 caracteres
 USER_API_KEY=$(openssl rand -base64 48 | tr '+/' '-_' | cut -c1-64)
 SERVER_KEY=$(openssl rand -base64 32)
 
-# Fonction pour télécharger et dézipper
+# Fonction pour telecharger et dezipper
 install_part() {
     local name=$1
     local zip_url=$2
@@ -22,53 +22,60 @@ install_part() {
     rm "${name}.zip"
 }
 
-install_TeamServer() {
-	# Installer dotnet runtime si nécessaire
-	wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-	sudo dpkg -i packages-microsoft-prod.deb
-	rm packages-microsoft-prod.deb
-	
-	sudo apt-get update
-	sudo apt-get install -y aspnetcore-runtime-8.0
-	
-	
-	install_part "TeamServer" "https://github.com/Fropops/FractalC2/raw/refs/heads/main/Install/TeamServer.zip"
-    chmod +x "$BASE_DIR/TeamServer/TeamServer"
-	
-	#install python
-	python3 -m venv pyenv
-	pyenv/bin/pip install lief
-	
-	# Mise à jour du appsettings.json
-	TEAMSERVER_APPSETTINGS="TeamServer/appsettings.json"
-	jq --arg key "$USER_API_KEY" '.Users[0].Key = $key' "$TEAMSERVER_APPSETTINGS" > "$TEAMSERVER_APPSETTINGS.tmp"
-	jq --arg key "$SERVER_KEY" '.ServerKey = $key' "$TEAMSERVER_APPSETTINGS.tmp" > "$TEAMSERVER_APPSETTINGS.tmp2"
-	cp "$TEAMSERVER_APPSETTINGS.tmp2" "$TEAMSERVER_APPSETTINGS"
-	rm "$TEAMSERVER_APPSETTINGS.tmp"
-	rm "$TEAMSERVER_APPSETTINGS.tmp2"
-	
-	install_part "PayloadTemplates"  "https://github.com/Fropops/FractalC2/raw/refs/heads/main/Install/Agent.zip"
-	
-    install_Tools
+# Fonction pour verifier et installer le runtime .NET si necessaire
+ensure_dotnet_runtime() {
+    local pkg=$1
+    if dpkg -s "$pkg" &>/dev/null; then
+        echo "$pkg est deja installe."
+        return 0
+    fi
 
-	# Cloner les outils
-	git clone https://github.com/TheWover/donut.git
-	cd donut && make && cd ..
+    # Verifier si un depot Microsoft est deja configure pour eviter les conflits de cles GPG
+    if ! grep -rn "packages.microsoft.com" /etc/apt/sources.list /etc/apt/sources.list.d/ &>/dev/null; then
+        echo "Ajout du depot Microsoft APT..."
+        wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O /tmp/packages-microsoft-prod.deb
+        sudo dpkg -i /tmp/packages-microsoft-prod.deb
+        rm -f /tmp/packages-microsoft-prod.deb
+    fi
+
+    echo "Installation de $pkg..."
+    sudo apt-get update
+    sudo apt-get install -y "$pkg"
 }
 
+install_TeamServer() {
+    # Installer dotnet runtime si necessaire
+    ensure_dotnet_runtime "aspnetcore-runtime-8.0"
+
+    install_part "TeamServer" "https://github.com/Fropops/FractalC2/raw/refs/heads/main/Install/TeamServer.zip"
+    chmod +x "$BASE_DIR/TeamServer/TeamServer"
+
+    # install python
+    python3 -m venv pyenv
+    pyenv/bin/pip install lief
+
+    # Mise a jour du appsettings.json
+    TEAMSERVER_APPSETTINGS="TeamServer/appsettings.json"
+    jq --arg key "$USER_API_KEY" '.Users[0].Key = $key' "$TEAMSERVER_APPSETTINGS" > "$TEAMSERVER_APPSETTINGS.tmp"
+    jq --arg key "$SERVER_KEY" '.ServerKey = $key' "$TEAMSERVER_APPSETTINGS.tmp" > "$TEAMSERVER_APPSETTINGS.tmp2"
+    cp "$TEAMSERVER_APPSETTINGS.tmp2" "$TEAMSERVER_APPSETTINGS"
+    rm "$TEAMSERVER_APPSETTINGS.tmp"
+    rm "$TEAMSERVER_APPSETTINGS.tmp2"
+
+    install_part "PayloadTemplates" "https://github.com/Fropops/FractalC2/raw/refs/heads/main/Install/Agent.zip"
+
+    install_Tools
+
+    # Cloner les outils
+    git clone https://github.com/TheWover/donut.git
+    cd donut && make && cd ..
+}
 
 install_WebCommander() {
-	# Installer dotnet runtime si nécessaire
-	wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-	sudo dpkg -i packages-microsoft-prod.deb
-	rm packages-microsoft-prod.deb
-	
-	# Installer dotnet runtime si nécessaire
-	sudo apt-get update
-	sudo apt-get install -y aspnetcore-runtime-8.0
-	
-	
-	install_part "WebCommander" "https://github.com/Fropops/FractalC2/raw/refs/heads/main/Install/WebCommander.zip"
+    # Installer dotnet runtime si necessaire
+    ensure_dotnet_runtime "aspnetcore-runtime-8.0"
+
+    install_part "WebCommander" "https://github.com/Fropops/FractalC2/raw/refs/heads/main/Install/WebCommander.zip"
     chmod +x "$BASE_DIR/WebCommander/WebCommanderHost"
 }
 
@@ -95,38 +102,31 @@ install_Tools() {
 }
 
 install_Commander() {
-	# Installer dotnet runtime si nécessaire
-	wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-	sudo dpkg -i packages-microsoft-prod.deb
-	rm packages-microsoft-prod.deb
-	
-	# Installer dotnet runtime si nécessaire
-	sudo apt-get update
-	sudo apt-get install -y dotnet-runtime-7.0
-	
-	
-	install_part "Commander"  "https://github.com/Fropops/FractalC2/raw/refs/heads/main/Install/Commander.zip"
-	chmod +x "$BASE_DIR/Commander/Commander"
+    # Installer dotnet runtime si necessaire
+    ensure_dotnet_runtime "dotnet-runtime-7.0"
 
-	# Mise à jour du Commander appsettings.json
-	COMMANDER_SETTINGS="$BASE_DIR/Commander/appsettings.json"
-	jq --arg key "$USER_API_KEY" '.Api.ApiKey = $key' "$COMMANDER_SETTINGS" > "$COMMANDER_SETTINGS.tmp" && mv "$COMMANDER_SETTINGS.tmp" "$COMMANDER_SETTINGS"
+    install_part "Commander" "https://github.com/Fropops/FractalC2/raw/refs/heads/main/Install/Commander.zip"
+    chmod +x "$BASE_DIR/Commander/Commander"
+
+    # Mise a jour du Commander appsettings.json
+    COMMANDER_SETTINGS="$BASE_DIR/Commander/appsettings.json"
+    jq --arg key "$USER_API_KEY" '.Api.ApiKey = $key' "$COMMANDER_SETTINGS" > "$COMMANDER_SETTINGS.tmp" && mv "$COMMANDER_SETTINGS.tmp" "$COMMANDER_SETTINGS"
 }
 
 # Installer selon le choix
 case "$INSTALL_PART" in
     All)
         install_TeamServer
-		install_WebCommander
-		install_Commander
+        install_WebCommander
+        install_Commander
         ;;
     TeamServer)
         install_TeamServer
         ;;
     WebCommander)
         install_WebCommander
-		;;
-	Commander)
+        ;;
+    Commander)
         install_Commander
         ;;
     *)
@@ -136,84 +136,79 @@ case "$INSTALL_PART" in
         ;;
 esac
 
-
 run_TeamServer() {
-	cd "$BASE_DIR/TeamServer"
-	sudo ./TeamServer &
-	echo "TeamServer started."
+    cd "$BASE_DIR/TeamServer"
+    sudo ./TeamServer &
+    echo "TeamServer started."
 }
 
 run_WebCommander() {
-	cd "$BASE_DIR/WebCommander"
-	sudo ./WebCommanderHost &
-	echo "WebCommander started."
+    cd "$BASE_DIR/WebCommander"
+    sudo ./WebCommanderHost &
+    echo "WebCommander started."
 }
 
-# Lancer TeamServer si présent et si noRun n'est pas précisé
+# Lancer TeamServer si present et si noRun n'est pas precise
 if [[ "$NO_RUN" != "noRun" ]]; then
-	case "$INSTALL_PART" in
-		All)
-			run_TeamServer
-			run_WebCommander
-			;;
-		TeamServer)
-			run_TeamServer
-			;;
-		WebCommander)
-			run_WebCommander
-			;;
-		Commander)
-			;;
-		*)
-		echo "Invalid option: $INSTALL_PART"
-		echo "Usage: $0 [All|TeamServer|Commander]"
-		exit 1
-		;;
-	esac
+    case "$INSTALL_PART" in
+        All)
+            run_TeamServer
+            run_WebCommander
+            ;;
+        TeamServer)
+            run_TeamServer
+            ;;
+        WebCommander)
+            run_WebCommander
+            ;;
+        Commander)
+            ;;
+        *)
+            echo "Invalid option: $INSTALL_PART"
+            echo "Usage: $0 [All|TeamServer|Commander]"
+            exit 1
+            ;;
+    esac
 else
     echo "Skipping run (noRun flag detected)"
 fi
 
 show_WebCommander() {
-	echo -e "\e[32m[?]\e[0m Web Commander"
-	echo -e "\e[36m[*]\e[0m Running at http://127.0.0.1:5001"
+    echo -e "\e[32m[?]\e[0m Web Commander"
+    echo -e "\e[36m[*]\e[0m Running at http://127.0.0.1:5001"
 }
 
 show_TeamServer() {
-	echo -e "\e[32m[?]\e[0m Team Server"
-	echo -e "\e[36m[*]\e[0m Running at http://127.0.0.1:5000"
-	echo -e "\e[36m[*]\e[0m User : Admin"
-	echo -e "\e[36m[*]\e[0m API Key : $USER_API_KEY"
+    echo -e "\e[32m[?]\e[0m Team Server"
+    echo -e "\e[36m[*]\e[0m Running at http://127.0.0.1:5000"
+    echo -e "\e[36m[*]\e[0m User : Admin"
+    echo -e "\e[36m[*]\e[0m API Key : $USER_API_KEY"
 }
 
 show_Commander() {
-	echo -e "\e[32m[?]\e[0m Web Commander"
-	echo -e "\e[36m[*]\e[0m Running at http://127.0.0.1:5001"
+    echo -e "\e[32m[?]\e[0m Commander"
+    echo -e "\e[36m[*]\e[0m Installed in $BASE_DIR/Commander"
 }
 
 case "$INSTALL_PART" in
-	All)
-		show_TeamServer
-		show_WebCommander
-		;;
-	TeamServer)
-		show_TeamServer
-		;;
-	WebCommander)
-		show_WebCommander
-		;;
-	Commander)
-		show_Commander
-		;;
-	*)
-	echo "Invalid option: $INSTALL_PART"
-	echo "Usage: $0 [All|TeamServer|Commander]"
-	exit 1
-	;;
+    All)
+        show_TeamServer
+        show_WebCommander
+        ;;
+    TeamServer)
+        show_TeamServer
+        ;;
+    WebCommander)
+        show_WebCommander
+        ;;
+    Commander)
+        show_Commander
+        ;;
+    *)
+        echo "Invalid option: $INSTALL_PART"
+        echo "Usage: $0 [All|TeamServer|Commander]"
+        exit 1
+        ;;
 esac
 
 echo "Installation completed."
-
-
-
-
