@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.StaticFiles;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    WebRootPath = "wwwroot"
+});
 
 // Configure Kestrel pour écouter sur toutes les interfaces
 builder.WebHost.ConfigureKestrel(serverOptions =>
@@ -8,9 +12,6 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.ListenAnyIP(5001); // HTTP
     // serverOptions.ListenAnyIP(5002, o => o.UseHttps()); // HTTPS si besoin
 });
-
-// Configure le chemin vers les fichiers WebAssembly
-builder.WebHost.UseWebRoot("wwwroot");
 
 var app = builder.Build();
 
