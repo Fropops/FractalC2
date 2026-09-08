@@ -12,7 +12,7 @@ function Update-ProjectVersion {
         return
     }
 
-    Write-Host "?? Mise à jour de la version pour le projet : $ProjectPath"
+    Write-Host "?? Mise ï¿½ jour de la version pour le projet : $ProjectPath"
 
     [xml]$xml = Get-Content $ProjectPath
     $updatedCsproj = $false
@@ -48,7 +48,7 @@ function Update-ProjectVersion {
 
     if ($updatedCsproj) {
         $xml.Save($ProjectPath)
-        Write-Host "?? Version mise à jour dans le .csproj"
+        Write-Host "?? Version mise ï¿½ jour dans le .csproj"
     }
 
     # AssemblyInfo.cs
@@ -56,11 +56,11 @@ function Update-ProjectVersion {
     $assemblyInfo = Get-ChildItem -Path $projectDir -Recurse -Filter "AssemblyInfo.cs" | Select-Object -First 1
 
     if (-not $assemblyInfo) {
-        Write-Warning "?? Aucun fichier AssemblyInfo.cs trouvé."
+        Write-Warning "?? Aucun fichier AssemblyInfo.cs trouvï¿½."
         return
     }
 
-    Write-Host "?? Fichier AssemblyInfo détecté : $($assemblyInfo.FullName)"
+    Write-Host "?? Fichier AssemblyInfo dï¿½tectï¿½ : $($assemblyInfo.FullName)"
     $content = Get-Content $assemblyInfo.FullName
     $newContent = @()
     $updatedAsm = $false
@@ -80,7 +80,7 @@ function Update-ProjectVersion {
 
             $newVersion = ($versionParts -join '.')
             $newline = "[assembly: $($matches[1])(`"$newVersion`")]"
-            Write-Host "? Mise à jour $($matches[1]): $($matches[2]) ? $newVersion"
+            Write-Host "? Mise ï¿½ jour $($matches[1]): $($matches[2]) ? $newVersion"
             $newContent += $newline
             $updatedAsm = $true
         } else {
@@ -90,9 +90,9 @@ function Update-ProjectVersion {
 
     if ($updatedAsm) {
         Set-Content -Path $assemblyInfo.FullName -Value $newContent -Encoding UTF8
-        Write-Host "?? Version mise à jour dans AssemblyInfo.cs"
+        Write-Host "?? Version mise ï¿½ jour dans AssemblyInfo.cs"
     } elseif (-not $updatedCsproj) {
-        Write-Host "?? Aucune version trouvée à mettre à jour."
+        Write-Host "?? Aucune version trouvï¿½e ï¿½ mettre ï¿½ jour."
     }
 }
 
@@ -111,7 +111,7 @@ function Release-FractalC2 {
     $buildDir = "E:\Share\Projects\FractalC2\tmpbuild"
     $baseDir = "E:\Share\Projects\FractalC2\"
 
-    # Créer dossier temporaire
+    # Crï¿½er dossier temporaire
     if (-not (Test-Path $buildDir)) { New-Item -ItemType Directory -Path $buildDir | Out-Null }
 
 	# Dossiers de source
@@ -152,7 +152,7 @@ function Release-FractalC2 {
     }
 	
 
-    # Fonction pour créer un zip par cible
+    # Fonction pour crï¿½er un zip par cible
     function Zip-Target {
         param (
             [string]$targetName,
@@ -161,7 +161,7 @@ function Release-FractalC2 {
         $zipPath = "$baseDir\Install\$targetName.zip"
         if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
         Compress-Archive -Path "$sourceDir\*" -DestinationPath $zipPath -Force
-        Write-Host "ZIP créé : $zipPath"
+        Write-Host "ZIP crï¿½ï¿½ : $zipPath"
     }
 	
 	# --- Partie Debug Agent ---
@@ -215,7 +215,7 @@ function Release-FractalC2 {
 		$destDirs = @($destx86Dir, $destx64Dir, $destdebugDir)
 		$platforms = @("x86","x64","ReleaseButDebug")
 	
-        Write-Host "Mise à jour de la version de l'Agent Linux..."
+        Write-Host "Mise ï¿½ jour de la version de l'Agent Linux..."
         Update-ProjectVersion -ProjectPath "$baseDir\AgentLinux\AgentLinux.csproj" -IncrementPart $IncrementPart
 
 		Write-Host "Building Linux Agent..."
@@ -240,7 +240,7 @@ function Release-FractalC2 {
 		  -p:StripSymbols=true `
 		  -o $destx64Dir
 		  
-		Write-Host "Mise à jour de la version de l'Agent..."
+		Write-Host "Mise ï¿½ jour de la version de l'Agent..."
         Update-ProjectVersion -ProjectPath "$baseDir\Agent\Agent.csproj" -IncrementPart $IncrementPart
 		
         Write-Host "Building Agent..."
@@ -265,7 +265,7 @@ function Release-FractalC2 {
 
     # --- Partie TeamServer ---
     if ($Target -in @("All","TeamServer")) {
-        Write-Host "Mise à jour de la version de TeamServer..."
+        Write-Host "Mise ï¿½ jour de la version de TeamServer..."
         Update-ProjectVersion -ProjectPath "$baseDir\TeamServer\TeamServer.csproj" -IncrementPart $IncrementPart
 
         Write-Host "Building TeamServer..."
@@ -289,7 +289,7 @@ function Release-FractalC2 {
 
     # --- Partie Commander ---
     if ($Target -in @("All","Commander")) {
-        Write-Host "Mise à jour de la version de Commander..."
+        Write-Host "Mise ï¿½ jour de la version de Commander..."
         Update-ProjectVersion -ProjectPath "$baseDir\Commander\Commander.csproj" -IncrementPart $IncrementPart
 
         Write-Host "Building Commander..."
@@ -313,15 +313,13 @@ function Release-FractalC2 {
 	
 	# --- Partie Commander ---
     if ($Target -in @("All","WebCommander")) {
-        Write-Host "Mise à jour de la version de WebCommander..."
+        Write-Host "Mise ï¿½ jour de la version de WebCommander..."
         Update-ProjectVersion -ProjectPath "$baseDir\WebCommander\WebCommander.csproj" -IncrementPart $IncrementPart
 
         Write-Host "Building WebCommander..."
         Remove-Item "$baseDir\Release\WebCommander" -Force -Recurse -ErrorAction SilentlyContinue
         dotnet publish "$baseDir\WebCommander\WebCommander.csproj" `
             -c Release `
-            -r linux-x64 `
-            --self-contained false `
             /p:Platform="Any CPU" `
             /p:PublishProtocol=FileSystem `
             /p:PublishProvider=FileSystem `
@@ -355,5 +353,5 @@ function Release-FractalC2 {
 		Remove-Item $baseDir\Release -Recurse -Force
 	}
 
-    Write-Host "Build terminé pour $Target."
+    Write-Host "Build terminï¿½ pour $Target."
 }
